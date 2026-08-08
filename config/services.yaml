@@ -7,8 +7,8 @@ services:
       - name: url
         description: Canonical Instagram profile URL.
         format: url
-    provider: {name: scrapecreators}
-    enabled: false
+    provider: {name: scrapecreators, route: https://api.scrapecreators.com/v1/instagram/profile, method: GET}
+    enabled: true
     public: false
     timeout_seconds: 25
     retries: 1
@@ -22,8 +22,8 @@ services:
       - name: url
         description: Canonical Instagram post or reel URL.
         format: url
-    provider: {name: scrapecreators}
-    enabled: false
+    provider: {name: scrapecreators, route: https://api.scrapecreators.com/v1/instagram/post, method: GET}
+    enabled: true
     public: false
     timeout_seconds: 25
     retries: 1
