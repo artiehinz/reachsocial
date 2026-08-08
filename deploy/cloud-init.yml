@@ -13,4 +13,6 @@ runcmd:
   - apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
   - useradd --create-home --shell /bin/bash reachsocial
   - usermod -aG docker reachsocial
+  - install -d -o reachsocial -g reachsocial -m 0700 /home/reachsocial/.ssh
+  - install -o reachsocial -g reachsocial -m 0600 /root/.ssh/authorized_keys /home/reachsocial/.ssh/authorized_keys
   - install -d -o reachsocial -g reachsocial -m 0750 /opt/reachsocial
