@@ -8,4 +8,7 @@ def test_health_and_mcp_gate() -> None:
         assert client.get("/healthz").json() == {"status": "ok"}
         assert client.get("/readyz").json()["status"] == "ready"
         assert client.post("/mcp").status_code == 503
-        assert client.get("/v1/services").json() == {"services": []}
+        assert [item["id"] for item in client.get("/v1/services").json()["services"]] == [
+            "instagram.profile",
+            "instagram.post",
+        ]
