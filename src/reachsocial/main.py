@@ -68,14 +68,20 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
 
 def create_app() -> FastAPI:
+    settings = get_settings()
     app = FastAPI(
         title="ReachSocial API",
         summary="Provider-neutral social data services for B2B clients and agents.",
         version="0.1.0",
         lifespan=lifespan,
+        servers=[
+            {
+                "url": str(settings.public_base_url).rstrip("/"),
+                "description": "Public ReachSocial API",
+            }
+        ],
     )
     app.add_middleware(RequestLoggingMiddleware)
-    settings = get_settings()
     if settings.x402_enabled:
         if not x402_is_configured(settings):
             raise RuntimeError(

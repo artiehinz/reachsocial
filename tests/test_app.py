@@ -16,6 +16,9 @@ def test_health_and_mcp_gate() -> None:
         assert client.get("/legal/acceptable-use").status_code == 200
         assert client.get("/legal/refunds").status_code == 200
         assert client.get("/docs/api").status_code == 200
+        assert client.get("/openapi.json").json()["servers"] == [
+            {"url": "http://localhost:8000", "description": "Public ReachSocial API"}
+        ]
         assert client.get("/healthz").json() == {"status": "ok"}
         assert client.get("/readyz").json()["status"] == "ready"
         assert client.post("/mcp").status_code == 503
