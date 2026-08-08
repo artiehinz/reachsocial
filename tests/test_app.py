@@ -5,6 +5,9 @@ from reachsocial.main import app
 
 def test_health_and_mcp_gate() -> None:
     with TestClient(app) as client:
+        assert client.get("/").status_code == 200
+        assert client.get("/catalog").status_code == 200
+        assert client.get("/docs/api").status_code == 200
         assert client.get("/healthz").json() == {"status": "ok"}
         assert client.get("/readyz").json()["status"] == "ready"
         assert client.post("/mcp").status_code == 503

@@ -123,13 +123,17 @@ def create_app() -> FastAPI:
     @app.get("/", include_in_schema=False)
     async def home(request: Request):
         return templates.TemplateResponse(
-            "home.html", {"request": request, "catalog": request.app.state.catalog}
+            request=request,
+            name="home.html",
+            context={"catalog": request.app.state.catalog},
         )
 
     @app.get("/catalog", include_in_schema=False)
     async def catalog_page(request: Request):
         return templates.TemplateResponse(
-            "catalog.html", {"request": request, "catalog": request.app.state.catalog}
+            request=request,
+            name="catalog.html",
+            context={"catalog": request.app.state.catalog},
         )
 
     @app.get("/services/{service_id}", include_in_schema=False)
@@ -137,13 +141,20 @@ def create_app() -> FastAPI:
         service = request.app.state.catalog.by_id(service_id)
         if service is None:
             return templates.TemplateResponse(
-                "not_found.html", {"request": request}, status_code=404
+                request=request,
+                name="not_found.html",
+                context={},
+                status_code=404,
             )
-        return templates.TemplateResponse("service.html", {"request": request, "service": service})
+        return templates.TemplateResponse(
+            request=request,
+            name="service.html",
+            context={"service": service},
+        )
 
     @app.get("/docs/api", include_in_schema=False)
     async def docs_page(request: Request):
-        return templates.TemplateResponse("docs.html", {"request": request})
+        return templates.TemplateResponse(request=request, name="docs.html", context={})
 
     return app
 
