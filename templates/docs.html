@@ -1,8 +1,9 @@
 {% extends "base.html" %}
 {% block title %}API docs — ReachSocial{% endblock %}
 {% block content %}
-<section><p class="eyebrow">DEVELOPER DOCS</p><h1>One execution contract</h1><p>Use <code>POST /v1/resolve</code> to classify a social URL, then call <code>POST /v1/services/{service_id}/execute</code> with a B2B API key.</p><pre>Authorization: Bearer rs_live_...
+<section><p class="eyebrow">DEVELOPER DOCS</p><h1>One execution contract</h1><p>B2B clients use <code>POST /v1/resolve</code> to classify a social URL, then call <code>POST /v1/services/{service_id}/execute</code> with a private API key.</p><pre>Authorization: Bearer rs_live_...
 Idempotency-Key: your-unique-request-key
 
 {"input":{"url":"https://www.instagram.com/example/"}}</pre><p>Generated machine-readable documentation is available at <a href="/openapi.json">/openapi.json</a>. Remote MCP and x402 routes are enabled only after their production credentials are verified.</p></section>
+<section><h2>x402 public REST</h2><p>Public enabled services return <code>402 Payment Required</code> with a <code>PAYMENT-REQUIRED</code> header. An x402-compatible buyer signs the requested payment and retries with <code>PAYMENT-SIGNATURE</code>. Base Sepolia is used for the current public test phase; B2B Bearer calls remain payment-free.</p><p>Use an idempotency key for B2B retries. Never send a B2B API key or wallet private key to a browser.</p></section>
 {% endblock %}

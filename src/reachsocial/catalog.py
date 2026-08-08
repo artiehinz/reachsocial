@@ -37,6 +37,7 @@ class ServiceDefinition(BaseModel):
     retries: int = Field(default=0, ge=0, le=2)
     cache_ttl_seconds: int | None = Field(default=None, ge=0, le=86400)
     estimated_upstream_cost_cents: int = Field(default=0, ge=0)
+    cost_verified: bool = False
     price_cents: int = Field(default=5, ge=0)
     docs: str = ""
 

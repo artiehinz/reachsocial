@@ -24,6 +24,11 @@ class Settings(BaseSettings):
     x402_facilitator_url: str = ""
     cdp_api_key_id: str = ""
     cdp_api_key_secret: str = ""
+    support_email: str = "support@reachsocial.dev"
+    external_backup_enabled: bool = False
+    allow_mainnet_x402: bool = False
+    minimum_public_margin_cents: int = Field(default=1, ge=1)
+    maintenance_interval_hours: int = Field(default=24, ge=1, le=168)
     default_rate_limit_per_minute: int = Field(default=30, ge=1, le=10000)
     default_concurrency_limit: int = Field(default=2, ge=1, le=1000)
     default_daily_spend_cents: int = Field(default=5000, ge=0)

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import logging
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -15,8 +16,9 @@ from .catalog import get_catalog
 from .config import get_settings
 from .db import init_db
 from .errors import ReachSocialError
+from .maintenance import prune_operational_records
 from .observability import RequestLoggingMiddleware, configure_logging
-from .payments import ReachSocialX402Middleware, x402_is_configured
+from .payments import ReachSocialX402Middleware, mainnet_x402_safety_errors, x402_is_configured
 from .runtime import RuntimeState
 from .services import ExecutionService, sync_service_records
 
@@ -39,10 +41,30 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     app.state.catalog = catalog
     app.state.runtime = RuntimeState()
     app.state.executor = ExecutionService(catalog, app.state.runtime)
+    async def maintenance_loop() -> None:
+        while True:
+            try:
+                deleted_requests, deleted_idempotency = await asyncio.to_thread(
+                    prune_operational_records
+                )
+                logging.getLogger("reachsocial").info(
+                    "maintenance_pruned requests=%s idempotency=%s",
+                    deleted_requests,
+                    deleted_idempotency,
+                )
+            except Exception:
+                logging.getLogger("reachsocial").exception("maintenance_prune_failed")
+            await asyncio.sleep(settings.maintenance_interval_hours * 60 * 60)
+
+    maintenance_task = asyncio.create_task(maintenance_loop())
     logging.getLogger("reachsocial").info(
         "ReachSocial started with %s services", len(catalog.services)
     )
-    yield
+    try:
+        yield
+    finally:
+        maintenance_task.cancel()
+        await asyncio.gather(maintenance_task, return_exceptions=True)
 
 
 def create_app() -> FastAPI:
@@ -60,6 +82,9 @@ def create_app() -> FastAPI:
                 "X402_ENABLED requires CDP_API_KEY_ID, CDP_API_KEY_SECRET, "
                 "X402_PAY_TO, and X402_FACILITATOR_URL"
             )
+        mainnet_errors = mainnet_x402_safety_errors(settings, get_catalog())
+        if mainnet_errors:
+            raise RuntimeError("Base mainnet x402 is blocked: " + "; ".join(mainnet_errors))
         app.add_middleware(
             ReachSocialX402Middleware,
             settings=settings,
@@ -111,6 +136,15 @@ def create_app() -> FastAPI:
             session.execute(text("SELECT 1"))
         return {"status": "ready", "services": len(request.app.state.catalog.services)}
 
+    @app.get("/status.json", include_in_schema=False)
+    async def status_json(request: Request) -> dict[str, object]:
+        settings = request.app.state.settings
+        return {
+            "status": "operational",
+            "services": len(request.app.state.catalog.public_services()),
+            "network": settings.x402_network if settings.x402_enabled else "payments-disabled",
+        }
+
     @app.get("/llms.txt", include_in_schema=False)
     async def llms(request: Request) -> str:
         catalog = request.app.state.catalog
@@ -155,6 +189,49 @@ def create_app() -> FastAPI:
     @app.get("/docs/api", include_in_schema=False)
     async def docs_page(request: Request):
         return templates.TemplateResponse(request=request, name="docs.html", context={})
+
+    @app.get("/pricing", include_in_schema=False)
+    async def pricing_page(request: Request):
+        return templates.TemplateResponse(
+            request=request,
+            name="pricing.html",
+            context={"catalog": request.app.state.catalog},
+        )
+
+    @app.get("/status", include_in_schema=False)
+    async def status_page(request: Request):
+        return templates.TemplateResponse(
+            request=request,
+            name="status.html",
+            context={"catalog": request.app.state.catalog},
+        )
+
+    @app.get("/contact", include_in_schema=False)
+    async def contact_page(request: Request):
+        return templates.TemplateResponse(
+            request=request,
+            name="contact.html",
+            context={"support_email": request.app.state.settings.support_email},
+        )
+
+    @app.get("/legal/{document}", include_in_schema=False)
+    async def legal_page(document: str, request: Request):
+        pages = {
+            "terms": ("Terms of Service", "terms.html"),
+            "privacy": ("Privacy Notice", "privacy.html"),
+            "acceptable-use": ("Acceptable Use", "acceptable_use.html"),
+            "refunds": ("Refund Policy", "refunds.html"),
+        }
+        page = pages.get(document)
+        if page is None:
+            return templates.TemplateResponse(
+                request=request, name="not_found.html", context={}, status_code=404
+            )
+        return templates.TemplateResponse(
+            request=request,
+            name=page[1],
+            context={"title": page[0], "support_email": request.app.state.settings.support_email},
+        )
 
     return app
 

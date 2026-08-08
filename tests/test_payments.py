@@ -1,16 +1,25 @@
 from __future__ import annotations
 
+from contextlib import contextmanager
+from types import SimpleNamespace
+
 from fastapi import Request
+from sqlalchemy import select
 from x402.http.middleware.fastapi import FastAPIAdapter
 from x402.http.types import HTTPRequestContext
 
 from reachsocial.catalog import Catalog, InputField, ProviderConfig, ServiceDefinition
 from reachsocial.config import Settings
+from reachsocial.models import PaymentReceipt
 from reachsocial.payments import (
     create_x402_payment_handler,
     is_b2b_request,
+    mainnet_x402_safety_errors,
+    payment_id_from_payload,
     price_for_public_execution,
+    reserve_payment_receipt,
     service_id_from_path,
+    usdc_atomic_to_cents,
 )
 
 
@@ -99,3 +108,65 @@ def test_x402_handler_builds_without_contacting_the_facilitator() -> None:
     handler = create_x402_payment_handler(settings, Catalog(services=[]))
 
     assert callable(handler)
+
+
+def test_mainnet_is_blocked_until_backup_and_costs_are_verified() -> None:
+    settings = Settings(
+        x402_enabled=True,
+        x402_network="eip155:8453",
+        x402_pay_to="0x457d76fb1a0ce5414df9261179bf8547d58d3f86",
+        x402_facilitator_url="https://api.cdp.coinbase.com/platform/v2/x402",
+        cdp_api_key_id="test-key-id",
+        cdp_api_key_secret="test-key-secret",
+    )
+    catalog = Catalog(
+        services=[
+            ServiceDefinition(
+                id="instagram.profile",
+                title="Instagram Profile",
+                platform="Instagram",
+                description="Test service",
+                input_fields=[InputField(name="url", description="URL", format="url")],
+                provider=ProviderConfig(name="mock"),
+                enabled=True,
+                public=True,
+            )
+        ]
+    )
+
+    errors = mainnet_x402_safety_errors(settings, catalog)
+
+    assert "ALLOW_MAINNET_X402=true is required" in errors
+    assert "EXTERNAL_BACKUP_ENABLED=true is required" in errors
+    assert "instagram.profile needs a verified upstream cost" in errors
+
+
+def test_payment_receipt_reservation_rejects_a_replayed_payload(session, monkeypatch) -> None:
+    @contextmanager
+    def session_factory():
+        yield session
+
+    monkeypatch.setattr("reachsocial.payments.SessionLocal", session_factory)
+    payload = {"x402Version": 2, "payload": {"signature": "signature"}}
+    context = SimpleNamespace(
+        payment_payload=payload,
+        requirements=SimpleNamespace(network="eip155:84532", amount="50000"),
+        result=SimpleNamespace(payer="0xbuyer"),
+        transport_context=SimpleNamespace(
+            request=SimpleNamespace(path="/v1/services/instagram.profile/execute")
+        ),
+    )
+
+    assert reserve_payment_receipt(context) is None
+    replay = reserve_payment_receipt(context)
+
+    assert replay is not None
+    receipt = session.scalar(select(PaymentReceipt))
+    assert receipt is not None
+    assert receipt.payment_id == payment_id_from_payload(payload)
+    assert receipt.status == "verified"
+    assert receipt.amount_cents == 5
+
+
+def test_usdc_atomic_amount_is_reported_as_cents() -> None:
+    assert usdc_atomic_to_cents("50000") == 5

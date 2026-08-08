@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 
 from .catalog import Catalog, ServiceDefinition
 from .db import get_session
-from .models import Client, RequestLog
+from .models import Client, PaymentReceipt, RequestLog
 from .normalizer import resolve_url
 from .payments import PUBLIC_X402_CLIENT_NAME, x402_is_configured
 from .security import generate_api_key, hash_api_key, verify_api_key
@@ -114,6 +114,13 @@ def get_executor(request: Request) -> ExecutionService:
     return request.app.state.executor
 
 
+def _percentile(values: list[int], percentile: float) -> int | None:
+    if not values:
+        return None
+    position = max(0, min(len(values) - 1, round((len(values) - 1) * percentile)))
+    return sorted(values)[position]
+
+
 @router.get("/services")
 def list_services(catalog: Catalog = Depends(get_catalog)) -> dict[str, list[dict[str, Any]]]:
     return {"services": [service_summary(service) for service in catalog.public_services()]}
@@ -188,13 +195,33 @@ def owner_overview(
     _admin: None = Depends(require_admin),
 ) -> dict[str, Any]:
     """This route is additionally protected by Caddy Basic Auth in production."""
-    requests = session.scalar(select(func.count(RequestLog.id))) or 0
-    errors = (
-        session.scalar(select(func.count(RequestLog.id)).where(RequestLog.status == "error")) or 0
-    )
+    request_rows = list(session.scalars(select(RequestLog)))
+    payment_rows = list(session.scalars(select(PaymentReceipt)))
+    requests = len(request_rows)
+    errors = sum(row.status == "error" for row in request_rows)
+    successes = sum(row.status == "success" for row in request_rows)
+    latencies = [row.latency_ms for row in request_rows if row.latency_ms is not None]
+    cache_hits = sum(row.cache_hit for row in request_rows)
+    settled_payments = [row for row in payment_rows if row.status == "settled"]
     return {
         "clients": session.scalar(select(func.count(Client.id))) or 0,
         "requests": requests,
         "errors": errors,
+        "successes": successes,
+        "error_rate": round(errors / requests, 4) if requests else 0,
+        "latency_ms": {"p50": _percentile(latencies, 0.5), "p95": _percentile(latencies, 0.95)},
+        "cache_hits": cache_hits,
+        "cache_hit_rate": round(cache_hits / requests, 4) if requests else 0,
+        "upstream_cost_cents": sum(row.upstream_cost_cents for row in request_rows),
+        "b2b_revenue_cents": sum(row.charged_cents for row in request_rows),
+        "payment_receipts": {
+            "total": len(payment_rows),
+            "settled": len(settled_payments),
+            "failed_or_canceled": sum(
+                row.status in {"canceled", "settlement_failed"} for row in payment_rows
+            ),
+            "public_revenue_cents": sum(row.amount_cents for row in settled_payments),
+        },
+        "spend_limit_events": sum(row.error_code == "limit_exceeded" for row in request_rows),
         "enabled_services": len([service for service in catalog.services if service.enabled]),
     }

@@ -1,0 +1,5 @@
+{% extends "base.html" %}
+{% block title %}Pricing — ReachSocial{% endblock %}
+{% block content %}
+<section><p class="eyebrow">USAGE PRICING</p><h1>Pay per verified call.</h1><p>Public REST prices are fixed per successful x402 call. B2B pricing and limits are agreed per client.</p><div class="cards">{% for service in catalog.public_services() %}<article><p class="eyebrow">{{ service.platform }}</p><h2>{{ service.title }}</h2><p>${{ '%.2f'|format(service.price_cents / 100) }} per call</p><a class="button secondary" href="/services/{{ service.id }}">Service details</a></article>{% endfor %}</div></section>
+{% endblock %}
