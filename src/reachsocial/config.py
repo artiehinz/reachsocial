@@ -24,7 +24,7 @@ class Settings(BaseSettings):
     x402_facilitator_url: str = ""
     cdp_api_key_id: str = ""
     cdp_api_key_secret: str = ""
-    support_email: str = "support@reachsocial.dev"
+    support_email: str = "hello@artiehinz.com"
     external_backup_enabled: bool = False
     allow_mainnet_x402: bool = False
     minimum_public_margin_cents: int = Field(default=1, ge=1)
