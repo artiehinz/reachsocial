@@ -26,10 +26,12 @@ services:
     depends_on:
       app:
         condition: service_healthy
+    env_file:
+      - path: .env
+        required: false
     environment:
       REACHSOCIAL_DOMAIN: ${REACHSOCIAL_DOMAIN:-localhost}
       REACHSOCIAL_ADMIN_USER: ${REACHSOCIAL_ADMIN_USER:-owner}
-      REACHSOCIAL_ADMIN_PASSWORD_HASH: ${REACHSOCIAL_ADMIN_PASSWORD_HASH:?set an bcrypt hash}
     ports:
       - "80:80"
       - "443:443"

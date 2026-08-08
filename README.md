@@ -30,10 +30,16 @@ or commit it.
 `deploy/.env.production.example` documents the protected host environment.
 Provision a dedicated `tor1` Droplet, firewall, persistent volume, and DNS first.
 The deployment workflow expects separate `REACHSOCIAL_*` GitHub secrets.
+Docker Compose reads the Caddy bcrypt hash from the protected `.env` file. Put
+that value in single quotes (as in the production template) so its `$` characters
+remain literal; the quotes are not part of the hash.
 
 Provider services remain disabled until their route, credentials, price, and
-contract tests are configured. MCP is B2B-only when enabled. x402 is fail-closed
-until the Base wallet and facilitator configuration are supplied and tested.
+contract tests are configured. MCP is B2B-only when enabled. x402 uses the CDP
+facilitator with short-lived server-side JWTs when enabled; B2B Bearer-key calls
+remain payment-free. Keep `X402_ENABLED=false` until a Base Sepolia payment test
+succeeds, then switch the network to `eip155:8453` only when the receiving wallet
+is intended to accept mainnet USDC.
 
 Schedule `uv run python scripts/prune_retention.py` daily on the production host
 and `scripts/backup_sqlite.sh` after installing `sqlite3` and configuring its

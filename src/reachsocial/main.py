@@ -16,6 +16,7 @@ from .config import get_settings
 from .db import init_db
 from .errors import ReachSocialError
 from .observability import RequestLoggingMiddleware, configure_logging
+from .payments import ReachSocialX402Middleware, x402_is_configured
 from .runtime import RuntimeState
 from .services import ExecutionService, sync_service_records
 
@@ -52,9 +53,20 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
     )
     app.add_middleware(RequestLoggingMiddleware)
+    settings = get_settings()
+    if settings.x402_enabled:
+        if not x402_is_configured(settings):
+            raise RuntimeError(
+                "X402_ENABLED requires CDP_API_KEY_ID, CDP_API_KEY_SECRET, "
+                "X402_PAY_TO, and X402_FACILITATOR_URL"
+            )
+        app.add_middleware(
+            ReachSocialX402Middleware,
+            settings=settings,
+            catalog=get_catalog(),
+        )
     app.mount("/static", StaticFiles(directory=str(ROOT / "static")), name="static")
     app.include_router(api_router)
-    settings = get_settings()
     if settings.mcp_enabled:
         from .mcp import make_mcp_app
 

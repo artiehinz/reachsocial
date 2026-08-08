@@ -13,6 +13,8 @@ dependencies = [
   "jinja2>=3.1,<4",
   "PyYAML>=6.0,<7",
   "mcp>=1.8,<3",
+  "x402[evm,fastapi]>=2.18.0",
+  "cdp-sdk>=1.47.1",
 ]
 
 [dependency-groups]

@@ -12,8 +12,8 @@ from .catalog import Catalog, ServiceDefinition
 from .db import get_session
 from .models import Client, RequestLog
 from .normalizer import resolve_url
-from .payments import require_x402_payment
-from .security import verify_api_key
+from .payments import PUBLIC_X402_CLIENT_NAME, x402_is_configured
+from .security import generate_api_key, hash_api_key, verify_api_key
 from .services import ExecutionService
 
 router = APIRouter(prefix="/v1", tags=["API"])
@@ -77,6 +77,26 @@ def require_client(client: Client | None = Depends(optional_client)) -> Client:
     return client
 
 
+def get_x402_public_client(session: Session, request: Request) -> Client:
+    """Return the non-secret internal client used to account for settled x402 calls."""
+    existing = session.scalar(select(Client).where(Client.name == PUBLIC_X402_CLIENT_NAME))
+    if existing is not None:
+        return existing
+    settings = request.app.state.settings
+    client = Client(
+        name=PUBLIC_X402_CLIENT_NAME,
+        api_key_hash=hash_api_key(generate_api_key()),
+        billing_mode="external",
+        rate_limit_per_minute=settings.default_rate_limit_per_minute,
+        concurrency_limit=settings.default_concurrency_limit,
+        # Per-call x402 is prepaid. Do not impose the B2B daily-credit ceiling.
+        daily_spend_cents=2_147_483_647,
+    )
+    session.add(client)
+    session.commit()
+    return client
+
+
 def require_admin(
     request: Request,
     admin_token: Annotated[str | None, Header(alias="X-Admin-Token")] = None,
@@ -135,7 +155,23 @@ async def execute_service(
             raise HTTPException(
                 status_code=401, detail={"code": "unauthenticated", "message": "API key required"}
             )
-        require_x402_payment(service, request.app.state.settings)
+        settings = request.app.state.settings
+        if not settings.x402_enabled:
+            raise HTTPException(
+                status_code=503,
+                detail={"code": "payments_disabled", "message": "Public payments are not enabled"},
+            )
+        if not x402_is_configured(settings):
+            raise HTTPException(
+                status_code=503,
+                detail={"code": "payments_unconfigured", "message": "Payment verifier is not configured"},
+            )
+        if not hasattr(request.state, "payment_requirements"):
+            raise HTTPException(
+                status_code=402,
+                detail={"code": "payment_required", "message": "x402 payment required"},
+            )
+        client = get_x402_public_client(session, request)
     return await executor.execute(
         session,
         client=client,
