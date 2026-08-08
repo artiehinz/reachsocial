@@ -1,14 +1,10 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
-from urllib.parse import urlparse
-
-from cdp.auth.utils.jwt import JwtOptions, generate_jwt
+from cdp.x402 import create_facilitator_config
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
-from x402.http import AuthHeaders, FacilitatorConfig, HTTPFacilitatorClient
-from x402.http.facilitator_client_base import AuthProvider
+from x402.http import HTTPFacilitatorClient
 from x402.http.middleware.fastapi import payment_middleware
 from x402.http.types import HTTPRequestContext, PaymentOption, RouteConfig
 from x402.mechanisms.evm.exact import ExactEvmServerScheme
@@ -29,38 +25,6 @@ def service_id_from_path(path: str) -> str | None:
         return None
     service_id = path.removeprefix(prefix).removesuffix(suffix)
     return service_id or None
-
-
-@dataclass(frozen=True)
-class CdpFacilitatorAuthProvider(AuthProvider):
-    """Generate a separate short-lived CDP JWT for each facilitator endpoint."""
-
-    api_key_id: str
-    api_key_secret: str
-    facilitator_url: str
-
-    def _authorization_header(self, method: str, endpoint: str) -> dict[str, str]:
-        parsed = urlparse(self.facilitator_url)
-        if not parsed.scheme or not parsed.netloc:
-            raise ValueError("X402_FACILITATOR_URL must be an absolute URL")
-        base_path = parsed.path.rstrip("/")
-        token = generate_jwt(
-            JwtOptions(
-                api_key_id=self.api_key_id,
-                api_key_secret=self.api_key_secret,
-                request_method=method,
-                request_host=parsed.netloc,
-                request_path=f"{base_path}/{endpoint}",
-            )
-        )
-        return {"Authorization": f"Bearer {token}"}
-
-    def get_auth_headers(self) -> AuthHeaders:
-        return AuthHeaders(
-            supported=self._authorization_header("GET", "supported"),
-            verify=self._authorization_header("POST", "verify"),
-            settle=self._authorization_header("POST", "settle"),
-        )
 
 
 def x402_is_configured(settings: Settings) -> bool:
@@ -96,14 +60,11 @@ def create_x402_payment_handler(settings: Settings, catalog: Catalog):
             "X402_PAY_TO, and X402_FACILITATOR_URL"
         )
 
-    auth_provider = CdpFacilitatorAuthProvider(
+    facilitator_config = create_facilitator_config(
         api_key_id=settings.cdp_api_key_id,
         api_key_secret=settings.cdp_api_key_secret,
-        facilitator_url=settings.x402_facilitator_url,
     )
-    facilitator = HTTPFacilitatorClient(
-        FacilitatorConfig(url=settings.x402_facilitator_url, auth_provider=auth_provider)
-    )
+    facilitator = HTTPFacilitatorClient(facilitator_config)
     server = x402ResourceServer(facilitator)
     server.register(settings.x402_network, ExactEvmServerScheme())
     return payment_middleware(

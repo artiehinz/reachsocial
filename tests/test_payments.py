@@ -7,7 +7,6 @@ from x402.http.types import HTTPRequestContext
 from reachsocial.catalog import Catalog, InputField, ProviderConfig, ServiceDefinition
 from reachsocial.config import Settings
 from reachsocial.payments import (
-    CdpFacilitatorAuthProvider,
     create_x402_payment_handler,
     is_b2b_request,
     price_for_public_execution,
@@ -15,30 +14,27 @@ from reachsocial.payments import (
 )
 
 
-def test_cdp_auth_uses_a_jwt_for_each_facilitator_endpoint(monkeypatch) -> None:
+def test_x402_uses_the_official_cdp_facilitator_helper(monkeypatch) -> None:
     captured = []
 
-    def fake_generate_jwt(options):  # type: ignore[no-untyped-def]
-        captured.append(options)
-        return f"token-{options.request_path.rsplit('/', 1)[-1]}"
+    def fake_facilitator_config(**kwargs):  # type: ignore[no-untyped-def]
+        captured.append(kwargs)
+        return {"url": "https://api.cdp.coinbase.com/platform/v2/x402"}
 
-    monkeypatch.setattr("reachsocial.payments.generate_jwt", fake_generate_jwt)
-    provider = CdpFacilitatorAuthProvider(
-        api_key_id="key-id",
-        api_key_secret="secret",
-        facilitator_url="https://api.cdp.coinbase.com/platform/v2/x402",
+    monkeypatch.setattr("reachsocial.payments.create_facilitator_config", fake_facilitator_config)
+    settings = Settings(
+        x402_enabled=True,
+        x402_network="eip155:84532",
+        x402_pay_to="0x457d76fb1a0ce5414df9261179bf8547d58d3f86",
+        x402_facilitator_url="https://api.cdp.coinbase.com/platform/v2/x402",
+        cdp_api_key_id="key-id",
+        cdp_api_key_secret="secret",
     )
 
-    headers = provider.get_auth_headers()
+    handler = create_x402_payment_handler(settings, Catalog(services=[]))
 
-    assert headers.supported == {"Authorization": "Bearer token-supported"}
-    assert headers.verify == {"Authorization": "Bearer token-verify"}
-    assert headers.settle == {"Authorization": "Bearer token-settle"}
-    assert {(item.request_method, item.request_host, item.request_path) for item in captured} == {
-        ("GET", "api.cdp.coinbase.com", "/platform/v2/x402/supported"),
-        ("POST", "api.cdp.coinbase.com", "/platform/v2/x402/verify"),
-        ("POST", "api.cdp.coinbase.com", "/platform/v2/x402/settle"),
-    }
+    assert callable(handler)
+    assert captured == [{"api_key_id": "key-id", "api_key_secret": "secret"}]
 
 
 def test_price_is_resolved_from_the_requested_service() -> None:
