@@ -30,7 +30,7 @@ services:
       - path: .env
         required: false
     environment:
-      REACHSOCIAL_DOMAIN: ${REACHSOCIAL_DOMAIN:-localhost}
+      REACHSOCIAL_ADDRESS: ${REACHSOCIAL_ADDRESS:-localhost}
       REACHSOCIAL_ADMIN_USER: ${REACHSOCIAL_ADMIN_USER:-owner}
     ports:
       - "80:80"

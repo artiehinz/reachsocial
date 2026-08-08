@@ -1,4 +1,4 @@
-{$REACHSOCIAL_DOMAIN} {
+{$REACHSOCIAL_ADDRESS} {
     encode zstd gzip
 
     @owner path /v1/owner/*

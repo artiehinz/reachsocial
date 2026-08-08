@@ -33,6 +33,8 @@ The deployment workflow expects separate `REACHSOCIAL_*` GitHub secrets.
 Docker Compose reads the Caddy bcrypt hash from the protected `.env` file. Put
 that value in single quotes (as in the production template) so its `$` characters
 remain literal; the quotes are not part of the hash.
+Set `REACHSOCIAL_ADDRESS` to the production hostname for normal HTTPS. During
+an IP-only deployment, set it to `http://<public-ip>` until DNS is connected.
 
 Provider services remain disabled until their route, credentials, price, and
 contract tests are configured. MCP is B2B-only when enabled. x402 uses the CDP
