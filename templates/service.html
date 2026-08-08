@@ -1,0 +1,5 @@
+{% extends "base.html" %}
+{% block title %}{{ service.title }} — ReachSocial{% endblock %}
+{% block content %}
+<section><p class="eyebrow">{{ service.platform|upper }}</p><h1>{{ service.title }}</h1><p>{{ service.description }}</p><p class="status {{ 'available' if service.enabled and service.public else 'planned' }}">{{ 'Available' if service.enabled and service.public else 'Coming soon' }}</p><h2>Input</h2><ul>{% for field in service.input_fields %}<li><code>{{ field.name }}</code> — {{ field.description }}</li>{% endfor %}</ul>{% if service.enabled and service.public %}<h2>Price</h2><p>${{ '%.2f'|format(service.price_cents / 100) }} per call.</p>{% endif %}</section>
+{% endblock %}

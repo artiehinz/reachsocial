@@ -1,0 +1,41 @@
+name: Deploy production
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: digitalocean/action-doctl@v2
+        with:
+          token: ${{ secrets.REACHSOCIAL_DO_TOKEN }}
+      - name: Build and publish immutable image
+        env:
+          DOCR_REGISTRY: ${{ secrets.REACHSOCIAL_DOCR_REGISTRY }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          doctl registry login --expiry-seconds 1200
+          docker build -t "$DOCR_REGISTRY/reachsocial:$IMAGE_TAG" .
+          docker push "$DOCR_REGISTRY/reachsocial:$IMAGE_TAG"
+      - name: Deploy exact image to the dedicated Droplet
+        env:
+          SSH_HOST: ${{ secrets.REACHSOCIAL_DEPLOY_HOST }}
+          SSH_USER: ${{ secrets.REACHSOCIAL_DEPLOY_USER }}
+          SSH_PRIVATE_KEY: ${{ secrets.REACHSOCIAL_DEPLOY_SSH_KEY }}
+          DEPLOY_PATH: ${{ vars.REACHSOCIAL_DEPLOY_PATH }}
+          DOCR_REGISTRY: ${{ secrets.REACHSOCIAL_DOCR_REGISTRY }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/reachsocial_deploy
+          chmod 600 ~/.ssh/reachsocial_deploy
+          ssh -i ~/.ssh/reachsocial_deploy -o StrictHostKeyChecking=accept-new "$SSH_USER@$SSH_HOST" \
+            "cd '$DEPLOY_PATH' && REACHSOCIAL_IMAGE='$DOCR_REGISTRY/reachsocial:$IMAGE_TAG' docker compose pull app && REACHSOCIAL_IMAGE='$DOCR_REGISTRY/reachsocial:$IMAGE_TAG' docker compose up -d --no-build && docker compose ps"

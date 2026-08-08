@@ -1,0 +1,127 @@
+services:
+  - id: instagram.profile
+    title: Instagram Profile
+    platform: Instagram
+    description: Retrieve public profile metadata from a canonical Instagram profile URL.
+    input_fields:
+      - name: url
+        description: Canonical Instagram profile URL.
+        format: url
+    provider: {name: scrapecreators}
+    enabled: false
+    public: false
+    timeout_seconds: 25
+    retries: 1
+    estimated_upstream_cost_cents: 0
+    price_cents: 5
+  - id: instagram.post
+    title: Instagram Post
+    platform: Instagram
+    description: Retrieve public post or reel metadata and source media URLs.
+    input_fields:
+      - name: url
+        description: Canonical Instagram post or reel URL.
+        format: url
+    provider: {name: scrapecreators}
+    enabled: false
+    public: false
+    timeout_seconds: 25
+    retries: 1
+    estimated_upstream_cost_cents: 0
+    price_cents: 5
+  - id: x.profile
+    title: X Profile
+    platform: X
+    description: Retrieve public X profile metadata.
+    input_fields:
+      - name: url
+        description: Canonical X profile URL.
+        format: url
+    provider: {name: apify}
+    enabled: false
+    public: false
+    price_cents: 5
+  - id: x.post
+    title: X Post
+    platform: X
+    description: Retrieve a public X post.
+    input_fields:
+      - name: url
+        description: Canonical X post URL.
+        format: url
+    provider: {name: apify}
+    enabled: false
+    public: false
+    price_cents: 5
+  - id: tiktok.profile
+    title: TikTok Profile
+    platform: TikTok
+    description: Retrieve public TikTok profile metadata.
+    input_fields:
+      - name: url
+        description: Canonical TikTok profile URL.
+        format: url
+    provider: {name: apify}
+    enabled: false
+    public: false
+    price_cents: 5
+  - id: tiktok.video
+    title: TikTok Video
+    platform: TikTok
+    description: Retrieve public TikTok video metadata and source media URLs.
+    input_fields:
+      - name: url
+        description: Canonical TikTok video URL.
+        format: url
+    provider: {name: apify}
+    enabled: false
+    public: false
+    price_cents: 5
+  - id: linkedin.profile
+    title: LinkedIn Profile
+    platform: LinkedIn
+    description: Retrieve public LinkedIn profile data where available.
+    input_fields:
+      - name: url
+        description: Canonical LinkedIn profile URL.
+        format: url
+    provider: {name: apify}
+    enabled: false
+    public: false
+    price_cents: 15
+  - id: youtube.video
+    title: YouTube Video
+    platform: YouTube
+    description: Planned public YouTube video lookup.
+    input_fields:
+      - name: url
+        description: Canonical YouTube video URL.
+        format: url
+    provider: {name: scrapecreators}
+    enabled: false
+    public: false
+    price_cents: 5
+  - id: facebook.profile
+    title: Facebook Profile
+    platform: Facebook
+    description: Planned public Facebook profile lookup.
+    input_fields:
+      - name: url
+        description: Canonical public Facebook profile URL.
+        format: url
+    provider: {name: scrapecreators}
+    enabled: false
+    public: false
+    price_cents: 5
+  - id: reddit.post
+    title: Reddit Post
+    platform: Reddit
+    description: Planned public Reddit post lookup.
+    input_fields:
+      - name: url
+        description: Canonical Reddit post URL.
+        format: url
+    provider: {name: scrapecreators}
+    enabled: false
+    public: false
+    price_cents: 5

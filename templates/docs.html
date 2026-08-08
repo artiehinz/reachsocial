@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block title %}API docs — ReachSocial{% endblock %}
+{% block content %}
+<section><p class="eyebrow">DEVELOPER DOCS</p><h1>One execution contract</h1><p>Use <code>POST /v1/resolve</code> to classify a social URL, then call <code>POST /v1/services/{service_id}/execute</code> with a B2B API key.</p><pre>Authorization: Bearer rs_live_...
+Idempotency-Key: your-unique-request-key
+
+{"input":{"url":"https://www.instagram.com/example/"}}</pre><p>Generated machine-readable documentation is available at <a href="/openapi.json">/openapi.json</a>. Remote MCP and x402 routes are enabled only after their production credentials are verified.</p></section>
+{% endblock %}

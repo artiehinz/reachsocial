@@ -1,0 +1,10 @@
+{$REACHSOCIAL_DOMAIN} {
+    encode zstd gzip
+
+    @owner path /v1/owner/*
+    basic_auth @owner {
+        {$REACHSOCIAL_ADMIN_USER} {$REACHSOCIAL_ADMIN_PASSWORD_HASH}
+    }
+
+    reverse_proxy app:8000
+}

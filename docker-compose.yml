@@ -1,0 +1,44 @@
+services:
+  app:
+    image: ${REACHSOCIAL_IMAGE:-reachsocial:local}
+    build: .
+    restart: unless-stopped
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      DATABASE_URL: sqlite:////data/reachsocial.db
+      CATALOG_PATH: /app/config/services.yaml
+    expose:
+      - "8000"
+    volumes:
+      - reachsocial_data:/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/healthz')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  caddy:
+    image: caddy:2.10-alpine
+    restart: unless-stopped
+    depends_on:
+      app:
+        condition: service_healthy
+    environment:
+      REACHSOCIAL_DOMAIN: ${REACHSOCIAL_DOMAIN:-localhost}
+      REACHSOCIAL_ADMIN_USER: ${REACHSOCIAL_ADMIN_USER:-owner}
+      REACHSOCIAL_ADMIN_PASSWORD_HASH: ${REACHSOCIAL_ADMIN_PASSWORD_HASH:?set an bcrypt hash}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  reachsocial_data:
+  caddy_data:
+  caddy_config:
