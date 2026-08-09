@@ -2,125 +2,222 @@ services:
   - id: instagram.profile
     title: Instagram Profile
     platform: Instagram
-    description: Retrieve public profile metadata from a canonical Instagram profile URL.
+    description: Retrieve normalized public Instagram profile metadata.
+    response_shape: profile
     input_fields:
-      - name: url
-        description: Canonical Instagram profile URL.
-        format: url
+      - {name: url, description: Canonical Instagram profile URL., format: url}
     provider: {name: scrapecreators, route: https://api.scrapecreators.com/v1/instagram/profile, method: GET}
     enabled: true
     public: true
     timeout_seconds: 25
     retries: 1
-    estimated_upstream_cost_cents: 0
+    estimated_upstream_cost_microusd: 1880
+    provider_unit_cost_microusd: 1880
+    cost_verified: false
     price_cents: 5
+    docs: Returns a provider-neutral profile object and never downloads profile media.
+
   - id: instagram.post
     title: Instagram Post
     platform: Instagram
-    description: Retrieve public post or reel metadata and source media URLs.
+    description: Retrieve normalized public post or reel metadata and source media URLs.
+    response_shape: item
     input_fields:
-      - name: url
-        description: Canonical Instagram post or reel URL.
-        format: url
+      - {name: url, description: Canonical Instagram post or reel URL., format: url}
     provider: {name: scrapecreators, route: https://api.scrapecreators.com/v1/instagram/post, method: GET}
     enabled: true
     public: true
     timeout_seconds: 25
     retries: 1
-    estimated_upstream_cost_cents: 0
+    estimated_upstream_cost_microusd: 1880
+    provider_unit_cost_microusd: 1880
+    cost_verified: false
     price_cents: 5
+    docs: Returns source URLs only; ReachSocial does not download or retain media bytes.
+
+  - id: instagram.stories
+    title: Instagram Stories
+    platform: Instagram
+    description: Create a durable job for current public Instagram stories.
+    execution: async
+    response_shape: stories
+    input_fields:
+      - {name: url, description: Canonical Instagram profile URL., format: url}
+      - {name: max_items, description: Maximum stories to return., required: false, format: integer, default: 20, minimum: 1, maximum: 50}
+    provider: {name: apify, actor_id: "louisdeconinck~instagram-stories-scraper"}
+    enabled: false
+    public: false
+    timeout_seconds: 120
+    retries: 1
+    estimated_upstream_cost_microusd: 55000
+    provider_unit_cost_microusd: 2300
+    cost_verified: false
+    price_cents: 15
+    docs: Submit through the jobs endpoint and poll with the returned job token.
+
   - id: x.profile
     title: X Profile
     platform: X
-    description: Retrieve public X profile metadata.
+    description: Retrieve normalized public X profile metadata.
+    response_shape: profile
     input_fields:
-      - name: url
-        description: Canonical X profile URL.
-        format: url
-    provider: {name: apify}
+      - {name: url, description: Canonical X profile URL., format: url}
+    provider: {name: scrapecreators, route: https://api.scrapecreators.com/v1/twitter/profile, method: GET}
     enabled: false
     public: false
+    timeout_seconds: 25
+    retries: 1
+    estimated_upstream_cost_microusd: 1880
+    provider_unit_cost_microusd: 1880
+    cost_verified: false
     price_cents: 5
+    docs: Normalized profile metadata from the public X profile.
+
   - id: x.post
     title: X Post
     platform: X
-    description: Retrieve a public X post.
+    description: Retrieve a normalized public X post and source media URLs.
+    response_shape: item
     input_fields:
-      - name: url
-        description: Canonical X post URL.
-        format: url
-    provider: {name: apify}
+      - {name: url, description: Canonical X status URL., format: url}
+    provider: {name: scrapecreators, route: https://api.scrapecreators.com/v1/twitter/tweet, method: GET}
     enabled: false
     public: false
+    timeout_seconds: 25
+    retries: 1
+    estimated_upstream_cost_microusd: 1880
+    provider_unit_cost_microusd: 1880
+    cost_verified: false
     price_cents: 5
+    docs: Returns normalized text, author, engagement, and source media URLs.
+
+  - id: x.feed
+    title: X Latest Feed
+    platform: X
+    description: Create a durable job for the latest public posts from an X profile.
+    execution: async
+    response_shape: feed
+    input_fields:
+      - {name: url, description: Canonical X profile URL., format: url}
+      - {name: max_items, description: Maximum posts to return., required: false, format: integer, default: 20, minimum: 1, maximum: 100}
+      - {name: cursor, description: Reserved opaque pagination cursor., required: false, format: string}
+    provider: {name: apify, actor_id: "apidojo~tweet-scraper"}
+    enabled: false
+    public: false
+    timeout_seconds: 120
+    retries: 1
+    estimated_upstream_cost_microusd: 20000
+    provider_unit_cost_microusd: 400
+    cost_verified: false
+    price_cents: 10
+    docs: Uses an asynchronous latest-post query; provider-specific fields are not returned.
+
   - id: tiktok.profile
     title: TikTok Profile
     platform: TikTok
-    description: Retrieve public TikTok profile metadata.
+    description: Retrieve normalized public TikTok profile metadata.
+    response_shape: profile
     input_fields:
-      - name: url
-        description: Canonical TikTok profile URL.
-        format: url
-    provider: {name: apify}
+      - {name: url, description: Canonical TikTok profile URL., format: url}
+    provider: {name: scrapecreators, route: https://api.scrapecreators.com/v1/tiktok/profile, method: GET}
     enabled: false
     public: false
+    timeout_seconds: 25
+    retries: 1
+    estimated_upstream_cost_microusd: 1880
+    provider_unit_cost_microusd: 1880
+    cost_verified: false
     price_cents: 5
+    docs: Returns profile metadata without retaining avatars or videos.
+
+  - id: tiktok.feed
+    title: TikTok Profile Videos
+    platform: TikTok
+    description: Retrieve a normalized, cursor-paginated public TikTok profile feed.
+    response_shape: feed
+    input_fields:
+      - {name: url, description: Canonical TikTok profile URL., format: url}
+      - {name: max_items, description: Maximum videos to return., required: false, format: integer, default: 20, minimum: 1, maximum: 100}
+      - {name: cursor, description: Opaque provider-neutral pagination cursor., required: false, format: string}
+    provider: {name: scrapecreators, route: https://api.scrapecreators.com/v3/tiktok/profile/videos, method: GET}
+    enabled: false
+    public: false
+    timeout_seconds: 30
+    retries: 1
+    estimated_upstream_cost_microusd: 1880
+    provider_unit_cost_microusd: 1880
+    cost_verified: false
+    price_cents: 5
+    docs: Pass next_cursor back as cursor to request another page.
+
   - id: tiktok.video
     title: TikTok Video
     platform: TikTok
-    description: Retrieve public TikTok video metadata and source media URLs.
+    description: Retrieve normalized public TikTok video metadata and source URLs.
+    response_shape: item
     input_fields:
-      - name: url
-        description: Canonical TikTok video URL.
-        format: url
-    provider: {name: apify}
+      - {name: url, description: Canonical TikTok video URL., format: url}
+    provider: {name: scrapecreators, route: https://api.scrapecreators.com/v2/tiktok/video, method: GET}
     enabled: false
     public: false
+    timeout_seconds: 30
+    retries: 1
+    estimated_upstream_cost_microusd: 1880
+    provider_unit_cost_microusd: 1880
+    cost_verified: false
     price_cents: 5
+    docs: Returns source video and preview URLs without downloading the asset.
+
   - id: linkedin.profile
-    title: LinkedIn Profile
+    title: LinkedIn Profile Enrichment
     platform: LinkedIn
-    description: Retrieve public LinkedIn profile data where available.
+    description: Create a durable job for normalized public LinkedIn profile enrichment.
+    execution: async
+    response_shape: profile
     input_fields:
-      - name: url
-        description: Canonical LinkedIn profile URL.
-        format: url
-    provider: {name: apify}
+      - {name: url, description: Canonical LinkedIn person profile URL., format: url}
+    provider: {name: apify, actor_id: "dev_fusion~linkedin-profile-scraper"}
     enabled: false
     public: false
-    price_cents: 15
+    timeout_seconds: 120
+    retries: 1
+    estimated_upstream_cost_microusd: 100000
+    provider_unit_cost_microusd: 100000
+    cost_verified: false
+    price_cents: 25
+    docs: Returns normalized profile, experience, education, and skills when publicly available.
+
   - id: youtube.video
     title: YouTube Video
     platform: YouTube
     description: Planned public YouTube video lookup.
+    response_shape: item
     input_fields:
-      - name: url
-        description: Canonical YouTube video URL.
-        format: url
+      - {name: url, description: Canonical YouTube video URL., format: url}
     provider: {name: scrapecreators}
     enabled: false
     public: false
     price_cents: 5
+
   - id: facebook.profile
     title: Facebook Profile
     platform: Facebook
     description: Planned public Facebook profile lookup.
+    response_shape: profile
     input_fields:
-      - name: url
-        description: Canonical public Facebook profile URL.
-        format: url
+      - {name: url, description: Canonical public Facebook profile URL., format: url}
     provider: {name: scrapecreators}
     enabled: false
     public: false
     price_cents: 5
+
   - id: reddit.post
     title: Reddit Post
     platform: Reddit
     description: Planned public Reddit post lookup.
+    response_shape: item
     input_fields:
-      - name: url
-        description: Canonical Reddit post URL.
-        format: url
+      - {name: url, description: Canonical Reddit post URL., format: url}
     provider: {name: scrapecreators}
     enabled: false
     public: false

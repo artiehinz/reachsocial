@@ -77,6 +77,7 @@ def test_price_is_resolved_from_the_requested_service() -> None:
 
     assert service_id_from_path(context.path) == "linkedin.profile"
     assert price_for_public_execution(context, catalog) == "$0.15"
+    assert service_id_from_path("/v1/services/linkedin.profile/jobs") == "linkedin.profile"
 
 
 def test_bearer_requests_bypass_the_public_payment_middleware() -> None:

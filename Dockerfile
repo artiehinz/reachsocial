@@ -11,6 +11,7 @@ COPY templates ./templates
 COPY static ./static
 COPY alembic.ini ./
 COPY migrations ./migrations
+COPY scripts ./scripts
 RUN uv sync --frozen --no-dev
 
 FROM python:3.12-slim-bookworm

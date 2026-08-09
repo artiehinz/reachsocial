@@ -7,15 +7,18 @@ from pathlib import Path
 from typing import AsyncIterator
 
 from fastapi import FastAPI, HTTPException, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
+from .alerts import alert_loop
 from .api import router as api_router
 from .catalog import get_catalog
 from .config import get_settings
 from .db import init_db
 from .errors import ReachSocialError
+from .jobs import JobWorker
 from .maintenance import prune_operational_records
 from .observability import RequestLoggingMiddleware, configure_logging
 from .payments import ReachSocialX402Middleware, mainnet_x402_safety_errors, x402_is_configured
@@ -41,22 +44,21 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     app.state.catalog = catalog
     app.state.runtime = RuntimeState()
     app.state.executor = ExecutionService(catalog, app.state.runtime)
+    app.state.job_worker = JobWorker(catalog, app.state.executor)
     async def maintenance_loop() -> None:
         while True:
             try:
-                deleted_requests, deleted_idempotency = await asyncio.to_thread(
-                    prune_operational_records
-                )
+                deleted = prune_operational_records()
                 logging.getLogger("reachsocial").info(
-                    "maintenance_pruned requests=%s idempotency=%s",
-                    deleted_requests,
-                    deleted_idempotency,
+                    "maintenance_pruned counts=%s", deleted
                 )
             except Exception:
                 logging.getLogger("reachsocial").exception("maintenance_prune_failed")
             await asyncio.sleep(settings.maintenance_interval_hours * 60 * 60)
 
     maintenance_task = asyncio.create_task(maintenance_loop())
+    job_task = asyncio.create_task(app.state.job_worker.run())
+    alert_task = asyncio.create_task(alert_loop())
     logging.getLogger("reachsocial").info(
         "ReachSocial started with %s services", len(catalog.services)
     )
@@ -64,7 +66,9 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         yield
     finally:
         maintenance_task.cancel()
-        await asyncio.gather(maintenance_task, return_exceptions=True)
+        job_task.cancel()
+        alert_task.cancel()
+        await asyncio.gather(maintenance_task, job_task, alert_task, return_exceptions=True)
 
 
 def create_app() -> FastAPI:
@@ -115,17 +119,41 @@ def create_app() -> FastAPI:
             )
 
     @app.exception_handler(ReachSocialError)
-    async def reachsocial_error(_request: Request, error: ReachSocialError) -> JSONResponse:
+    async def reachsocial_error(request: Request, error: ReachSocialError) -> JSONResponse:
         return JSONResponse(
             status_code=error.status_code,
-            content={"error": {"code": error.code, "message": error.message}},
+            content={
+                "error": {
+                    "code": error.code,
+                    "message": error.message,
+                    "retryable": error.retryable,
+                    "request_id": getattr(request.state, "request_id", None),
+                }
+            },
         )
 
     @app.exception_handler(HTTPException)
-    async def http_error(_request: Request, error: HTTPException) -> JSONResponse:
+    async def http_error(request: Request, error: HTTPException) -> JSONResponse:
         detail = error.detail if isinstance(error.detail, dict) else {"message": str(error.detail)}
+        detail.setdefault("retryable", False)
+        detail.setdefault("request_id", getattr(request.state, "request_id", None))
         return JSONResponse(
             status_code=error.status_code, content={"error": detail}, headers=error.headers
+        )
+
+    @app.exception_handler(RequestValidationError)
+    async def validation_error(request: Request, error: RequestValidationError) -> JSONResponse:
+        return JSONResponse(
+            status_code=422,
+            content={
+                "error": {
+                    "code": "invalid_input",
+                    "message": "The request body or parameters are invalid.",
+                    "retryable": False,
+                    "request_id": getattr(request.state, "request_id", None),
+                    "details": error.errors(),
+                }
+            },
         )
 
     @app.get("/healthz", tags=["Operations"])

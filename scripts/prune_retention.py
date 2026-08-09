@@ -8,10 +8,8 @@ from reachsocial.maintenance import prune_operational_records
 
 def main() -> None:
     init_db()
-    deleted_requests, deleted_idempotency = prune_operational_records()
-    print(
-        f"Deleted {deleted_requests} requests and {deleted_idempotency} expired idempotency records"
-    )
+    counts = prune_operational_records()
+    print("Retention maintenance: " + " ".join(f"{key}={value}" for key, value in counts.items()))
 
 
 if __name__ == "__main__":

@@ -1,9 +1,10 @@
 {% extends "base.html" %}
 {% block title %}API docs — ReachSocial{% endblock %}
 {% block content %}
-<section><p class="eyebrow">DEVELOPER DOCS</p><h1>One execution contract</h1><p>B2B clients use <code>POST /v1/resolve</code> to classify a social URL, then call <code>POST /v1/services/{service_id}/execute</code> with a private API key.</p><pre>Authorization: Bearer rs_live_...
+<section><p class="eyebrow">DEVELOPER DOCS</p><h1>One normalized contract</h1><p>B2B clients use <code>POST /v1/resolve</code> to classify a social URL, then call <code>POST /v1/services/{service_id}/execute</code> with a private API key.</p><pre>Authorization: Bearer rs_live_keyid_secret
 Idempotency-Key: your-unique-request-key
 
-{"input":{"url":"https://www.instagram.com/example/"}}</pre><p>Generated machine-readable documentation is available at <a href="/openapi.json">/openapi.json</a>. Remote MCP and x402 routes are enabled only after their production credentials are verified.</p></section>
-<section><h2>x402 public REST</h2><p>Public enabled services return <code>402 Payment Required</code> with a <code>PAYMENT-REQUIRED</code> header. An x402-compatible buyer signs the requested payment and retries with <code>PAYMENT-SIGNATURE</code>. Base Sepolia is used for the current public test phase; B2B Bearer calls remain payment-free.</p><p>Use an idempotency key for B2B retries. Never send a B2B API key or wallet private key to a browser.</p></section>
+{"input":{"url":"https://www.instagram.com/example/"}}</pre><p>Responses use schema version <code>1.0</code> and never expose provider-specific payloads. Generated machine-readable documentation is available at <a href="/openapi.json">/openapi.json</a>.</p></section>
+<section><h2>Asynchronous services</h2><p>Submit long-running work to <code>POST /v1/services/{service_id}/jobs</code>. Anonymous callers receive a one-time <code>job_token</code> and poll <code>GET /v1/jobs/{job_id}</code> with <code>X-Job-Token</code>. Results expire after 24 hours.</p></section>
+<section><h2>x402 public REST</h2><p>Public enabled services return <code>402 Payment Required</code> with a <code>PAYMENT-REQUIRED</code> header. An x402-compatible buyer signs the requested payment and retries with <code>PAYMENT-SIGNATURE</code>. Base Sepolia is the current public test network; B2B Bearer calls bypass x402.</p><p>If an accepted paid job later fails because ReachSocial or its provider is unavailable, claim one replacement credit at <code>POST /v1/jobs/{job_id}/credit</code>. Present it once as <code>X-Service-Credit</code> for the same service. Never send a B2B API key or wallet private key to a browser.</p></section>
 {% endblock %}

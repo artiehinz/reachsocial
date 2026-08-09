@@ -5,9 +5,26 @@ import hashlib
 import hmac
 import secrets
 
+API_KEY_PREFIX = "rs_live_"
+
 
 def generate_api_key() -> str:
-    return f"rs_live_{secrets.token_urlsafe(32)}"
+    key_id = secrets.token_hex(6)
+    return f"{API_KEY_PREFIX}{key_id}_{secrets.token_urlsafe(32)}"
+
+
+def api_key_id(api_key: str) -> str | None:
+    if not api_key.startswith(API_KEY_PREFIX):
+        return None
+    remainder = api_key.removeprefix(API_KEY_PREFIX)
+    key_id, separator, secret = remainder.partition("_")
+    if not separator or len(key_id) != 12 or not secret:
+        return None
+    try:
+        int(key_id, 16)
+    except ValueError:
+        return None
+    return key_id
 
 
 def hash_api_key(api_key: str) -> str:

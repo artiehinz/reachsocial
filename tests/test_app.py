@@ -26,3 +26,6 @@ def test_health_and_mcp_gate() -> None:
             "instagram.profile",
             "instagram.post",
         ]
+        services = client.get("/v1/services").json()["services"]
+        assert all(item["schema_version"] == "1.0" for item in services)
+        assert all(item["execution"] == "sync" for item in services)

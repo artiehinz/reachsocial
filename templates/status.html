@@ -1,5 +1,5 @@
 {% extends "base.html" %}
 {% block title %}Status — ReachSocial{% endblock %}
 {% block content %}
-<section><p class="eyebrow">SERVICE STATUS</p><h1>Operational.</h1><p>ReachSocial currently exposes {{ catalog.public_services()|length }} tested public services. Machine-readable status is available at <a href="/status.json">/status.json</a>.</p><div class="cards">{% for service in catalog.public_services() %}<article><h2>{{ service.title }}</h2><p class="status available">Available</p></article>{% endfor %}</div></section>
+<section><p class="eyebrow">SERVICE STATUS</p><h1>Operational.</h1><p>ReachSocial currently exposes {{ catalog.public_services()|length }} public Base Sepolia services. Machine-readable status is available at <a href="/status.json">/status.json</a>.</p><div class="cards">{% for service in catalog.public_services() %}<article><h2>{{ service.title }}</h2><p>{{ service.execution|capitalize }} · schema 1.0</p><p class="status available">Available</p></article>{% endfor %}</div></section>
 {% endblock %}

@@ -15,6 +15,10 @@ class InputField(BaseModel):
     description: str
     required: bool = True
     format: Literal["url", "string", "integer"] = "string"
+    default: str | int | None = None
+    minimum: int | None = None
+    maximum: int | None = None
+    max_length: int | None = Field(default=2048, ge=1, le=16384)
 
 
 class ProviderConfig(BaseModel):
@@ -31,12 +35,16 @@ class ServiceDefinition(BaseModel):
     description: str
     input_fields: list[InputField]
     provider: ProviderConfig
+    execution: Literal["sync", "async"] = "sync"
+    response_shape: Literal["profile", "item", "feed", "stories"] = "profile"
     enabled: bool = False
     public: bool = False
     timeout_seconds: int = Field(default=25, ge=1, le=120)
     retries: int = Field(default=0, ge=0, le=2)
     cache_ttl_seconds: int | None = Field(default=None, ge=0, le=86400)
     estimated_upstream_cost_cents: int = Field(default=0, ge=0)
+    estimated_upstream_cost_microusd: int = Field(default=0, ge=0)
+    provider_unit_cost_microusd: int = Field(default=0, ge=0)
     cost_verified: bool = False
     price_cents: int = Field(default=5, ge=0)
     docs: str = ""
@@ -48,6 +56,10 @@ class ServiceDefinition(BaseModel):
             if self.cache_ttl_seconds is not None
             else get_settings().cache_ttl_seconds
         )
+
+    @property
+    def is_async(self) -> bool:
+        return self.execution == "async"
 
 
 class Catalog(BaseModel):

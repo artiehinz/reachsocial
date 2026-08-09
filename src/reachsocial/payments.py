@@ -2,10 +2,12 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 from typing import Any
 
 from cdp.x402 import create_facilitator_config
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
@@ -22,14 +24,15 @@ from .db import SessionLocal
 from .models import PaymentReceipt
 
 PUBLIC_EXECUTE_ROUTE = "POST /v1/services/*/execute"
+PUBLIC_JOB_ROUTE = "POST /v1/services/*/jobs"
 PUBLIC_X402_CLIENT_NAME = "x402-public"
 
 
 def service_id_from_path(path: str) -> str | None:
     """Return the service ID from the canonical public execute path."""
     prefix = "/v1/services/"
-    suffix = "/execute"
-    if not path.startswith(prefix) or not path.endswith(suffix):
+    suffix = next((value for value in ("/execute", "/jobs") if path.endswith(value)), None)
+    if not path.startswith(prefix) or suffix is None:
         return None
     service_id = path.removeprefix(prefix).removesuffix(suffix)
     return service_id or None
@@ -54,10 +57,16 @@ def mainnet_x402_safety_errors(settings: Settings, catalog: Catalog) -> list[str
     if not settings.external_backup_enabled:
         errors.append("EXTERNAL_BACKUP_ENABLED=true is required")
     for service in catalog.public_services():
-        if not service.cost_verified or service.estimated_upstream_cost_cents <= 0:
+        if not service.cost_verified or service.estimated_upstream_cost_microusd <= 0:
             errors.append(f"{service.id} needs a verified upstream cost")
-        elif service.price_cents - service.estimated_upstream_cost_cents < settings.minimum_public_margin_cents:
-            errors.append(f"{service.id} does not meet the configured public margin")
+        else:
+            price_micros = service.price_cents * 10_000
+            margin_micros = price_micros - service.estimated_upstream_cost_microusd
+            if (
+                margin_micros < settings.minimum_public_margin_cents * 10_000
+                or margin_micros * 2 < price_micros
+            ):
+                errors.append(f"{service.id} does not meet the configured public margin")
     return errors
 
 
@@ -96,6 +105,9 @@ def reserve_payment_receipt(context: Any) -> AbortResult | None:
             select(PaymentReceipt).where(PaymentReceipt.payment_id == payment_id)
         )
         if existing is not None:
+            logging.getLogger("reachsocial").warning(
+                "operational_alert kind=payment_replay service=%s", existing.service_id
+            )
             return AbortResult("payment_replayed", "This payment has already been used")
         session.add(
             PaymentReceipt(
@@ -104,13 +116,22 @@ def reserve_payment_receipt(context: Any) -> AbortResult | None:
                 amount_cents=usdc_atomic_to_cents(getattr(context.requirements, "amount", None)),
                 network=str(context.requirements.network),
                 status="verified",
+                payer=getattr(context.result, "payer", None),
                 details=_details(
                     payer=getattr(context.result, "payer", None),
                     amount=getattr(context.requirements, "amount", None),
                 ),
             )
         )
-        session.commit()
+        try:
+            session.commit()
+        except IntegrityError:
+            session.rollback()
+            logging.getLogger("reachsocial").warning(
+                "operational_alert kind=payment_replay service=%s",
+                _context_service_id(context),
+            )
+            return AbortResult("payment_replayed", "This payment has already been used")
     return None
 
 
@@ -124,12 +145,17 @@ def mark_payment_settled(context: Any) -> None:
             return
         receipt.status = "settled"
         receipt.network = str(context.result.network)
+        receipt.payer = getattr(context.result, "payer", None)
+        receipt.transaction = context.result.transaction
         receipt.details = _details(
             payer=getattr(context.result, "payer", None),
             transaction=context.result.transaction,
             amount=context.result.amount,
         )
         session.commit()
+    logging.getLogger("reachsocial").info(
+        "payment_settled service=%s network=%s", _context_service_id(context), context.result.network
+    )
 
 
 def mark_payment_canceled(context: Any) -> None:
@@ -142,6 +168,10 @@ def mark_payment_canceled(context: Any) -> None:
             receipt.status = "canceled"
             receipt.details = _details(reason=getattr(context, "reason", "settlement_failed"))
             session.commit()
+    logging.getLogger("reachsocial").warning(
+        "operational_alert kind=payment_settlement_failed service=%s",
+        _context_service_id(context),
+    )
 
 
 def price_for_public_execution(context: HTTPRequestContext, catalog: Catalog) -> str:
@@ -183,19 +213,18 @@ def create_x402_payment_handler(settings: Settings, catalog: Catalog):
     server.on_after_settle(mark_payment_settled)
     server.on_settle_failure(mark_payment_canceled)
     server.on_verified_payment_canceled(mark_payment_canceled)
+    route = RouteConfig(
+        accepts=PaymentOption(
+            scheme="exact",
+            pay_to=settings.x402_pay_to,
+            price=lambda context: price_for_public_execution(context, catalog),
+            network=settings.x402_network,
+        ),
+        description="ReachSocial public social-data API call",
+        mime_type="application/json",
+    )
     return payment_middleware(
-        routes={
-            PUBLIC_EXECUTE_ROUTE: RouteConfig(
-                accepts=PaymentOption(
-                    scheme="exact",
-                    pay_to=settings.x402_pay_to,
-                    price=lambda context: price_for_public_execution(context, catalog),
-                    network=settings.x402_network,
-                ),
-                description="ReachSocial public social-data API call",
-                mime_type="application/json",
-            )
-        },
+        routes={PUBLIC_EXECUTE_ROUTE: route, PUBLIC_JOB_ROUTE: route},
         server=server,
     )
 
@@ -205,9 +234,18 @@ class ReachSocialX402Middleware(BaseHTTPMiddleware):
 
     def __init__(self, app, *, settings: Settings, catalog: Catalog):  # type: ignore[no-untyped-def]
         super().__init__(app)
+        self._catalog = catalog
         self._payment_handler = create_x402_payment_handler(settings, catalog)
 
     async def dispatch(self, request: Request, call_next) -> Response:  # type: ignore[no-untyped-def]
         if is_b2b_request(request):
             return await call_next(request)
+        credit = request.headers.get("x-service-credit") or ""
+        service = service_id_from_path(request.url.path)
+        if credit and service:
+            from .jobs import credit_is_valid
+
+            definition = self._catalog.by_id(service)
+            if definition and credit_is_valid(credit, service, definition.price_cents):
+                return await call_next(request)
         return await self._payment_handler(request, call_next)

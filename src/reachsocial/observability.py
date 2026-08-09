@@ -39,6 +39,7 @@ def configure_logging() -> None:
 class RequestLoggingMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):  # type: ignore[no-untyped-def]
         request_id = request.headers.get("X-Request-ID") or f"http_{uuid.uuid4().hex}"
+        request.state.request_id = request_id
         started = time.perf_counter()
         response = await call_next(request)
         latency_ms = round((time.perf_counter() - started) * 1000)
