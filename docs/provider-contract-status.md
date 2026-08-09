@@ -1,6 +1,14 @@
 # Provider contract status
 
-Last verified: 2026-08-08. This file contains no credentials or raw provider payloads.
+Last verified: 2026-08-09. This file contains no credentials or raw provider payloads.
+
+## InstaGet internal consumer contract
+
+The envelope now carries `meta.schema_version`,
+`meta.normalization_version`, and `meta.response_shape`. InstaGet validates and
+narrows that normalized data before persistence; it does not receive provider
+keys, raw payloads, or provider logs. This is only a fixture-level integration
+gate. It does not mark a service as cost-verified or accepted for live traffic.
 
 ## ScrapeCreators
 
@@ -27,18 +35,35 @@ without a fallback provider call.
 
 ## Apify
 
-Implemented adapters:
+The replacement production token authenticates successfully. Bounded validation
+has established this baseline:
 
-- `instagram.stories` — `louisdeconinck~instagram-stories-scraper`
-- `x.feed` — `apidojo~tweet-scraper`
-- `linkedin.profile` — `dev_fusion~linkedin-profile-scraper`
+- `x.feed` — `apidojo~tweet-scraper` completed run
+  `jr21WOWnGJCvUnWxp`, returned five normalized items, and reported a stable
+  cost of 2,000 micro-USD.
+- The former `linkedin.profile` Actor was rejected before charging because it
+  requested full Apify-account permission. It has been replaced in disabled
+  configuration by `automation-lab~linkedin-profile-scraper`, pending a capped
+  live contract sample.
+- `instagram.stories` has no active Actor. The former Actor's $19/month rental
+  is not accepted for this cycle.
 
-All three start requests were rejected before a run was created. Apify returned
-HTTP 403, error type `platform-feature-disabled`, with the sanitized reason
-“Too many outstanding invoices.” Because no successful runs or actual-cost
-samples exist, these services remain `enabled: false` and `public: false`.
+Apify execution requires a server-side total-charge cap, a bounded dataset item
+count, and a 120-second Actor timeout. Run IDs are persisted immediately so
+worker recovery polls the accepted run rather than creating another paid run.
+Apify services do not use automatic run retries, and stable costs are read after
+the provider's post-completion accounting delay.
 
-After Apify billing is resolved, rerun each service with
-`scripts/provider_contract_smoke.py`, record the completed run charge, validate
-representative normalized fields, set a fixed margin-safe price, and only then
-enable its catalog flags.
+The replacement production validation remains required before either service's
+catalog flags change. Instagram Stories remains disabled while the no-login,
+pay-per-result alternatives remain candidates for a later separately approved
+bake-off:
+
+1. [`data-slayer~instagram-stories-scraper`](https://apify.com/data-slayer/instagram-stories-scraper)
+   is the primary candidate: no Instagram login and advertised per-result
+   pricing, with more observed usage than the other low-cost candidate.
+2. [`intropix~instagram-stories-scraper`](https://apify.com/intropix/instagram-stories-scraper)
+   is the secondary candidate: no login and explicit start/profile/story event
+   prices, but it is substantially newer and less proven.
+
+Neither candidate is configured, called, or exposed during this cycle.

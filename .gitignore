@@ -6,5 +6,7 @@ __pycache__/
 .coverage
 data/
 .env
+.env.*
+!.env.example
 *.sqlite3
 *.db

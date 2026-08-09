@@ -44,13 +44,13 @@ services:
     input_fields:
       - {name: url, description: Canonical Instagram profile URL., format: url}
       - {name: max_items, description: Maximum stories to return., required: false, format: integer, default: 20, minimum: 1, maximum: 50}
-    provider: {name: apify, actor_id: "louisdeconinck~instagram-stories-scraper"}
+    provider: {name: apify}
     enabled: false
     public: false
     timeout_seconds: 120
-    retries: 1
-    estimated_upstream_cost_microusd: 55000
-    provider_unit_cost_microusd: 2300
+    retries: 0
+    estimated_upstream_cost_microusd: 0
+    provider_unit_cost_microusd: 0
     cost_verified: false
     price_cents: 15
     docs: Submit through the jobs endpoint and poll with the returned job token.
@@ -100,13 +100,12 @@ services:
     input_fields:
       - {name: url, description: Canonical X profile URL., format: url}
       - {name: max_items, description: Maximum posts to return., required: false, format: integer, default: 20, minimum: 1, maximum: 100}
-      - {name: cursor, description: Reserved opaque pagination cursor., required: false, format: string}
-    provider: {name: apify, actor_id: "apidojo~tweet-scraper"}
+    provider: {name: apify, actor_id: "apidojo~tweet-scraper", max_total_charge_microusd: 40000}
     enabled: false
     public: false
     timeout_seconds: 120
-    retries: 1
-    estimated_upstream_cost_microusd: 20000
+    retries: 0
+    estimated_upstream_cost_microusd: 40000
     provider_unit_cost_microusd: 400
     cost_verified: false
     price_cents: 10
@@ -176,15 +175,15 @@ services:
     response_shape: profile
     input_fields:
       - {name: url, description: Canonical LinkedIn person profile URL., format: url}
-    provider: {name: apify, actor_id: "dev_fusion~linkedin-profile-scraper"}
+    provider: {name: apify, actor_id: "automation-lab~linkedin-profile-scraper", max_total_charge_microusd: 50000}
     enabled: false
     public: false
     timeout_seconds: 120
-    retries: 1
-    estimated_upstream_cost_microusd: 100000
-    provider_unit_cost_microusd: 100000
+    retries: 0
+    estimated_upstream_cost_microusd: 50000
+    provider_unit_cost_microusd: 18000
     cost_verified: false
-    price_cents: 25
+    price_cents: 10
     docs: Returns normalized profile, experience, education, and skills when publicly available.
 
   - id: youtube.video

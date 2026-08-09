@@ -74,14 +74,21 @@ The initial response envelope is:
   "status": "success",
   "cached": false,
   "data": {},
-  "meta": {"latency_ms": 0}
+  "meta": {
+    "schema_version": "1.0",
+    "normalization_version": "v1",
+    "response_shape": "profile|item|feed|stories",
+    "latency_ms": 0
+  }
 }
 ```
 
-Provider payloads remain inside `data` for MVP. ReachSocial normalizes input
-validation, request IDs, status/error codes, and only the small common fields
-needed by its clients. All initial public services are synchronous; long Apify
-jobs stay disabled or internal until a later async-job design exists.
+Provider payloads never enter the consumer envelope. ReachSocial normalizes
+input validation, request IDs, status/error codes, and only the small common
+fields needed by its clients. InstaGet validates the versioned envelope before
+persistence and never exposes provider/raw fields to its browser. Long Apify
+work uses durable asynchronous jobs with protected polling and replacement
+credits for eligible paid failures.
 
 ## Records and controls
 
@@ -100,6 +107,11 @@ In-memory cache entries contain response JSON only and expire quickly (default
 source of accounting truth. The MVP applies per-client request concurrency and
 rate limits, plus provider-level hard concurrency/cost caps. Failed upstream
 requests never charge a client.
+
+Every Apify Actor start supplies a validated dataset-item bound, a positive
+maximum total charge, and an Actor timeout. ReachSocial persists the accepted
+run ID before polling, resumes that same run after worker recovery, and never
+automatically creates a replacement paid run.
 
 ## Initial catalog
 

@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 
 from .catalog import Catalog, ServiceDefinition
 from .config import get_settings
+from .consumer_contract import response_meta
 from .db import SessionLocal
 from .errors import (
     CreditUnavailable,
@@ -26,6 +27,7 @@ from .errors import (
     UnknownService,
 )
 from .models import AsyncJob, Client, PaymentReceipt, ServiceCredit
+from .providers import ProviderExecutionContext
 from .security import hash_api_key, verify_api_key
 from .services import (
     ExecutionService,
@@ -332,12 +334,23 @@ class JobWorker:
                 session.commit()
                 return
             try:
+                def persist_provider_reference(reference: str) -> None:
+                    job.provider_reference = reference
+                    job.lease_expires_at = utcnow_naive() + timedelta(
+                        seconds=get_settings().async_job_lease_seconds
+                    )
+                    session.commit()
+
                 result = await self.executor._provider_call(
                     session,
                     request_id=job.job_id,
                     service=service,
                     input_data=dict(job.input_json),
                     public_test=client.billing_mode != "internal",
+                    provider_context=ProviderExecutionContext(
+                        existing_reference=job.provider_reference,
+                        persist_reference=persist_provider_reference,
+                    ),
                 )
                 latency_ms = round(
                     (utcnow_naive() - (job.started_at or utcnow_naive())).total_seconds() * 1000
@@ -348,7 +361,10 @@ class JobWorker:
                     "status": "success",
                     "cached": False,
                     "data": result.data,
-                    "meta": {"schema_version": "1.0", "latency_ms": max(0, latency_ms)},
+                    "meta": response_meta(
+                        latency_ms=max(0, latency_ms),
+                        response_shape=service.response_shape,
+                    ),
                 }
                 job.status = "succeeded"
                 job.result_json = response
@@ -376,6 +392,16 @@ class JobWorker:
                 job.error_code = error.code
                 job.error_message = error.message
                 job.error_retryable = error.retryable
+                job.provider_reference = (
+                    getattr(error, "provider_reference", None) or job.provider_reference
+                )
+                job.provider_units = int(getattr(error, "provider_units", 0) or 0)
+                job.provider_unit_cost_microusd = int(
+                    getattr(error, "provider_unit_cost_microusd", 0) or 0
+                )
+                job.upstream_cost_microusd = int(
+                    getattr(error, "upstream_cost_microusd", 0) or 0
+                )
                 job.completed_at = utcnow_naive()
                 job.lease_expires_at = None
                 job.reserved_upstream_cost_microusd = 0

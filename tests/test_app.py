@@ -29,3 +29,5 @@ def test_health_and_mcp_gate() -> None:
         services = client.get("/v1/services").json()["services"]
         assert all(item["schema_version"] == "1.0" for item in services)
         assert all(item["execution"] == "sync" for item in services)
+        assert client.get("/services/x.feed").status_code == 404
+        assert "X Latest Feed" not in client.get("/catalog").text

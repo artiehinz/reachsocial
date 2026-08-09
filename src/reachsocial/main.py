@@ -207,7 +207,7 @@ def create_app() -> FastAPI:
     @app.get("/services/{service_id}", include_in_schema=False)
     async def service_page(service_id: str, request: Request):
         service = request.app.state.catalog.by_id(service_id)
-        if service is None:
+        if service is None or not (service.enabled and service.public):
             return templates.TemplateResponse(
                 request=request,
                 name="not_found.html",

@@ -63,10 +63,18 @@ For ScrapeCreators, calculate `--credit-cost-microusd` from the plan actually
 purchased. The script reports units, micro-USD cost, margin, normalized shape,
 and provider reference without printing credentials or raw provider data.
 
-The Apify-backed Instagram Stories, X latest-feed, and LinkedIn enrichment
-adapters and job contracts are implemented but remain catalog-disabled until
-Apify billing/actor access is healthy and credentialed runs establish their
-actual costs. Do not enable them based on estimates alone.
+Run the fixed, sequential Apify production validation only inside the production
+container. It has a combined new charge ceiling of $0.06 and prints no token or
+raw provider payload:
+
+```bash
+python scripts/apify_billing_validate.py --confirm-paid-provider-call
+```
+
+Instagram Stories remains disabled with no active Actor. X latest-feed and the
+replacement LinkedIn enrichment Actor remain disabled until their capped live
+runs establish valid normalized contracts and stable costs. Do not enable them
+based on estimates alone.
 
 ## Production gates
 

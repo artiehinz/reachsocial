@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 
 from .catalog import Catalog, ServiceDefinition
 from .config import get_settings
+from .consumer_contract import response_meta
 from .errors import (
     AsyncRequired,
     DisabledService,
@@ -31,7 +32,7 @@ from .models import (
     ServiceRecord,
 )
 from .normalizer import validate_service_url
-from .providers import ProviderResult, adapter_for
+from .providers import ProviderExecutionContext, ProviderResult, adapter_for
 from .runtime import RuntimeState
 
 
@@ -283,13 +284,19 @@ class ExecutionService:
         service: ServiceDefinition,
         input_data: dict[str, Any],
         public_test: bool = False,
+        provider_context: ProviderExecutionContext | None = None,
     ) -> ProviderResult:
         adapter = adapter_for(service)
         last_error: ReachSocialError | None = None
         for attempt_number in range(service.retries + 1):
             started = time.perf_counter()
             try:
-                result = await adapter.execute(service, input_data)
+                if provider_context is None:
+                    result = await adapter.execute(service, input_data)
+                else:
+                    result = await adapter.execute(
+                        service, input_data, context=provider_context
+                    )
                 self._record_attempt(
                     session,
                     request_id=request_id,
@@ -396,7 +403,7 @@ class ExecutionService:
                     "status": "success",
                     "cached": True,
                     "data": cached,
-                    "meta": {"schema_version": "1.0", "latency_ms": 0},
+                    "meta": response_meta(latency_ms=0, response_shape=service.response_shape),
                 }
                 self._record(
                     session,
@@ -434,7 +441,10 @@ class ExecutionService:
                     "status": "success",
                     "cached": False,
                     "data": result.data,
-                    "meta": {"schema_version": "1.0", "latency_ms": latency_ms},
+                    "meta": response_meta(
+                        latency_ms=latency_ms,
+                        response_shape=service.response_shape,
+                    ),
                 }
                 self.runtime.set_cached(cache_key, result.data, service.effective_cache_ttl)
                 self._record(

@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Any, Literal
 
 import yaml
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from .config import get_settings
 
@@ -26,6 +26,7 @@ class ProviderConfig(BaseModel):
     route: str = ""
     method: Literal["GET", "POST"] = "POST"
     actor_id: str = ""
+    max_total_charge_microusd: int = Field(default=0, ge=0)
 
 
 class ServiceDefinition(BaseModel):
@@ -48,6 +49,32 @@ class ServiceDefinition(BaseModel):
     cost_verified: bool = False
     price_cents: int = Field(default=5, ge=0)
     docs: str = ""
+
+    @model_validator(mode="after")
+    def validate_release_safety(self) -> ServiceDefinition:
+        if self.public and not self.enabled:
+            raise ValueError("A public service must also be enabled")
+        if self.provider.name == "apify" and self.enabled:
+            if not self.provider.actor_id:
+                raise ValueError("An enabled Apify service requires an actor ID")
+            if self.provider.max_total_charge_microusd <= 0:
+                raise ValueError("An enabled Apify service requires a positive charge cap")
+            if self.retries:
+                raise ValueError("Apify services cannot automatically create replacement runs")
+        if self.public:
+            conservative_cost = max(
+                self.estimated_upstream_cost_microusd,
+                self.provider.max_total_charge_microusd,
+            )
+            price_microusd = self.price_cents * 10_000
+            if conservative_cost and (
+                price_microusd - conservative_cost < 10_000
+                or price_microusd < conservative_cost * 2
+            ):
+                raise ValueError(
+                    "A public service requires at least one cent and 50% gross margin"
+                )
+        return self
 
     @property
     def effective_cache_ttl(self) -> int:

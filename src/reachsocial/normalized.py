@@ -55,9 +55,17 @@ def _boolean(value: Any) -> bool | None:
 def _timestamp(value: Any) -> str | None:
     if value in (None, ""):
         return None
-    if isinstance(value, (int, float)) or (isinstance(value, str) and value.isdigit()):
+    if isinstance(value, int) or (isinstance(value, str) and value.isdigit()):
+        integer_value = int(value)
+        if 1900 <= integer_value <= 2100 and len(str(value)) == 4:
+            return f"{integer_value:04d}-01-01T00:00:00Z"
         try:
-            return datetime.fromtimestamp(int(value), tz=UTC).isoformat().replace("+00:00", "Z")
+            return datetime.fromtimestamp(integer_value, tz=UTC).isoformat().replace("+00:00", "Z")
+        except (ValueError, OSError, OverflowError):
+            return None
+    if isinstance(value, float):
+        try:
+            return datetime.fromtimestamp(value, tz=UTC).isoformat().replace("+00:00", "Z")
         except (ValueError, OSError, OverflowError):
             return None
     text = str(value).strip()
@@ -178,6 +186,7 @@ def _profile(
         "profile_pic_url",
         "profilePicture",
         "profilePictureUrl",
+        "profileImageUrl",
         "image",
         "avatarLarger",
         "avatarMedium",
@@ -216,6 +225,7 @@ def _profile(
                 normalized_source,
                 "is_verified",
                 "verified",
+                "isVerified",
                 "is_blue_verified",
                 "user.verified",
             )
@@ -236,6 +246,7 @@ def _profile(
                     "follower_count",
                     "followers",
                     "followersCount",
+                    "followerCount",
                     "stats.followerCount",
                     "edge_followed_by.count",
                     "legacy.followers_count",
@@ -306,6 +317,20 @@ def _x_media(source: dict[str, Any]) -> list[dict[str, Any]]:
     legacy = _mapping(source.get("legacy")) or source
     entries = _items(_first(legacy, "extended_entities.media", "entities.media") or [])
     output: list[dict[str, Any] | None] = []
+    for value in source.get("media", []) if isinstance(source.get("media"), list) else []:
+        if isinstance(value, str):
+            output.append(_media(media_type="image", source_url=value))
+        elif isinstance(value, dict):
+            output.append(
+                _media(
+                    media_type=_text(_first(value, "type")) or "image",
+                    source_url=_first(value, "url", "mediaUrl", "media_url_https"),
+                    preview_url=_first(value, "previewUrl", "preview_url"),
+                    width=_first(value, "width"),
+                    height=_first(value, "height"),
+                    duration=_first(value, "duration", "durationSeconds"),
+                )
+            )
     for entry in entries:
         variants = _items(_first(entry, "video_info.variants") or [])
         best_video = max(variants, key=lambda item: _integer(item.get("bitrate")) or 0, default={})
@@ -368,7 +393,9 @@ def _content(platform: str, canonical_url: str, source: dict[str, Any]) -> dict[
         author_source = _mapping(source.get("owner")) or source
     elif platform == "X":
         media = _x_media(source)
-        author_source = _mapping(_first(source, "core.user_results.result") or {})
+        author_source = _mapping(source.get("author")) or _mapping(
+            _first(source, "core.user_results.result") or {}
+        )
     elif platform == "TikTok":
         media = _tiktok_media(source)
         author_source = _mapping(source.get("author")) or source
@@ -391,7 +418,11 @@ def _content(platform: str, canonical_url: str, source: dict[str, Any]) -> dict[
         ),
         "type": _text(_first(source, "type", "product_type", "contentType"))
         or ("video" if any(item["type"] == "video" for item in media) else "post"),
-        "author": _author(platform, author_source),
+        "author": _author(
+            platform,
+            author_source,
+            _url(_first(author_source, "url", "twitterUrl")),
+        ),
         "text": _text(
             _first(source, "caption", "text", "desc", "description", "legacy.full_text", "title")
         ),
@@ -405,16 +436,17 @@ def _content(platform: str, canonical_url: str, source: dict[str, Any]) -> dict[
                 "create_time",
                 "create_time_utc",
                 "created_at",
+                "createdAt",
                 "legacy.created_at",
             )
         ),
         "expires_at": _timestamp(_first(source, "expires_at", "expiresAt")),
         "media": media,
         "metrics": {
-            "likes": _integer(_first(source, "likes_count", "likesCount", "diggCount", "statistics.diggCount", "statistics.digg_count", "legacy.favorite_count")),
-            "comments": _integer(_first(source, "comments_count", "commentsCount", "commentCount", "statistics.commentCount", "statistics.comment_count", "legacy.reply_count")),
-            "shares": _integer(_first(source, "shares_count", "sharesCount", "shareCount", "statistics.shareCount", "statistics.share_count", "legacy.retweet_count")),
-            "views": _integer(_first(source, "video_view_count", "videoViewCount", "playCount", "statistics.playCount", "statistics.play_count", "views")),
+            "likes": _integer(_first(source, "likes_count", "likesCount", "likeCount", "diggCount", "statistics.diggCount", "statistics.digg_count", "legacy.favorite_count")),
+            "comments": _integer(_first(source, "comments_count", "commentsCount", "commentCount", "replyCount", "statistics.commentCount", "statistics.comment_count", "legacy.reply_count")),
+            "shares": _integer(_first(source, "shares_count", "sharesCount", "shareCount", "retweetCount", "statistics.shareCount", "statistics.share_count", "legacy.retweet_count")),
+            "views": _integer(_first(source, "video_view_count", "videoViewCount", "viewCount", "playCount", "statistics.playCount", "statistics.play_count", "views")),
         },
         "relationships": {
             "reply_to_id": _text(_first(legacy, "in_reply_to_status_id_str")),
@@ -471,14 +503,20 @@ def normalize_provider_payload(
         rows = _items(payload.get("items")) if "items" in payload else _items(payload)
         item = rows[0] if rows else data
         experience = []
-        for row in _items(_first(item, "experience", "experiences", "positions") or []):
+        for row in _items(
+            _first(item, "experience", "experiences", "positions", "currentPositions") or []
+        ):
             experience.append(
                 {
                     "title": _text(_first(row, "title", "position")),
                     "organization": _text(_first(row, "companyName", "company", "organization")),
                     "location": _text(_first(row, "location", "locationName")),
-                    "started_at": _timestamp(_first(row, "startDate", "startedOn", "start")),
-                    "ended_at": _timestamp(_first(row, "endDate", "endedOn", "end")),
+                    "started_at": _timestamp(
+                        _first(row, "startDate", "startYear", "startedOn", "start")
+                    ),
+                    "ended_at": _timestamp(
+                        _first(row, "endDate", "endYear", "endedOn", "end")
+                    ),
                     "description": _text(_first(row, "description", "summary")),
                 }
             )
@@ -486,11 +524,17 @@ def normalize_provider_payload(
         for row in _items(_first(item, "education", "educations") or []):
             education.append(
                 {
-                    "school": _text(_first(row, "schoolName", "school", "organization")),
+                    "school": _text(
+                        _first(row, "schoolName", "school", "institution", "organization")
+                    ),
                     "degree": _text(_first(row, "degreeName", "degree")),
                     "field": _text(_first(row, "fieldOfStudy", "field")),
-                    "started_at": _timestamp(_first(row, "startDate", "startedOn", "start")),
-                    "ended_at": _timestamp(_first(row, "endDate", "endedOn", "end")),
+                    "started_at": _timestamp(
+                        _first(row, "startDate", "startYear", "startedOn", "start")
+                    ),
+                    "ended_at": _timestamp(
+                        _first(row, "endDate", "endYear", "endedOn", "end")
+                    ),
                 }
             )
         raw_skills = _first(item, "skills") or []

@@ -16,6 +16,7 @@ from reachsocial.jobs import (
     submit_job,
 )
 from reachsocial.models import AsyncJob, PaymentReceipt, ProviderAttempt, ServiceCredit
+from reachsocial.providers import ProviderResult
 from reachsocial.runtime import RuntimeState
 from reachsocial.security import verify_api_key
 from reachsocial.services import ExecutionService, utcnow_naive
@@ -166,3 +167,83 @@ async def test_worker_recovers_and_completes_a_durable_job(session, client, monk
     assert completed is not None and completed.status == "succeeded"
     assert completed.result_json["meta"]["schema_version"] == "1.0"
     assert attempt is not None and attempt.status == "succeeded"
+
+
+@pytest.mark.asyncio
+async def test_worker_resumes_the_persisted_provider_run(session, client, monkeypatch) -> None:
+    factory = sessionmaker(bind=session.get_bind(), expire_on_commit=False)
+    monkeypatch.setattr("reachsocial.jobs.SessionLocal", factory)
+    seen_references: list[str | None] = []
+
+    class ResumingAdapter:
+        async def execute(self, service, input_data, *, context=None):
+            del service, input_data
+            seen_references.append(context.existing_reference)
+            return ProviderResult(
+                data={"profile": None, "items": [], "next_cursor": None, "has_more": False},
+                upstream_cost_microusd=2_000,
+                provider_reference="run-existing",
+            )
+
+    monkeypatch.setattr("reachsocial.services.adapter_for", lambda _service: ResumingAdapter())
+    catalog = async_catalog()
+    executor = ExecutionService(catalog, RuntimeState())
+    job, _ = submit_job(
+        session,
+        executor=executor,
+        client=client,
+        service_id="x.feed",
+        input_data={"url": "https://x.com/example"},
+        anonymous=False,
+    )
+    job.status = "running"
+    job.provider_reference = "run-existing"
+    job.lease_expires_at = utcnow_naive() - timedelta(seconds=1)
+    session.commit()
+
+    worker = JobWorker(catalog, executor)
+    assert worker.recover_abandoned() == 1
+    claimed = worker._claim()
+    assert claimed == job.job_id
+    await worker._execute(claimed)
+
+    session.expire_all()
+    completed = session.scalar(select(AsyncJob).where(AsyncJob.job_id == job.job_id))
+    assert seen_references == ["run-existing"]
+    assert completed is not None and completed.status == "succeeded"
+    assert completed.provider_reference == "run-existing"
+
+
+@pytest.mark.asyncio
+async def test_worker_persists_run_reference_before_provider_completion(
+    session, client, monkeypatch
+) -> None:
+    factory = sessionmaker(bind=session.get_bind(), expire_on_commit=False)
+    monkeypatch.setattr("reachsocial.jobs.SessionLocal", factory)
+
+    class StartingAdapter:
+        async def execute(self, service, input_data, *, context=None):
+            del service, input_data
+            context.persist_reference("run-started")
+            from reachsocial.errors import ProviderTimeout
+
+            raise ProviderTimeout("Provider timed out")
+
+    monkeypatch.setattr("reachsocial.services.adapter_for", lambda _service: StartingAdapter())
+    catalog = async_catalog()
+    executor = ExecutionService(catalog, RuntimeState())
+    job, _ = submit_job(
+        session,
+        executor=executor,
+        client=client,
+        service_id="x.feed",
+        input_data={"url": "https://x.com/example"},
+        anonymous=False,
+    )
+
+    await JobWorker(catalog, executor)._execute(job.job_id)
+
+    session.expire_all()
+    failed = session.scalar(select(AsyncJob).where(AsyncJob.job_id == job.job_id))
+    assert failed is not None and failed.status == "failed"
+    assert failed.provider_reference == "run-started"
