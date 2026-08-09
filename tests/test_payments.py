@@ -3,7 +3,9 @@ from __future__ import annotations
 from contextlib import contextmanager
 from types import SimpleNamespace
 
+import pytest
 from fastapi import Request
+from fastapi.responses import JSONResponse
 from sqlalchemy import select
 from x402.http.middleware.fastapi import FastAPIAdapter
 from x402.http.types import HTTPRequestContext
@@ -12,6 +14,7 @@ from reachsocial.catalog import Catalog, InputField, ProviderConfig, ServiceDefi
 from reachsocial.config import Settings
 from reachsocial.models import PaymentReceipt
 from reachsocial.payments import (
+    ReachSocialX402Middleware,
     create_x402_payment_handler,
     is_b2b_request,
     mainnet_x402_safety_errors,
@@ -171,3 +174,54 @@ def test_payment_receipt_reservation_rejects_a_replayed_payload(session, monkeyp
 
 def test_usdc_atomic_amount_is_reported_as_cents() -> None:
     assert usdc_atomic_to_cents("50000") == 5
+
+
+@pytest.mark.asyncio
+async def test_disabled_service_bypasses_payment_challenge() -> None:
+    catalog = Catalog(
+        services=[
+            ServiceDefinition(
+                id="x.feed",
+                title="X Feed",
+                platform="X",
+                description="Disabled service",
+                input_fields=[InputField(name="url", description="URL", format="url")],
+                provider=ProviderConfig(name="mock"),
+                execution="async",
+                response_shape="feed",
+                enabled=False,
+                public=False,
+                price_cents=10,
+            )
+        ]
+    )
+    middleware = object.__new__(ReachSocialX402Middleware)
+    middleware._catalog = catalog
+    payment_calls = []
+
+    async def payment_handler(request, call_next):
+        del request, call_next
+        payment_calls.append(True)
+        return JSONResponse({"payment": "required"}, status_code=402)
+
+    async def route_handler(request):
+        del request
+        return JSONResponse({"error": "disabled"}, status_code=404)
+
+    middleware._payment_handler = payment_handler
+    request = Request(
+        {
+            "type": "http",
+            "method": "POST",
+            "path": "/v1/services/x.feed/jobs",
+            "headers": [],
+            "query_string": b"",
+            "scheme": "https",
+            "server": ("reachsocial.test", 443),
+        }
+    )
+
+    response = await middleware.dispatch(request, route_handler)
+
+    assert response.status_code == 404
+    assert payment_calls == []

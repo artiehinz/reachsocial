@@ -242,10 +242,13 @@ class ReachSocialX402Middleware(BaseHTTPMiddleware):
             return await call_next(request)
         credit = request.headers.get("x-service-credit") or ""
         service = service_id_from_path(request.url.path)
+        if service:
+            definition = self._catalog.by_id(service)
+            if definition is None or not (definition.enabled and definition.public):
+                return await call_next(request)
         if credit and service:
             from .jobs import credit_is_valid
 
-            definition = self._catalog.by_id(service)
             if definition and credit_is_valid(credit, service, definition.price_cents):
                 return await call_next(request)
         return await self._payment_handler(request, call_next)
