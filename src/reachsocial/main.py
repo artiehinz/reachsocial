@@ -8,7 +8,7 @@ from typing import AsyncIterator
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, PlainTextResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
@@ -17,6 +17,15 @@ from .api import router as api_router
 from .catalog import get_catalog
 from .config import get_settings
 from .db import init_db
+from .discovery import (
+    agent_text,
+    api_catalog,
+    build_openapi_schema,
+    llms_text,
+    mcp_server_card,
+    robots_text,
+    sitemap_xml,
+)
 from .errors import ReachSocialError
 from .jobs import JobWorker
 from .maintenance import prune_operational_records
@@ -102,6 +111,26 @@ def create_app() -> FastAPI:
         )
     app.mount("/static", StaticFiles(directory=str(ROOT / "static")), name="static")
     app.include_router(api_router)
+
+    @app.get("/mcp/server-card", include_in_schema=False)
+    @app.get("/mcp.json", include_in_schema=False)
+    @app.get("/.well-known/mcp.json", include_in_schema=False)
+    async def mcp_card():
+        if not settings.mcp_enabled:
+            return JSONResponse(
+                status_code=503,
+                content={
+                    "error": {
+                        "code": "mcp_disabled",
+                        "message": "MCP is not enabled; use the documented REST API.",
+                    }
+                },
+            )
+        return JSONResponse(
+            mcp_server_card(settings),
+            media_type="application/mcp-server-card+json",
+        )
+
     if settings.mcp_enabled:
         from .mcp import make_mcp_app
 
@@ -173,19 +202,47 @@ def create_app() -> FastAPI:
     @app.get("/status.json", include_in_schema=False)
     async def status_json(request: Request) -> dict[str, object]:
         settings = request.app.state.settings
+        catalog = request.app.state.catalog
         return {
             "status": "operational",
-            "services": len(request.app.state.catalog.public_services()),
+            "services": len(catalog.public_services()),
+            "catalog_services": len(catalog.discoverable_services()),
+            "mcp": "available" if settings.mcp_enabled else "disabled",
             "network": settings.x402_network if settings.x402_enabled else "payments-disabled",
         }
 
     @app.get("/llms.txt", include_in_schema=False)
-    async def llms(request: Request) -> str:
-        catalog = request.app.state.catalog
-        enabled = [f"- {item.id}: {item.description}" for item in catalog.public_services()]
-        return (
-            "# ReachSocial\n\nProvider-neutral social data API.\n\n## Enabled services\n"
-            + "\n".join(enabled)
+    async def llms(request: Request) -> PlainTextResponse:
+        return PlainTextResponse(
+            llms_text(request.app.state.catalog, request.app.state.settings),
+            media_type="text/plain; charset=utf-8",
+        )
+
+    @app.get("/agent.md", include_in_schema=False)
+    async def agent_guide(request: Request) -> PlainTextResponse:
+        return PlainTextResponse(
+            agent_text(request.app.state.catalog, request.app.state.settings),
+            media_type="text/markdown; charset=utf-8",
+        )
+
+    @app.get("/.well-known/api-catalog", include_in_schema=False)
+    async def well_known_api_catalog(request: Request) -> JSONResponse:
+        return JSONResponse(
+            api_catalog(request.app.state.settings),
+            media_type="application/linkset+json",
+        )
+
+    @app.get("/robots.txt", include_in_schema=False)
+    async def robots(request: Request) -> PlainTextResponse:
+        return PlainTextResponse(
+            robots_text(request.app.state.settings), media_type="text/plain; charset=utf-8"
+        )
+
+    @app.get("/sitemap.xml", include_in_schema=False)
+    async def sitemap(request: Request) -> Response:
+        return Response(
+            sitemap_xml(request.app.state.catalog, request.app.state.settings),
+            media_type="application/xml",
         )
 
     @app.get("/", include_in_schema=False)
@@ -194,6 +251,13 @@ def create_app() -> FastAPI:
             request=request,
             name="home.html",
             context={"catalog": request.app.state.catalog},
+            headers={
+                "Link": (
+                    '</.well-known/api-catalog>; rel="api-catalog"; '
+                    'type="application/linkset+json", </agent.md>; rel="alternate"; '
+                    'type="text/markdown"'
+                )
+            },
         )
 
     @app.get("/catalog", include_in_schema=False)
@@ -207,7 +271,7 @@ def create_app() -> FastAPI:
     @app.get("/services/{service_id}", include_in_schema=False)
     async def service_page(service_id: str, request: Request):
         service = request.app.state.catalog.by_id(service_id)
-        if service is None or not (service.enabled and service.public):
+        if service is None:
             return templates.TemplateResponse(
                 request=request,
                 name="not_found.html",
@@ -267,6 +331,15 @@ def create_app() -> FastAPI:
             context={"title": page[0], "support_email": request.app.state.settings.support_email},
         )
 
+    openapi_cache: dict[str, object] | None = None
+
+    def custom_openapi() -> dict[str, object]:
+        nonlocal openapi_cache
+        if openapi_cache is None:
+            openapi_cache = build_openapi_schema(app, get_catalog())
+        return openapi_cache
+
+    app.openapi = custom_openapi  # type: ignore[method-assign]
     return app
 
 

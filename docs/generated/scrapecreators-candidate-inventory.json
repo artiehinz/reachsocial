@@ -1,0 +1,2705 @@
+{
+  "candidates": [
+    {
+      "candidate_id": "account.credit-balance",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [],
+      "platform": "Scrape Creators",
+      "review_flags": [],
+      "review_state": "excluded",
+      "title": "Get credit balance",
+      "upstream_path": "/v1/account/credit-balance"
+    },
+    {
+      "candidate_id": "account.get-api-usage",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "endpoint",
+        "page",
+        "statusCode"
+      ],
+      "platform": "Scrape Creators",
+      "review_flags": [
+        "age"
+      ],
+      "review_state": "excluded",
+      "title": "Get request history",
+      "upstream_path": "/v1/account/get-api-usage"
+    },
+    {
+      "candidate_id": "account.get-daily-usage-count",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [],
+      "platform": "Scrape Creators",
+      "review_flags": [
+        "age"
+      ],
+      "review_state": "excluded",
+      "title": "Get daily usage",
+      "upstream_path": "/v1/account/get-daily-usage-count"
+    },
+    {
+      "candidate_id": "account.get-most-used-routes",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "end_time",
+        "start_time"
+      ],
+      "platform": "Scrape Creators",
+      "review_flags": [],
+      "review_state": "excluded",
+      "title": "Get most used routes",
+      "upstream_path": "/v1/account/get-most-used-routes"
+    },
+    {
+      "candidate_id": "amazon.shop",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "url"
+      ],
+      "platform": "Amazon Shop",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Amazon Shop page",
+      "upstream_path": "/v1/amazon/shop"
+    },
+    {
+      "candidate_id": "apple-music.album",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "id",
+        "url"
+      ],
+      "platform": "Apple Music",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Album",
+      "upstream_path": "/v1/apple-music/album"
+    },
+    {
+      "candidate_id": "apple-music.artist",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "id",
+        "url"
+      ],
+      "platform": "Apple Music",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Artist",
+      "upstream_path": "/v1/apple-music/artist"
+    },
+    {
+      "candidate_id": "apple-music.search",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "query",
+        "type"
+      ],
+      "platform": "Apple Music",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Search",
+      "upstream_path": "/v1/apple-music/search"
+    },
+    {
+      "candidate_id": "apple-music.track",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "id",
+        "url"
+      ],
+      "platform": "Apple Music",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Track",
+      "upstream_path": "/v1/apple-music/track"
+    },
+    {
+      "candidate_id": "bluesky.post",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "url"
+      ],
+      "platform": "Bluesky",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Post",
+      "upstream_path": "/v1/bluesky/post"
+    },
+    {
+      "candidate_id": "bluesky.profile",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "handle"
+      ],
+      "platform": "Bluesky",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Profile",
+      "upstream_path": "/v1/bluesky/profile"
+    },
+    {
+      "candidate_id": "bluesky.user.posts",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "handle",
+        "user_id"
+      ],
+      "platform": "Bluesky",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Posts",
+      "upstream_path": "/v1/bluesky/user/posts"
+    },
+    {
+      "candidate_id": "detect-age-gender",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "url"
+      ],
+      "platform": "Age and Gender",
+      "review_flags": [
+        "age",
+        "gender"
+      ],
+      "review_state": "excluded",
+      "title": "Get Age and Gender",
+      "upstream_path": "/v1/detect-age-gender"
+    },
+    {
+      "candidate_id": "facebook.ad-library.ad",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "cache_max_age",
+        "id",
+        "trim",
+        "url"
+      ],
+      "platform": "Facebook Ad Library",
+      "review_flags": [
+        "adlibrary"
+      ],
+      "review_state": "unreviewed",
+      "title": "Ad Details",
+      "upstream_path": "/v1/facebook/adLibrary/ad"
+    },
+    {
+      "candidate_id": "facebook.ad-library.ad.transcript",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "cache_max_age",
+        "id",
+        "url"
+      ],
+      "platform": "Facebook Ad Library",
+      "review_flags": [
+        "adlibrary"
+      ],
+      "review_state": "unreviewed",
+      "title": "Ad Transcript",
+      "upstream_path": "/v1/facebook/adLibrary/ad/transcript"
+    },
+    {
+      "candidate_id": "facebook.ad-library.company.ads",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "companyName",
+        "country",
+        "cursor",
+        "end_date",
+        "language",
+        "media_type",
+        "pageId",
+        "sort_by",
+        "start_date",
+        "status",
+        "trim"
+      ],
+      "platform": "Facebook Ad Library",
+      "review_flags": [
+        "adlibrary",
+        "ads"
+      ],
+      "review_state": "unreviewed",
+      "title": "Company Ads",
+      "upstream_path": "/v1/facebook/adLibrary/company/ads"
+    },
+    {
+      "candidate_id": "facebook.ad-library.company.ads.post",
+      "deprecated": false,
+      "method": "POST",
+      "parameters": [],
+      "platform": "Facebook Ad Library",
+      "review_flags": [
+        "adlibrary",
+        "ads"
+      ],
+      "review_state": "unreviewed",
+      "title": "Company Ads",
+      "upstream_path": "/v1/facebook/adLibrary/company/ads"
+    },
+    {
+      "candidate_id": "facebook.ad-library.search.ads",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "ad_type",
+        "country",
+        "cursor",
+        "end_date",
+        "media_type",
+        "query",
+        "search_type",
+        "sort_by",
+        "start_date",
+        "status",
+        "trim"
+      ],
+      "platform": "Facebook Ad Library",
+      "review_flags": [
+        "adlibrary",
+        "ads"
+      ],
+      "review_state": "unreviewed",
+      "title": "Search",
+      "upstream_path": "/v1/facebook/adLibrary/search/ads"
+    },
+    {
+      "candidate_id": "facebook.ad-library.search.ads.post",
+      "deprecated": false,
+      "method": "POST",
+      "parameters": [],
+      "platform": "Facebook Ad Library",
+      "review_flags": [
+        "adlibrary",
+        "ads"
+      ],
+      "review_state": "unreviewed",
+      "title": "Search",
+      "upstream_path": "/v1/facebook/adLibrary/search/ads"
+    },
+    {
+      "candidate_id": "facebook.ad-library.search.companies",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "query"
+      ],
+      "platform": "Facebook Ad Library",
+      "review_flags": [
+        "adlibrary"
+      ],
+      "review_state": "unreviewed",
+      "title": "Search for Companies",
+      "upstream_path": "/v1/facebook/adLibrary/search/companies"
+    },
+    {
+      "candidate_id": "facebook.event.details",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "id",
+        "url"
+      ],
+      "platform": "Facebook Events",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Event Details",
+      "upstream_path": "/v1/facebook/event/details"
+    },
+    {
+      "candidate_id": "facebook.events",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "cursor",
+        "time",
+        "url"
+      ],
+      "platform": "Facebook Events",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Events",
+      "upstream_path": "/v1/facebook/events"
+    },
+    {
+      "candidate_id": "facebook.events.search",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "cursor",
+        "query"
+      ],
+      "platform": "Facebook Events",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Search Events",
+      "upstream_path": "/v1/facebook/events/search"
+    },
+    {
+      "candidate_id": "facebook.group",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "group_id",
+        "url"
+      ],
+      "platform": "Facebook",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Facebook Group Info",
+      "upstream_path": "/v1/facebook/group"
+    },
+    {
+      "candidate_id": "facebook.group.posts",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "cursor",
+        "group_id",
+        "sort_by",
+        "url"
+      ],
+      "platform": "Facebook",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Facebook Group Posts",
+      "upstream_path": "/v1/facebook/group/posts"
+    },
+    {
+      "candidate_id": "facebook.marketplace.item",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "id",
+        "url"
+      ],
+      "platform": "Facebook Marketplace",
+      "review_flags": [
+        "marketplace"
+      ],
+      "review_state": "unreviewed",
+      "title": "Marketplace Item",
+      "upstream_path": "/v1/facebook/marketplace/item"
+    },
+    {
+      "candidate_id": "facebook.marketplace.location.search",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "query"
+      ],
+      "platform": "Facebook Marketplace",
+      "review_flags": [
+        "marketplace"
+      ],
+      "review_state": "unreviewed",
+      "title": "Marketplace Location Search",
+      "upstream_path": "/v1/facebook/marketplace/location/search"
+    },
+    {
+      "candidate_id": "facebook.marketplace.search",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "availability",
+        "condition",
+        "count",
+        "cursor",
+        "date_listed",
+        "delivery_method",
+        "lat",
+        "lng",
+        "max_price",
+        "min_price",
+        "query",
+        "radius_km",
+        "sort_by"
+      ],
+      "platform": "Facebook Marketplace",
+      "review_flags": [
+        "marketplace"
+      ],
+      "review_state": "unreviewed",
+      "title": "Marketplace Search",
+      "upstream_path": "/v1/facebook/marketplace/search"
+    },
+    {
+      "candidate_id": "facebook.post",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "cache_max_age",
+        "url"
+      ],
+      "platform": "Facebook",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Post",
+      "upstream_path": "/v1/facebook/post"
+    },
+    {
+      "candidate_id": "facebook.post.comment.replies",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "cursor",
+        "expansion_token",
+        "feedback_id"
+      ],
+      "platform": "Facebook",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Comment Replies",
+      "upstream_path": "/v1/facebook/post/comment/replies"
+    },
+    {
+      "candidate_id": "facebook.post.comments",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "cursor",
+        "feedback_id",
+        "url"
+      ],
+      "platform": "Facebook",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Comments",
+      "upstream_path": "/v1/facebook/post/comments"
+    },
+    {
+      "candidate_id": "facebook.post.transcript",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "cache_max_age",
+        "url"
+      ],
+      "platform": "Facebook",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Transcript",
+      "upstream_path": "/v1/facebook/post/transcript"
+    },
+    {
+      "candidate_id": "facebook.profile",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "cache_max_age",
+        "get_business_hours",
+        "include_gated_profile",
+        "url"
+      ],
+      "platform": "Facebook",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Profile",
+      "upstream_path": "/v1/facebook/profile"
+    },
+    {
+      "candidate_id": "facebook.profile.events",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "cursor",
+        "url"
+      ],
+      "platform": "Facebook",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Profile Events",
+      "upstream_path": "/v1/facebook/profile/events"
+    },
+    {
+      "candidate_id": "facebook.profile.photos",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "cursor",
+        "next_page_id",
+        "url"
+      ],
+      "platform": "Facebook",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Profile Photos",
+      "upstream_path": "/v1/facebook/profile/photos"
+    },
+    {
+      "candidate_id": "facebook.profile.posts",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "cursor",
+        "pageId",
+        "url"
+      ],
+      "platform": "Facebook",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Profile Posts",
+      "upstream_path": "/v1/facebook/profile/posts"
+    },
+    {
+      "candidate_id": "facebook.profile.reels",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "cursor",
+        "next_page_id",
+        "url"
+      ],
+      "platform": "Facebook",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Profile Reels",
+      "upstream_path": "/v1/facebook/profile/reels"
+    },
+    {
+      "candidate_id": "github.repository",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "url"
+      ],
+      "platform": "GitHub",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Repository",
+      "upstream_path": "/v1/github/repository"
+    },
+    {
+      "candidate_id": "github.trending.developers",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "language",
+        "since"
+      ],
+      "platform": "GitHub",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Trending Developers",
+      "upstream_path": "/v1/github/trending/developers"
+    },
+    {
+      "candidate_id": "github.trending.repositories",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "language",
+        "since",
+        "spoken_language_code"
+      ],
+      "platform": "GitHub",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Trending Repositories",
+      "upstream_path": "/v1/github/trending/repositories"
+    },
+    {
+      "candidate_id": "github.user",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "handle",
+        "url"
+      ],
+      "platform": "GitHub",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "User",
+      "upstream_path": "/v1/github/user"
+    },
+    {
+      "candidate_id": "github.user.activity",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "cursor",
+        "handle",
+        "url",
+        "year"
+      ],
+      "platform": "GitHub",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Activity",
+      "upstream_path": "/v1/github/user/activity"
+    },
+    {
+      "candidate_id": "github.user.contributions",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "handle",
+        "url",
+        "year"
+      ],
+      "platform": "GitHub",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Contributions",
+      "upstream_path": "/v1/github/user/contributions"
+    },
+    {
+      "candidate_id": "github.user.followers",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "cursor",
+        "handle",
+        "url"
+      ],
+      "platform": "GitHub",
+      "review_flags": [
+        "followers"
+      ],
+      "review_state": "unreviewed",
+      "title": "Followers",
+      "upstream_path": "/v1/github/user/followers"
+    },
+    {
+      "candidate_id": "github.user.following",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "cursor",
+        "handle",
+        "url"
+      ],
+      "platform": "GitHub",
+      "review_flags": [
+        "following"
+      ],
+      "review_state": "unreviewed",
+      "title": "Following",
+      "upstream_path": "/v1/github/user/following"
+    },
+    {
+      "candidate_id": "github.user.pull-requests",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "cursor",
+        "handle",
+        "since",
+        "until"
+      ],
+      "platform": "GitHub",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Pull Requests",
+      "upstream_path": "/v1/github/user/pull-requests"
+    },
+    {
+      "candidate_id": "github.user.repositories",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "cursor",
+        "direction",
+        "handle",
+        "sort",
+        "type",
+        "url"
+      ],
+      "platform": "GitHub",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Repositories",
+      "upstream_path": "/v1/github/user/repositories"
+    },
+    {
+      "candidate_id": "google.ad",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "cache_max_age",
+        "url"
+      ],
+      "platform": "Google Ad Library",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Ad Details",
+      "upstream_path": "/v1/google/ad"
+    },
+    {
+      "candidate_id": "google.ad-library.advertisers.search",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "query",
+        "region"
+      ],
+      "platform": "Google Ad Library",
+      "review_flags": [
+        "adlibrary"
+      ],
+      "review_state": "unreviewed",
+      "title": "Advertiser Search",
+      "upstream_path": "/v1/google/adLibrary/advertisers/search"
+    },
+    {
+      "candidate_id": "google.company.ads",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "advertiser_id",
+        "cursor",
+        "domain",
+        "end_date",
+        "format",
+        "get_ad_details",
+        "platform",
+        "region",
+        "start_date",
+        "topic"
+      ],
+      "platform": "Google Ad Library",
+      "review_flags": [
+        "ads"
+      ],
+      "review_state": "unreviewed",
+      "title": "Company Ads",
+      "upstream_path": "/v1/google/company/ads"
+    },
+    {
+      "candidate_id": "google.search",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "date_posted",
+        "page",
+        "query",
+        "region"
+      ],
+      "platform": "Google",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Search",
+      "upstream_path": "/v1/google/search"
+    },
+    {
+      "candidate_id": "instagram.audio.reels",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "audio_id",
+        "cursor"
+      ],
+      "platform": "Instagram",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Get Reels By Audio Id",
+      "upstream_path": "/v1/instagram/audio/reels"
+    },
+    {
+      "candidate_id": "instagram.basic-profile",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "cache_max_age",
+        "userId"
+      ],
+      "platform": "Instagram",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Basic Profile",
+      "upstream_path": "/v1/instagram/basic-profile"
+    },
+    {
+      "candidate_id": "instagram.post",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "cache_max_age",
+        "download_media",
+        "region",
+        "trim",
+        "url"
+      ],
+      "platform": "Instagram",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Post/Reel Info",
+      "upstream_path": "/v1/instagram/post"
+    },
+    {
+      "candidate_id": "instagram.post.comment.replies",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "comment_id",
+        "cursor",
+        "url"
+      ],
+      "platform": "Instagram",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Comment Replies",
+      "upstream_path": "/v1/instagram/post/comment/replies"
+    },
+    {
+      "candidate_id": "instagram.profile",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "cache_max_age",
+        "handle",
+        "trim"
+      ],
+      "platform": "Instagram",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Profile",
+      "upstream_path": "/v1/instagram/profile"
+    },
+    {
+      "candidate_id": "instagram.reels.trending",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [],
+      "platform": "Instagram",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Trending Reels",
+      "upstream_path": "/v1/instagram/reels/trending"
+    },
+    {
+      "candidate_id": "instagram.search",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "query"
+      ],
+      "platform": "Instagram",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Search Instagram",
+      "upstream_path": "/v1/instagram/search"
+    },
+    {
+      "candidate_id": "instagram.search.hashtag",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "cursor",
+        "date_posted",
+        "hashtag",
+        "media_type"
+      ],
+      "platform": "Instagram",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Search Hashtag Posts",
+      "upstream_path": "/v1/instagram/search/hashtag"
+    },
+    {
+      "candidate_id": "instagram.search.popular",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "cursor",
+        "query"
+      ],
+      "platform": "Instagram",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Popular Search",
+      "upstream_path": "/v1/instagram/search/popular"
+    },
+    {
+      "candidate_id": "instagram.search.profiles",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "cursor",
+        "query"
+      ],
+      "platform": "Instagram",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Search Instagram Profiles",
+      "upstream_path": "/v1/instagram/search/profiles"
+    },
+    {
+      "candidate_id": "instagram.user.embed",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "handle"
+      ],
+      "platform": "Instagram",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Embed HTML",
+      "upstream_path": "/v1/instagram/user/embed"
+    },
+    {
+      "candidate_id": "instagram.user.highlight.detail",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "id"
+      ],
+      "platform": "Instagram",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Highlights Details",
+      "upstream_path": "/v1/instagram/user/highlight/detail"
+    },
+    {
+      "candidate_id": "instagram.user.highlights",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "handle",
+        "user_id"
+      ],
+      "platform": "Instagram",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Story Highlights",
+      "upstream_path": "/v1/instagram/user/highlights"
+    },
+    {
+      "candidate_id": "instagram.user.reels",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "handle",
+        "max_id",
+        "trim",
+        "user_id"
+      ],
+      "platform": "Instagram",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Reels",
+      "upstream_path": "/v1/instagram/user/reels"
+    },
+    {
+      "candidate_id": "instagram.user.tagged-posts",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "cursor",
+        "user_id"
+      ],
+      "platform": "Instagram",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "User Tagged Posts",
+      "upstream_path": "/v1/instagram/user/tagged-posts"
+    },
+    {
+      "candidate_id": "kick.clip",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "url"
+      ],
+      "platform": "Kick",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Clip",
+      "upstream_path": "/v1/kick/clip"
+    },
+    {
+      "candidate_id": "komi",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "cache_max_age",
+        "url"
+      ],
+      "platform": "Komi",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Komi page",
+      "upstream_path": "/v1/komi"
+    },
+    {
+      "candidate_id": "kwai.post",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "url"
+      ],
+      "platform": "Kwai",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Post",
+      "upstream_path": "/v1/kwai/post"
+    },
+    {
+      "candidate_id": "kwai.profile",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "handle",
+        "url"
+      ],
+      "platform": "Kwai",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Profile",
+      "upstream_path": "/v1/kwai/profile"
+    },
+    {
+      "candidate_id": "kwai.user.posts",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "count",
+        "cursor",
+        "handle",
+        "url"
+      ],
+      "platform": "Kwai",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "User Posts",
+      "upstream_path": "/v1/kwai/user/posts"
+    },
+    {
+      "candidate_id": "linkbio",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "cache_max_age",
+        "url"
+      ],
+      "platform": "Linkbio",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Linkbio page",
+      "upstream_path": "/v1/linkbio"
+    },
+    {
+      "candidate_id": "linkedin.ad",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "url"
+      ],
+      "platform": "LinkedIn Ad Library",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Ad Details",
+      "upstream_path": "/v1/linkedin/ad"
+    },
+    {
+      "candidate_id": "linkedin.ads.search",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "company",
+        "companyId",
+        "countries",
+        "endDate",
+        "keyword",
+        "paginationToken",
+        "startDate"
+      ],
+      "platform": "LinkedIn Ad Library",
+      "review_flags": [
+        "ads"
+      ],
+      "review_state": "unreviewed",
+      "title": "Search Ads",
+      "upstream_path": "/v1/linkedin/ads/search"
+    },
+    {
+      "candidate_id": "linkedin.company",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "url"
+      ],
+      "platform": "LinkedIn",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Company Page",
+      "upstream_path": "/v1/linkedin/company"
+    },
+    {
+      "candidate_id": "linkedin.company.posts",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "page",
+        "url"
+      ],
+      "platform": "LinkedIn",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Company Posts",
+      "upstream_path": "/v1/linkedin/company/posts"
+    },
+    {
+      "candidate_id": "linkedin.post",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "url"
+      ],
+      "platform": "LinkedIn",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Post",
+      "upstream_path": "/v1/linkedin/post"
+    },
+    {
+      "candidate_id": "linkedin.post.transcript",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "url"
+      ],
+      "platform": "LinkedIn",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Post Transcript",
+      "upstream_path": "/v1/linkedin/post/transcript"
+    },
+    {
+      "candidate_id": "linkedin.profile",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "url"
+      ],
+      "platform": "LinkedIn",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Person's Profile",
+      "upstream_path": "/v1/linkedin/profile"
+    },
+    {
+      "candidate_id": "linkedin.search.posts",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "cursor",
+        "date_posted",
+        "query"
+      ],
+      "platform": "LinkedIn",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Search Posts",
+      "upstream_path": "/v1/linkedin/search/posts"
+    },
+    {
+      "candidate_id": "linkme",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "cache_max_age",
+        "url"
+      ],
+      "platform": "Linkme",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Profile",
+      "upstream_path": "/v1/linkme"
+    },
+    {
+      "candidate_id": "linktree",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "cache_max_age",
+        "url"
+      ],
+      "platform": "Linktree",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Linktree page",
+      "upstream_path": "/v1/linktree"
+    },
+    {
+      "candidate_id": "pillar",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "cache_max_age",
+        "url"
+      ],
+      "platform": "Pillar",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Pillar page",
+      "upstream_path": "/v1/pillar"
+    },
+    {
+      "candidate_id": "pinterest.board",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "cursor",
+        "trim",
+        "url"
+      ],
+      "platform": "Pinterest",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Board",
+      "upstream_path": "/v1/pinterest/board"
+    },
+    {
+      "candidate_id": "pinterest.pin",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "cache_max_age",
+        "trim",
+        "url"
+      ],
+      "platform": "Pinterest",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Pin",
+      "upstream_path": "/v1/pinterest/pin"
+    },
+    {
+      "candidate_id": "pinterest.search",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "cursor",
+        "query",
+        "trim"
+      ],
+      "platform": "Pinterest",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Search",
+      "upstream_path": "/v1/pinterest/search"
+    },
+    {
+      "candidate_id": "pinterest.user.boards",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "handle",
+        "trim"
+      ],
+      "platform": "Pinterest",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "User Boards",
+      "upstream_path": "/v1/pinterest/user/boards"
+    },
+    {
+      "candidate_id": "reddit.post.comments",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "cursor",
+        "trim",
+        "url"
+      ],
+      "platform": "Reddit",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Post Comments",
+      "upstream_path": "/v1/reddit/post/comments"
+    },
+    {
+      "candidate_id": "reddit.post.comments.post",
+      "deprecated": false,
+      "method": "POST",
+      "parameters": [],
+      "platform": "Reddit",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Post Comments",
+      "upstream_path": "/v1/reddit/post/comments"
+    },
+    {
+      "candidate_id": "reddit.post.transcript",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "cache_max_age",
+        "language",
+        "url"
+      ],
+      "platform": "Reddit",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Post Transcript",
+      "upstream_path": "/v1/reddit/post/transcript"
+    },
+    {
+      "candidate_id": "reddit.search",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "after",
+        "query",
+        "sort",
+        "timeframe",
+        "trim"
+      ],
+      "platform": "Reddit",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Search",
+      "upstream_path": "/v1/reddit/search"
+    },
+    {
+      "candidate_id": "reddit.subreddit",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "after",
+        "cache_max_age",
+        "sort",
+        "subreddit",
+        "timeframe",
+        "trim"
+      ],
+      "platform": "Reddit",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Subreddit Posts",
+      "upstream_path": "/v1/reddit/subreddit"
+    },
+    {
+      "candidate_id": "reddit.subreddit.details",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "cache_max_age",
+        "subreddit",
+        "url"
+      ],
+      "platform": "Reddit",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Subreddit Details",
+      "upstream_path": "/v1/reddit/subreddit/details"
+    },
+    {
+      "candidate_id": "reddit.subreddit.search",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "cursor",
+        "query",
+        "sort",
+        "subreddit",
+        "timeframe"
+      ],
+      "platform": "Reddit",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Subreddit Search",
+      "upstream_path": "/v1/reddit/subreddit/search"
+    },
+    {
+      "candidate_id": "rumble.channel.videos",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "cursor",
+        "handle",
+        "url"
+      ],
+      "platform": "Rumble",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Channel Videos",
+      "upstream_path": "/v1/rumble/channel/videos"
+    },
+    {
+      "candidate_id": "rumble.search",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "cursor",
+        "query"
+      ],
+      "platform": "Rumble",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Search",
+      "upstream_path": "/v1/rumble/search"
+    },
+    {
+      "candidate_id": "rumble.video",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "url"
+      ],
+      "platform": "Rumble",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Video",
+      "upstream_path": "/v1/rumble/video"
+    },
+    {
+      "candidate_id": "rumble.video.comments",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "url"
+      ],
+      "platform": "Rumble",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Comments",
+      "upstream_path": "/v1/rumble/video/comments"
+    },
+    {
+      "candidate_id": "rumble.video.transcript",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "url"
+      ],
+      "platform": "Rumble",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Transcript",
+      "upstream_path": "/v1/rumble/video/transcript"
+    },
+    {
+      "candidate_id": "snapchat.profile",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "handle"
+      ],
+      "platform": "Snapchat",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "User Profile",
+      "upstream_path": "/v1/snapchat/profile"
+    },
+    {
+      "candidate_id": "snapchat.spotlight",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "url"
+      ],
+      "platform": "Snapchat",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Spotlight by Link",
+      "upstream_path": "/v1/snapchat/spotlight"
+    },
+    {
+      "candidate_id": "snapchat.spotlight.comments",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "cursor",
+        "url"
+      ],
+      "platform": "Snapchat",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Spotlight Comments by Link",
+      "upstream_path": "/v1/snapchat/spotlight/comments"
+    },
+    {
+      "candidate_id": "soundcloud.artist",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "handle",
+        "url"
+      ],
+      "platform": "SoundCloud",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Artist",
+      "upstream_path": "/v1/soundcloud/artist"
+    },
+    {
+      "candidate_id": "soundcloud.artist.tracks",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "cursor",
+        "handle",
+        "url"
+      ],
+      "platform": "SoundCloud",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Artist Tracks",
+      "upstream_path": "/v1/soundcloud/artist/tracks"
+    },
+    {
+      "candidate_id": "soundcloud.track",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "url"
+      ],
+      "platform": "SoundCloud",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Track",
+      "upstream_path": "/v1/soundcloud/track"
+    },
+    {
+      "candidate_id": "spotify.album",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "id",
+        "url"
+      ],
+      "platform": "Spotify",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Album",
+      "upstream_path": "/v1/spotify/album"
+    },
+    {
+      "candidate_id": "spotify.artist",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "id",
+        "url"
+      ],
+      "platform": "Spotify",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Artist",
+      "upstream_path": "/v1/spotify/artist"
+    },
+    {
+      "candidate_id": "spotify.podcast",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "id",
+        "url"
+      ],
+      "platform": "Spotify",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Podcast",
+      "upstream_path": "/v1/spotify/podcast"
+    },
+    {
+      "candidate_id": "spotify.podcast.episodes",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "cursor",
+        "id",
+        "url"
+      ],
+      "platform": "Spotify",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Podcast Episodes",
+      "upstream_path": "/v1/spotify/podcast/episodes"
+    },
+    {
+      "candidate_id": "spotify.search",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "query"
+      ],
+      "platform": "Spotify",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Search",
+      "upstream_path": "/v1/spotify/search"
+    },
+    {
+      "candidate_id": "spotify.track",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "id",
+        "url"
+      ],
+      "platform": "Spotify",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Track",
+      "upstream_path": "/v1/spotify/track"
+    },
+    {
+      "candidate_id": "threads.post",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "cache_max_age",
+        "trim",
+        "url"
+      ],
+      "platform": "Threads",
+      "review_flags": [
+        "ads"
+      ],
+      "review_state": "unreviewed",
+      "title": "Post",
+      "upstream_path": "/v1/threads/post"
+    },
+    {
+      "candidate_id": "threads.profile",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "cache_max_age",
+        "handle"
+      ],
+      "platform": "Threads",
+      "review_flags": [
+        "ads"
+      ],
+      "review_state": "unreviewed",
+      "title": "Profile",
+      "upstream_path": "/v1/threads/profile"
+    },
+    {
+      "candidate_id": "threads.search",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "end_date",
+        "query",
+        "start_date",
+        "trim"
+      ],
+      "platform": "Threads",
+      "review_flags": [
+        "ads"
+      ],
+      "review_state": "unreviewed",
+      "title": "Search by Keyword",
+      "upstream_path": "/v1/threads/search"
+    },
+    {
+      "candidate_id": "threads.search.users",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "query"
+      ],
+      "platform": "Threads",
+      "review_flags": [
+        "ads"
+      ],
+      "review_state": "unreviewed",
+      "title": "Search Users",
+      "upstream_path": "/v1/threads/search/users"
+    },
+    {
+      "candidate_id": "threads.user.posts",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "handle",
+        "trim"
+      ],
+      "platform": "Threads",
+      "review_flags": [
+        "ads"
+      ],
+      "review_state": "unreviewed",
+      "title": "Posts",
+      "upstream_path": "/v1/threads/user/posts"
+    },
+    {
+      "candidate_id": "tiktok.ad-library.ad",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "ad_id"
+      ],
+      "platform": "TikTok Ad Library",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Ad Library Ad",
+      "upstream_path": "/v1/tiktok/ad-library/ad"
+    },
+    {
+      "candidate_id": "tiktok.ad-library.search",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "cursor",
+        "query"
+      ],
+      "platform": "TikTok Ad Library",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Ad Library Search",
+      "upstream_path": "/v1/tiktok/ad-library/search"
+    },
+    {
+      "candidate_id": "tiktok.collection.videos",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "cursor",
+        "url"
+      ],
+      "platform": "TikTok",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Collection Videos",
+      "upstream_path": "/v1/tiktok/collection/videos"
+    },
+    {
+      "candidate_id": "tiktok.creators.popular",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "audienceCountry",
+        "creatorCountry",
+        "followerCount",
+        "page",
+        "sortBy"
+      ],
+      "platform": "TikTok",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Get popular creators",
+      "upstream_path": "/v1/tiktok/creators/popular"
+    },
+    {
+      "candidate_id": "tiktok.get-trending-feed",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "region",
+        "trim"
+      ],
+      "platform": "TikTok",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Trending Feed",
+      "upstream_path": "/v1/tiktok/get-trending-feed"
+    },
+    {
+      "candidate_id": "tiktok.live",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "room_id",
+        "user_id"
+      ],
+      "platform": "TikTok",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Live Info",
+      "upstream_path": "/v1/tiktok/live"
+    },
+    {
+      "candidate_id": "tiktok.product",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "region",
+        "url"
+      ],
+      "platform": "TikTok Shop",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Product Details",
+      "upstream_path": "/v1/tiktok/product"
+    },
+    {
+      "candidate_id": "tiktok.profile",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "cache_max_age",
+        "handle",
+        "user_id"
+      ],
+      "platform": "TikTok",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Profile",
+      "upstream_path": "/v1/tiktok/profile"
+    },
+    {
+      "candidate_id": "tiktok.profile.region",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "handle"
+      ],
+      "platform": "TikTok",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Profile Region",
+      "upstream_path": "/v1/tiktok/profile/region"
+    },
+    {
+      "candidate_id": "tiktok.search.hashtag",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "cursor",
+        "hashtag",
+        "region",
+        "trim"
+      ],
+      "platform": "TikTok",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Search by Hashtag",
+      "upstream_path": "/v1/tiktok/search/hashtag"
+    },
+    {
+      "candidate_id": "tiktok.search.keyword",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "cursor",
+        "date_posted",
+        "query",
+        "region",
+        "sort_by",
+        "trim"
+      ],
+      "platform": "TikTok",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Search by Keyword",
+      "upstream_path": "/v1/tiktok/search/keyword"
+    },
+    {
+      "candidate_id": "tiktok.search.suggestions",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "query",
+        "region"
+      ],
+      "platform": "TikTok",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Search Suggestions",
+      "upstream_path": "/v1/tiktok/search/suggestions"
+    },
+    {
+      "candidate_id": "tiktok.search.top",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "cursor",
+        "publish_time",
+        "query",
+        "region",
+        "sort_by"
+      ],
+      "platform": "TikTok",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Top Search",
+      "upstream_path": "/v1/tiktok/search/top"
+    },
+    {
+      "candidate_id": "tiktok.search.users",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "cursor",
+        "query",
+        "trim"
+      ],
+      "platform": "TikTok",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Search Users",
+      "upstream_path": "/v1/tiktok/search/users"
+    },
+    {
+      "candidate_id": "tiktok.shop.product.reviews",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "page",
+        "product_id",
+        "region",
+        "url"
+      ],
+      "platform": "TikTok Shop",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Product Reviews",
+      "upstream_path": "/v1/tiktok/shop/product/reviews"
+    },
+    {
+      "candidate_id": "tiktok.shop.products",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "cursor",
+        "region",
+        "sort_by",
+        "url"
+      ],
+      "platform": "TikTok Shop",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Shop Products",
+      "upstream_path": "/v1/tiktok/shop/products"
+    },
+    {
+      "candidate_id": "tiktok.shop.search",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "page",
+        "query",
+        "region"
+      ],
+      "platform": "TikTok Shop",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Shop Search",
+      "upstream_path": "/v1/tiktok/shop/search"
+    },
+    {
+      "candidate_id": "tiktok.song",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "clipId"
+      ],
+      "platform": "TikTok",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Get Song Details",
+      "upstream_path": "/v1/tiktok/song"
+    },
+    {
+      "candidate_id": "tiktok.song.videos",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "clipId",
+        "cursor"
+      ],
+      "platform": "TikTok",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "TikToks using Song",
+      "upstream_path": "/v1/tiktok/song/videos"
+    },
+    {
+      "candidate_id": "tiktok.user.audience",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "handle"
+      ],
+      "platform": "TikTok",
+      "review_flags": [
+        "audience"
+      ],
+      "review_state": "unreviewed",
+      "title": "User's Audience Demographics",
+      "upstream_path": "/v1/tiktok/user/audience"
+    },
+    {
+      "candidate_id": "tiktok.user.followers",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "handle",
+        "min_time",
+        "trim",
+        "user_id"
+      ],
+      "platform": "TikTok",
+      "review_flags": [
+        "followers"
+      ],
+      "review_state": "unreviewed",
+      "title": "Followers",
+      "upstream_path": "/v1/tiktok/user/followers"
+    },
+    {
+      "candidate_id": "tiktok.user.following",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "handle",
+        "min_time",
+        "trim"
+      ],
+      "platform": "TikTok",
+      "review_flags": [
+        "following"
+      ],
+      "review_state": "unreviewed",
+      "title": "Following",
+      "upstream_path": "/v1/tiktok/user/following"
+    },
+    {
+      "candidate_id": "tiktok.user.live",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "handle"
+      ],
+      "platform": "TikTok",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Live",
+      "upstream_path": "/v1/tiktok/user/live"
+    },
+    {
+      "candidate_id": "tiktok.user.showcase",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "cursor",
+        "handle",
+        "region"
+      ],
+      "platform": "TikTok Shop",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "User Showcase",
+      "upstream_path": "/v1/tiktok/user/showcase"
+    },
+    {
+      "candidate_id": "tiktok.video.comment.replies",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "comment_id",
+        "cursor",
+        "url"
+      ],
+      "platform": "TikTok",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Comment Replies",
+      "upstream_path": "/v1/tiktok/video/comment/replies"
+    },
+    {
+      "candidate_id": "tiktok.video.comments",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "cursor",
+        "trim",
+        "url"
+      ],
+      "platform": "TikTok",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Comments",
+      "upstream_path": "/v1/tiktok/video/comments"
+    },
+    {
+      "candidate_id": "tiktok.video.transcript",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "language",
+        "url",
+        "use_ai_as_fallback"
+      ],
+      "platform": "TikTok",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Transcript",
+      "upstream_path": "/v1/tiktok/video/transcript"
+    },
+    {
+      "candidate_id": "truthsocial.post",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "url"
+      ],
+      "platform": "Truth Social",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Post",
+      "upstream_path": "/v1/truthsocial/post"
+    },
+    {
+      "candidate_id": "truthsocial.profile",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "handle"
+      ],
+      "platform": "Truth Social",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Profile",
+      "upstream_path": "/v1/truthsocial/profile"
+    },
+    {
+      "candidate_id": "truthsocial.user.posts",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "handle",
+        "next_max_id",
+        "trim",
+        "user_id"
+      ],
+      "platform": "Truth Social",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "User Posts",
+      "upstream_path": "/v1/truthsocial/user/posts"
+    },
+    {
+      "candidate_id": "twitch.clip",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "cache_max_age",
+        "url"
+      ],
+      "platform": "Twitch",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Clip",
+      "upstream_path": "/v1/twitch/clip"
+    },
+    {
+      "candidate_id": "twitch.profile",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "cache_max_age",
+        "handle"
+      ],
+      "platform": "Twitch",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Profile",
+      "upstream_path": "/v1/twitch/profile"
+    },
+    {
+      "candidate_id": "twitch.user.schedule",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "handle"
+      ],
+      "platform": "Twitch",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "User Schedule",
+      "upstream_path": "/v1/twitch/user/schedule"
+    },
+    {
+      "candidate_id": "twitch.user.videos",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "filter_by",
+        "handle",
+        "sort_by"
+      ],
+      "platform": "Twitch",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "User Videos",
+      "upstream_path": "/v1/twitch/user/videos"
+    },
+    {
+      "candidate_id": "twitter.community",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "url"
+      ],
+      "platform": "Twitter",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Community",
+      "upstream_path": "/v1/twitter/community"
+    },
+    {
+      "candidate_id": "twitter.community.tweets",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "url"
+      ],
+      "platform": "Twitter",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Community Tweets",
+      "upstream_path": "/v1/twitter/community/tweets"
+    },
+    {
+      "candidate_id": "twitter.profile",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "cache_max_age",
+        "handle"
+      ],
+      "platform": "Twitter",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Profile",
+      "upstream_path": "/v1/twitter/profile"
+    },
+    {
+      "candidate_id": "twitter.tweet",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "cache_max_age",
+        "trim",
+        "url"
+      ],
+      "platform": "Twitter",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Tweet Details",
+      "upstream_path": "/v1/twitter/tweet"
+    },
+    {
+      "candidate_id": "twitter.tweet.transcript",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "cache_max_age",
+        "url"
+      ],
+      "platform": "Twitter",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Transcript",
+      "upstream_path": "/v1/twitter/tweet/transcript"
+    },
+    {
+      "candidate_id": "twitter.user-tweets",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "handle",
+        "trim"
+      ],
+      "platform": "Twitter",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "User Tweets",
+      "upstream_path": "/v1/twitter/user-tweets"
+    },
+    {
+      "candidate_id": "youtube.channel",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "cache_max_age",
+        "channelId",
+        "handle",
+        "url"
+      ],
+      "platform": "YouTube",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Channel Details",
+      "upstream_path": "/v1/youtube/channel"
+    },
+    {
+      "candidate_id": "youtube.channel-videos",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "channelId",
+        "continuationToken",
+        "handle",
+        "includeExtras",
+        "is_paid_promotions",
+        "sort"
+      ],
+      "platform": "YouTube",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Channel Videos",
+      "upstream_path": "/v1/youtube/channel-videos"
+    },
+    {
+      "candidate_id": "youtube.channel.community-posts",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "channelId",
+        "continuationToken",
+        "handle"
+      ],
+      "platform": "YouTube",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Channel Community Posts",
+      "upstream_path": "/v1/youtube/channel/community-posts"
+    },
+    {
+      "candidate_id": "youtube.channel.lives",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "channelId",
+        "continuationToken",
+        "handle"
+      ],
+      "platform": "YouTube",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Channel Lives",
+      "upstream_path": "/v1/youtube/channel/lives"
+    },
+    {
+      "candidate_id": "youtube.channel.playlists",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "channelId",
+        "continuationToken",
+        "handle"
+      ],
+      "platform": "YouTube",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Channel Playlists",
+      "upstream_path": "/v1/youtube/channel/playlists"
+    },
+    {
+      "candidate_id": "youtube.channel.shorts",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "channelId",
+        "continuationToken",
+        "handle",
+        "sort"
+      ],
+      "platform": "YouTube",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Channel Shorts",
+      "upstream_path": "/v1/youtube/channel/shorts"
+    },
+    {
+      "candidate_id": "youtube.community-post",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "url"
+      ],
+      "platform": "YouTube",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Community Post Details",
+      "upstream_path": "/v1/youtube/community-post"
+    },
+    {
+      "candidate_id": "youtube.playlist",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "playlist_id"
+      ],
+      "platform": "YouTube",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Playlist",
+      "upstream_path": "/v1/youtube/playlist"
+    },
+    {
+      "candidate_id": "youtube.search",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "continuationToken",
+        "duration",
+        "includeExtras",
+        "query",
+        "region",
+        "sortBy",
+        "type",
+        "uploadDate"
+      ],
+      "platform": "YouTube",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Search",
+      "upstream_path": "/v1/youtube/search"
+    },
+    {
+      "candidate_id": "youtube.search.hashtag",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "continuationToken",
+        "hashtag",
+        "type"
+      ],
+      "platform": "YouTube",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Search by Hashtag",
+      "upstream_path": "/v1/youtube/search/hashtag"
+    },
+    {
+      "candidate_id": "youtube.shorts.trending",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [],
+      "platform": "YouTube",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Trending Shorts",
+      "upstream_path": "/v1/youtube/shorts/trending"
+    },
+    {
+      "candidate_id": "youtube.video",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "cache_max_age",
+        "language",
+        "url"
+      ],
+      "platform": "YouTube",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Video/Short Details",
+      "upstream_path": "/v1/youtube/video"
+    },
+    {
+      "candidate_id": "youtube.video.comment.replies",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "continuationToken"
+      ],
+      "platform": "YouTube",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Comment Replies",
+      "upstream_path": "/v1/youtube/video/comment/replies"
+    },
+    {
+      "candidate_id": "youtube.video.comments",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "continuationToken",
+        "order",
+        "url"
+      ],
+      "platform": "YouTube",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Comments",
+      "upstream_path": "/v1/youtube/video/comments"
+    },
+    {
+      "candidate_id": "youtube.video.sponsors",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "language",
+        "url"
+      ],
+      "platform": "YouTube",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Video Sponsors",
+      "upstream_path": "/v1/youtube/video/sponsors"
+    },
+    {
+      "candidate_id": "youtube.video.transcript",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "cache_max_age",
+        "language",
+        "url"
+      ],
+      "platform": "YouTube",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Transcript",
+      "upstream_path": "/v1/youtube/video/transcript"
+    },
+    {
+      "candidate_id": "instagram.media.transcript",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "cache_max_age",
+        "url"
+      ],
+      "platform": "Instagram",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Transcript",
+      "upstream_path": "/v2/instagram/media/transcript"
+    },
+    {
+      "candidate_id": "instagram.post.comments",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "cursor",
+        "include_replies",
+        "url"
+      ],
+      "platform": "Instagram",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Comments",
+      "upstream_path": "/v2/instagram/post/comments"
+    },
+    {
+      "candidate_id": "instagram.reels.search",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "date_posted",
+        "page",
+        "query"
+      ],
+      "platform": "Instagram",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Search Reels",
+      "upstream_path": "/v2/instagram/reels/search"
+    },
+    {
+      "candidate_id": "instagram.user.posts",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "handle",
+        "next_max_id",
+        "trim"
+      ],
+      "platform": "Instagram",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Posts",
+      "upstream_path": "/v2/instagram/user/posts"
+    },
+    {
+      "candidate_id": "tiktok.video",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "cache_max_age",
+        "download_media",
+        "get_transcript",
+        "region",
+        "trim",
+        "url"
+      ],
+      "platform": "TikTok",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Video Info",
+      "upstream_path": "/v2/tiktok/video"
+    },
+    {
+      "candidate_id": "tiktok.profile.videos",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "handle",
+        "max_cursor",
+        "region",
+        "sort_by",
+        "trim",
+        "user_id"
+      ],
+      "platform": "TikTok",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Profile Videos",
+      "upstream_path": "/v3/tiktok/profile/videos"
+    }
+  ],
+  "generated_at": "2026-08-09T21:39:14+00:00",
+  "notice": "Review-only provider inventory. Entries are not ReachSocial services, are not priced, and must never be enabled without a normalized contract and live cost test.",
+  "schema_version": "1.0",
+  "source": "https://docs.scrapecreators.com/openapi.json",
+  "summary": {
+    "excluded": 5,
+    "operations": 178,
+    "platforms": {
+      "Amazon Shop": 1,
+      "Apple Music": 4,
+      "Bluesky": 3,
+      "Facebook": 11,
+      "Facebook Ad Library": 7,
+      "Facebook Events": 3,
+      "Facebook Marketplace": 3,
+      "GitHub": 10,
+      "Google": 1,
+      "Google Ad Library": 3,
+      "Instagram": 19,
+      "Kick": 1,
+      "Komi": 1,
+      "Kwai": 3,
+      "Linkbio": 1,
+      "LinkedIn": 6,
+      "LinkedIn Ad Library": 2,
+      "Linkme": 1,
+      "Linktree": 1,
+      "Pillar": 1,
+      "Pinterest": 4,
+      "Reddit": 7,
+      "Rumble": 5,
+      "Snapchat": 3,
+      "SoundCloud": 3,
+      "Spotify": 6,
+      "Threads": 5,
+      "TikTok": 22,
+      "TikTok Ad Library": 2,
+      "TikTok Shop": 5,
+      "Truth Social": 3,
+      "Twitch": 4,
+      "Twitter": 6,
+      "YouTube": 16
+    },
+    "unreviewed": 173
+  }
+}

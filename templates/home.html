@@ -1,6 +1,39 @@
 {% extends "base.html" %}
 {% block title %}ReachSocial — Social data for apps and agents{% endblock %}
 {% block content %}
-<section class="hero"><p class="eyebrow">SOCIAL DATA INFRASTRUCTURE</p><h1>One contract for the public social web.</h1><p>ReachSocial routes verified social-data services through a stable B2B API, OpenAPI, and MCP interface.</p><div class="actions"><a class="button" href="/catalog">Browse services</a><a class="button secondary" href="/docs/api">Read the API docs</a></div></section>
-<section><h2>Built for operational clarity</h2><div class="cards"><article><h3>Provider-neutral</h3><p>Clients call stable service IDs. Provider changes do not require client releases.</p></article><article><h3>Agent-ready</h3><p>Generated OpenAPI, llms.txt, and remote MCP keep the catalog discoverable.</p></article><article><h3>Usage-aware</h3><p>Every request tracks latency, cache status, error code, and upstream cost.</p></article></div></section>
+<section class="hero">
+  <p class="eyebrow">SOCIAL DATA FOR SOFTWARE AND AGENTS</p>
+  <h1>One stable contract for the public social web.</h1>
+  <p>Call normalized social profile and content services without coupling your application to an upstream provider. Use a private B2B key or pay per request with x402 on Base Sepolia.</p>
+  <div class="actions"><a class="button" href="/catalog">Explore the catalog</a><a class="button secondary" href="/agent.md">Open the agent guide</a></div>
+  <div class="machine-links"><a href="/llms.txt">llms.txt</a><a href="/openapi.json">OpenAPI</a><a href="/.well-known/api-catalog">API catalog</a></div>
+</section>
+
+<section class="metrics" aria-label="Catalog summary">
+  <div><strong>{{ catalog.public_services()|length }}</strong><span>available services</span></div>
+  <div><strong>{{ catalog.discoverable_services()|length }}</strong><span>reviewed services</span></div>
+  <div><strong>{{ catalog.platforms()|length }}</strong><span>platforms mapped</span></div>
+  <div><strong>1.0</strong><span>normalized schema</span></div>
+</section>
+
+<section>
+  <div class="section-heading"><div><p class="eyebrow">COVERAGE</p><h2>Start with verified services. See what comes next.</h2></div><a href="/catalog">Full catalog →</a></div>
+  <div class="platform-grid">
+  {% for platform, services in catalog.discoverable_services()|groupby('platform') %}
+    <article><h3>{{ platform }}</h3><p>{{ services|length }} reviewed service{{ '' if services|length == 1 else 's' }}</p><div class="mini-statuses">{% for service in services %}<span class="dot {{ service.status }}" title="{{ service.status }}"></span>{% endfor %}</div></article>
+  {% endfor %}
+  </div>
+</section>
+
+<section class="split">
+  <div><p class="eyebrow">QUICKSTART</p><h2>Discover, call, normalize.</h2><ol class="steps"><li><span>1</span><div><strong>Inspect the live catalog</strong><p>Use <code>GET /v1/services</code>. Roadmap entries never appear as executable.</p></div></li><li><span>2</span><div><strong>Send one canonical URL</strong><p>Call the synchronous execute route or create a durable asynchronous job.</p></div></li><li><span>3</span><div><strong>Consume schema 1.0</strong><p>Receive provider-neutral profiles, content items, feeds, and stories.</p></div></li></ol></div>
+  <div class="terminal"><div class="terminal-bar"><i></i><i></i><i></i><span>agent</span></div><pre><code>GET https://reachsocial.dev/v1/services
+
+POST /v1/services/instagram.profile/execute
+Idempotency-Key: lookup-001
+
+{"input":{"url":"https://instagram.com/nasa"}}</code></pre></div>
+</section>
+
+<section><p class="eyebrow">WHY REACHSOCIAL</p><h2>Operationally boring—in a good way.</h2><div class="cards"><article><h3>Provider-neutral</h3><p>Stable service IDs and normalized response shapes isolate clients from provider-specific payload changes.</p></article><article><h3>Agent-discoverable</h3><p>OpenAPI, llms.txt, agent.md, and an RFC 9727 API catalog expose the same reviewed service definitions.</p></article><article><h3>Bounded by design</h3><p>Idempotency, concurrency limits, upstream spend caps, durable jobs, and replay protection constrain costly mistakes.</p></article><article><h3>Media-light</h3><p>ReachSocial returns source URLs and metadata. It does not download or retain requested social-media bytes.</p></article></div></section>
 {% endblock %}

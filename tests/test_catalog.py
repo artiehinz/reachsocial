@@ -62,3 +62,19 @@ def test_repository_catalog_passes_release_safety_validation() -> None:
     assert linkedin.public is True
     assert linkedin.cost_verified is True
     assert linkedin.price_cents == 10
+    assert linkedin.status == "available"
+    assert load_catalog().by_id("x.profile").status == "validation"
+    assert load_catalog().by_id("instagram.stories").status == "paused"
+
+
+def test_available_catalog_status_cannot_advertise_a_disabled_service() -> None:
+    with pytest.raises(ValidationError, match="available catalog service"):
+        ServiceDefinition(
+            id="youtube.video",
+            title="YouTube video",
+            platform="YouTube",
+            description="Video metadata",
+            input_fields=[InputField(name="url", description="URL", format="url")],
+            provider=ProviderConfig(name="mock"),
+            catalog_status="available",
+        )

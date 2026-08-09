@@ -9,6 +9,7 @@ services:
     provider: {name: scrapecreators, route: https://api.scrapecreators.com/v1/instagram/profile, method: GET}
     enabled: true
     public: true
+    catalog_status: available
     timeout_seconds: 25
     retries: 1
     estimated_upstream_cost_microusd: 1880
@@ -27,6 +28,7 @@ services:
     provider: {name: scrapecreators, route: https://api.scrapecreators.com/v1/instagram/post, method: GET}
     enabled: true
     public: true
+    catalog_status: available
     timeout_seconds: 25
     retries: 1
     estimated_upstream_cost_microusd: 1880
@@ -47,6 +49,7 @@ services:
     provider: {name: apify}
     enabled: false
     public: false
+    catalog_status: paused
     timeout_seconds: 120
     retries: 0
     estimated_upstream_cost_microusd: 0
@@ -65,6 +68,7 @@ services:
     provider: {name: scrapecreators, route: https://api.scrapecreators.com/v1/twitter/profile, method: GET}
     enabled: false
     public: false
+    catalog_status: validation
     timeout_seconds: 25
     retries: 1
     estimated_upstream_cost_microusd: 1880
@@ -83,6 +87,7 @@ services:
     provider: {name: scrapecreators, route: https://api.scrapecreators.com/v1/twitter/tweet, method: GET}
     enabled: false
     public: false
+    catalog_status: validation
     timeout_seconds: 25
     retries: 1
     estimated_upstream_cost_microusd: 1880
@@ -103,6 +108,7 @@ services:
     provider: {name: apify, actor_id: "apidojo~tweet-scraper", max_total_charge_microusd: 40000}
     enabled: false
     public: false
+    catalog_status: paused
     timeout_seconds: 120
     retries: 0
     estimated_upstream_cost_microusd: 40000
@@ -121,6 +127,7 @@ services:
     provider: {name: scrapecreators, route: https://api.scrapecreators.com/v1/tiktok/profile, method: GET}
     enabled: false
     public: false
+    catalog_status: validation
     timeout_seconds: 25
     retries: 1
     estimated_upstream_cost_microusd: 1880
@@ -141,6 +148,7 @@ services:
     provider: {name: scrapecreators, route: https://api.scrapecreators.com/v3/tiktok/profile/videos, method: GET}
     enabled: false
     public: false
+    catalog_status: validation
     timeout_seconds: 30
     retries: 1
     estimated_upstream_cost_microusd: 1880
@@ -159,6 +167,7 @@ services:
     provider: {name: scrapecreators, route: https://api.scrapecreators.com/v2/tiktok/video, method: GET}
     enabled: false
     public: false
+    catalog_status: validation
     timeout_seconds: 30
     retries: 1
     estimated_upstream_cost_microusd: 1880
@@ -178,6 +187,7 @@ services:
     provider: {name: apify, actor_id: "automation-lab~linkedin-profile-scraper", max_total_charge_microusd: 50000}
     enabled: true
     public: true
+    catalog_status: available
     timeout_seconds: 120
     retries: 0
     estimated_upstream_cost_microusd: 50000
@@ -196,6 +206,7 @@ services:
     provider: {name: scrapecreators}
     enabled: false
     public: false
+    catalog_status: planned
     price_cents: 5
 
   - id: facebook.profile
@@ -208,6 +219,7 @@ services:
     provider: {name: scrapecreators}
     enabled: false
     public: false
+    catalog_status: planned
     price_cents: 5
 
   - id: reddit.post
@@ -220,4 +232,5 @@ services:
     provider: {name: scrapecreators}
     enabled: false
     public: false
+    catalog_status: planned
     price_cents: 5

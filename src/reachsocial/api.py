@@ -50,7 +50,10 @@ class ExecuteRequest(BaseModel):
 
 
 def service_summary(
-    service: ServiceDefinition, *, include_internal: bool = False
+    service: ServiceDefinition,
+    *,
+    include_internal: bool = False,
+    include_unavailable: bool = False,
 ) -> dict[str, Any]:
     value: dict[str, Any] = {
         "id": service.id,
@@ -61,9 +64,19 @@ def service_summary(
         "response_shape": service.response_shape,
         "schema_version": "1.0",
         "inputs": [field.model_dump() for field in service.input_fields],
-        "price_cents": service.price_cents,
+        "status": service.status,
+        "available": service.enabled and service.public,
+        "price_cents": (
+            service.price_cents if service.enabled and service.public else None
+        ),
         "docs": service.docs,
     }
+    if include_unavailable:
+        value["availability_note"] = {
+            "validation": "Provider contract or cost validation is still in progress.",
+            "planned": "This service is on the reviewed expansion roadmap.",
+            "paused": "This service is paused until an acceptable provider contract is available.",
+        }.get(service.status)
     if include_internal:
         value.update(
             {
@@ -104,17 +117,10 @@ def _expired(value: datetime | None) -> bool:
     return value <= utcnow_naive()
 
 
-def optional_client(
-    authorization: Annotated[str | None, Header()] = None,
-    session: Session = Depends(get_session),
-) -> Client | None:
-    api_key = _api_key_from_header(authorization)
-    if not api_key:
+def client_for_api_key(session: Session, api_key: str) -> Client | None:
+    """Authenticate indexed keys in one lookup while retaining legacy-key support."""
+    if not api_key or len(api_key) > 512:
         return None
-    if len(api_key) > 512:
-        raise HTTPException(
-            status_code=401, detail={"code": "unauthenticated", "message": "Invalid API key"}
-        )
     key_id = api_key_id(api_key)
     candidates: list[Client]
     if key_id:
@@ -128,9 +134,27 @@ def optional_client(
                 select(Client).where(Client.status == "active", Client.key_id.is_(None))
             )
         )
-    for client in candidates:
-        if not _expired(client.api_key_expires_at) and verify_api_key(api_key, client.api_key_hash):
-            return client
+    return next(
+        (
+            client
+            for client in candidates
+            if not _expired(client.api_key_expires_at)
+            and verify_api_key(api_key, client.api_key_hash)
+        ),
+        None,
+    )
+
+
+def optional_client(
+    authorization: Annotated[str | None, Header()] = None,
+    session: Session = Depends(get_session),
+) -> Client | None:
+    api_key = _api_key_from_header(authorization)
+    if not api_key:
+        return None
+    client = client_for_api_key(session, api_key)
+    if client is not None:
+        return client
     raise HTTPException(
         status_code=401, detail={"code": "unauthenticated", "message": "Invalid API key"}
     )
@@ -332,6 +356,26 @@ async def _enforce_and_record_public_limits(
 @router.get("/services")
 def list_services(catalog: Catalog = Depends(get_catalog)) -> dict[str, list[dict[str, Any]]]:
     return {"services": [service_summary(service) for service in catalog.public_services()]}
+
+
+@router.get("/catalog")
+def public_catalog(catalog: Catalog = Depends(get_catalog)) -> dict[str, Any]:
+    """Expose the reviewed roadmap without making unavailable routes executable."""
+    services = [
+        service_summary(service, include_unavailable=True)
+        for service in catalog.discoverable_services()
+    ]
+    return {
+        "schema_version": "1.0",
+        "summary": {
+            "available": sum(item["status"] == "available" for item in services),
+            "validation": sum(item["status"] == "validation" for item in services),
+            "planned": sum(item["status"] == "planned" for item in services),
+            "paused": sum(item["status"] == "paused" for item in services),
+            "platforms": len(catalog.platforms()),
+        },
+        "services": services,
+    }
 
 
 @router.get("/services/{service_id}")
