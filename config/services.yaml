@@ -176,13 +176,13 @@ services:
     input_fields:
       - {name: url, description: Canonical LinkedIn person profile URL., format: url}
     provider: {name: apify, actor_id: "automation-lab~linkedin-profile-scraper", max_total_charge_microusd: 50000}
-    enabled: false
-    public: false
+    enabled: true
+    public: true
     timeout_seconds: 120
     retries: 0
     estimated_upstream_cost_microusd: 50000
     provider_unit_cost_microusd: 18000
-    cost_verified: false
+    cost_verified: true
     price_cents: 10
     docs: Returns normalized profile, experience, education, and skills when publicly available.
 

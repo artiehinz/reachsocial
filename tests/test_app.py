@@ -25,9 +25,13 @@ def test_health_and_mcp_gate() -> None:
         assert [item["id"] for item in client.get("/v1/services").json()["services"]] == [
             "instagram.profile",
             "instagram.post",
+            "linkedin.profile",
         ]
         services = client.get("/v1/services").json()["services"]
         assert all(item["schema_version"] == "1.0" for item in services)
-        assert all(item["execution"] == "sync" for item in services)
+        assert [item["execution"] for item in services] == ["sync", "sync", "async"]
         assert client.get("/services/x.feed").status_code == 404
+        assert client.get("/services/linkedin.profile").status_code == 200
         assert "X Latest Feed" not in client.get("/catalog").text
+        assert "LinkedIn Profile Enrichment" in client.get("/catalog").text
+        assert "linkedin.profile" in client.get("/llms.txt").text

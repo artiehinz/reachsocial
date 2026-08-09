@@ -71,10 +71,10 @@ raw provider payload:
 python scripts/apify_billing_validate.py --confirm-paid-provider-call
 ```
 
-Instagram Stories remains disabled with no active Actor. X latest-feed and the
-replacement LinkedIn enrichment Actor remain disabled until their capped live
-runs establish valid normalized contracts and stable costs. Do not enable them
-based on estimates alone.
+Instagram Stories remains disabled with no active Actor. X latest-feed remains
+disabled because its bounded dataset returned no tweet records. LinkedIn
+enrichment passed its capped live contract and is public on Base Sepolia at
+$0.10 per accepted job.
 
 ## Production gates
 

@@ -38,13 +38,18 @@ without a fallback provider call.
 The replacement production token authenticates successfully. Bounded validation
 has established this baseline:
 
-- `x.feed` — `apidojo~tweet-scraper` completed run
-  `jr21WOWnGJCvUnWxp`, returned five normalized items, and reported a stable
-  cost of 2,000 micro-USD.
+- `x.feed` — `apidojo~tweet-scraper` completed runs `jr21WOWnGJCvUnWxp` and
+  `QcMkEHzsIAz1DhJAu`; each reported a stable cost of 2,000 micro-USD. The
+  current validation dataset contained five `noResults` sentinels rather than
+  tweet records, so the billing gate passed but the provider contract failed.
+  The service remains disabled and is not public.
 - The former `linkedin.profile` Actor was rejected before charging because it
-  requested full Apify-account permission. It has been replaced in disabled
-  configuration by `automation-lab~linkedin-profile-scraper`, pending a capped
-  live contract sample.
+  requested full Apify-account permission. Its replacement,
+  `automation-lab~linkedin-profile-scraper`, completed run
+  `RKYppR10hFPM21RV0` under the $0.05 cap, returned one valid normalized profile
+  with current employment data, and reported a stable cost of 18,000 micro-USD.
+  At a $0.10 public price, the $0.05 hard cap preserves a worst-case 50% gross
+  margin. The service is accepted for Base Sepolia publication.
 - `instagram.stories` has no active Actor. The former Actor's $19/month rental
   is not accepted for this cycle.
 
@@ -54,10 +59,8 @@ worker recovery polls the accepted run rather than creating another paid run.
 Apify services do not use automatic run retries, and stable costs are read after
 the provider's post-completion accounting delay.
 
-The replacement production validation remains required before either service's
-catalog flags change. Instagram Stories remains disabled while the no-login,
-pay-per-result alternatives remain candidates for a later separately approved
-bake-off:
+Instagram Stories remains disabled while the no-login, pay-per-result
+alternatives remain candidates for a later separately approved bake-off:
 
 1. [`data-slayer~instagram-stories-scraper`](https://apify.com/data-slayer/instagram-stories-scraper)
    is the primary candidate: no Instagram login and advertised per-result

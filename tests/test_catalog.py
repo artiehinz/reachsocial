@@ -57,3 +57,8 @@ def test_public_price_is_checked_against_the_hard_cost_cap() -> None:
 def test_repository_catalog_passes_release_safety_validation() -> None:
     catalog = load_catalog()
     assert catalog.by_id("x.feed").provider.max_total_charge_microusd == 40_000
+    linkedin = catalog.by_id("linkedin.profile")
+    assert linkedin.enabled is True
+    assert linkedin.public is True
+    assert linkedin.cost_verified is True
+    assert linkedin.price_cents == 10
