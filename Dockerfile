@@ -20,4 +20,4 @@ COPY --from=builder /app /app
 RUN useradd --create-home --uid 10001 appuser && mkdir -p /data && chown appuser:appuser /data
 USER appuser
 EXPOSE 8000
-CMD ["sh", "-c", "alembic upgrade head && exec uvicorn reachsocial.main:app --host 0.0.0.0 --port 8000 --proxy-headers"]
+CMD ["sh", "-c", "alembic upgrade head && exec uvicorn reachsocial.main:app --host 0.0.0.0 --port 8000 --proxy-headers --forwarded-allow-ips='*'"]
