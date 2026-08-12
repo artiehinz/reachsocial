@@ -73,6 +73,7 @@ def service_summary(
     }
     if include_unavailable:
         value["availability_note"] = {
+            "private": "Active for approved API-key clients; anonymous execution is disabled.",
             "validation": "Provider contract or cost validation is still in progress.",
             "planned": "This service is on the reviewed expansion roadmap.",
             "paused": "This service is paused until an acceptable provider contract is available.",
@@ -369,6 +370,7 @@ def public_catalog(catalog: Catalog = Depends(get_catalog)) -> dict[str, Any]:
         "schema_version": "1.0",
         "summary": {
             "available": sum(item["status"] == "available" for item in services),
+            "private": sum(item["status"] == "private" for item in services),
             "validation": sum(item["status"] == "validation" for item in services),
             "planned": sum(item["status"] == "planned" for item in services),
             "paused": sum(item["status"] == "paused" for item in services),

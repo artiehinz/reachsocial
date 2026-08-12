@@ -50,7 +50,8 @@ def test_health_and_mcp_gate() -> None:
         roadmap = client.get("/v1/catalog").json()
         assert roadmap["summary"] == {
             "available": 3,
-            "validation": 6,
+            "private": 1,
+            "validation": 5,
             "planned": 3,
             "paused": 2,
             "platforms": 8,

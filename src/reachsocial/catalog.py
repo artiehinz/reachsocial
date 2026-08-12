@@ -49,7 +49,7 @@ class ServiceDefinition(BaseModel):
     cost_verified: bool = False
     price_cents: int = Field(default=5, ge=0)
     docs: str = ""
-    catalog_status: Literal["available", "validation", "planned", "paused"] | None = None
+    catalog_status: Literal["available", "private", "validation", "planned", "paused"] | None = None
 
     @model_validator(mode="after")
     def validate_release_safety(self) -> ServiceDefinition:
@@ -57,6 +57,8 @@ class ServiceDefinition(BaseModel):
             raise ValueError("A public service must also be enabled")
         if self.catalog_status == "available" and not (self.enabled and self.public):
             raise ValueError("An available catalog service must be enabled and public")
+        if self.catalog_status == "private" and (not self.enabled or self.public):
+            raise ValueError("A private catalog service must be enabled and non-public")
         if self.enabled and self.public and self.catalog_status not in {None, "available"}:
             raise ValueError("An enabled public service must have available catalog status")
         if self.provider.name == "apify" and self.enabled:
@@ -94,7 +96,7 @@ class ServiceDefinition(BaseModel):
         return self.execution == "async"
 
     @property
-    def status(self) -> Literal["available", "validation", "planned", "paused"]:
+    def status(self) -> Literal["available", "private", "validation", "planned", "paused"]:
         if self.enabled and self.public:
             return "available"
         return self.catalog_status or "planned"

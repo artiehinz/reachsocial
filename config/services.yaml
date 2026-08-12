@@ -10,7 +10,7 @@ services:
     provider: {name: gdelt, route: https://api.gdeltproject.org/api/v2/doc/doc, method: GET}
     enabled: true
     public: false
-    catalog_status: validation
+    catalog_status: private
     timeout_seconds: 20
     retries: 0
     cache_ttl_seconds: 21600

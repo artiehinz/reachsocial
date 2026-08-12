@@ -61,7 +61,7 @@ def test_repository_catalog_passes_release_safety_validation() -> None:
     assert news.public is False
     assert news.provider.name == "gdelt"
     assert news.response_shape == "news"
-    assert news.status == "validation"
+    assert news.status == "private"
     assert catalog.by_id("x.feed").provider.max_total_charge_microusd == 40_000
     linkedin = catalog.by_id("linkedin.profile")
     assert linkedin.enabled is True
@@ -83,4 +83,17 @@ def test_available_catalog_status_cannot_advertise_a_disabled_service() -> None:
             input_fields=[InputField(name="url", description="URL", format="url")],
             provider=ProviderConfig(name="mock"),
             catalog_status="available",
+        )
+
+
+def test_private_catalog_status_requires_enabled_non_public_service() -> None:
+    with pytest.raises(ValidationError, match="private catalog service"):
+        ServiceDefinition(
+            id="news.person",
+            title="Person news",
+            platform="News",
+            description="News",
+            input_fields=[InputField(name="full_name", description="Name")],
+            provider=ProviderConfig(name="gdelt"),
+            catalog_status="private",
         )

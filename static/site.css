@@ -76,6 +76,7 @@ article p { color: var(--muted); }
 .mini-statuses { display: flex; gap: 6px; margin-top: 17px; }
 .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #66726e; }
 .dot.available { background: var(--accent); box-shadow: 0 0 10px rgba(156, 242, 104, .5); }
+.dot.private { background: var(--accent-2); box-shadow: 0 0 10px rgba(72, 215, 176, .35); }
 .dot.validation { background: var(--warning); }
 .dot.planned { background: #8ca3c7; }
 .dot.paused { background: var(--danger); }
@@ -100,6 +101,7 @@ article p { color: var(--muted); }
 .card-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
 .status { display: inline-block; padding: 4px 9px; border-radius: 999px; font-size: .68rem; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; }
 .status.available { background: rgba(77, 153, 67, .24); color: var(--accent); }
+.status.private { background: rgba(72, 215, 176, .16); color: var(--accent-2); }
 .status.validation { background: rgba(207, 144, 42, .18); color: #ffd17e; }
 .status.planned { background: rgba(86, 119, 165, .22); color: #b9d3fa; }
 .status.paused { background: rgba(174, 72, 66, .2); color: #ffaaa4; }
