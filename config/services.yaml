@@ -1,4 +1,25 @@
 services:
+  - id: news.person
+    title: Person News
+    platform: News
+    description: Retrieve recent, normalized worldwide news coverage for one public person.
+    response_shape: news
+    input_fields:
+      - {name: full_name, description: Public full name used for an exact-phrase news query., format: string, max_length: 200}
+      - {name: max_items, description: Maximum recent articles to return., required: false, format: integer, default: 50, minimum: 1, maximum: 100}
+    provider: {name: gdelt, route: https://api.gdeltproject.org/api/v2/doc/doc, method: GET}
+    enabled: true
+    public: false
+    catalog_status: validation
+    timeout_seconds: 30
+    retries: 0
+    cache_ttl_seconds: 21600
+    estimated_upstream_cost_microusd: 0
+    provider_unit_cost_microusd: 0
+    cost_verified: true
+    price_cents: 0
+    docs: Internal B2B service for sanitized GDELT DOC results; no raw payload or credential is returned.
+
   - id: instagram.profile
     title: Instagram Profile
     platform: Instagram

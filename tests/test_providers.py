@@ -11,10 +11,70 @@ from reachsocial.errors import (
 from reachsocial.normalized import normalize_provider_payload
 from reachsocial.providers import (
     ApifyAdapter,
+    GdeltAdapter,
     ProviderExecutionContext,
     ScrapeCreatorsAdapter,
     _http_error,
 )
+
+
+def test_gdelt_person_news_request_is_exact_and_bounded() -> None:
+    params = GdeltAdapter.request_params(
+        {"full_name": '  Lionel "Messi"  ', "max_items": 999}
+    )
+
+    assert params == {
+        "query": '"Lionel Messi"',
+        "mode": "ArtList",
+        "format": "JSON",
+        "maxrecords": 100,
+        "sort": "DateDesc",
+    }
+
+
+def test_gdelt_person_news_normalization_drops_unsafe_and_duplicate_urls() -> None:
+    data = GdeltAdapter._normalized_data(
+        {
+            "articles": [
+                {
+                    "title": " Messi wins again ",
+                    "url": "https://news.example/story",
+                    "socialimage": "https://images.example/messi.jpg",
+                    "domain": "news.example",
+                    "language": "English",
+                    "sourcecountry": "United States",
+                    "seendate": "20260812T010000Z",
+                },
+                {
+                    "title": "Duplicate",
+                    "url": "https://news.example/story",
+                    "sourcecountry": "United States",
+                },
+                {
+                    "title": "Unsafe",
+                    "url": "javascript:alert(1)",
+                    "sourcecountry": "Spain",
+                },
+            ]
+        },
+        max_items=10,
+    )
+
+    assert data["articles"] == [
+        {
+            "title": "Messi wins again",
+            "url": "https://news.example/story",
+            "image": "https://images.example/messi.jpg",
+            "domain": "news.example",
+            "published_at": "20260812T010000Z",
+            "language": "English",
+            "country": "United States",
+            "country_code": "US",
+        }
+    ]
+    assert data["countries"] == [
+        {"code": "US", "name": "United States", "count": 1}
+    ]
 
 
 def service(service_id: str) -> ServiceDefinition:

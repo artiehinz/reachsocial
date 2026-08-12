@@ -94,8 +94,11 @@ disabled because its bounded dataset returned no tweet records. LinkedIn
 enrichment passed its capped live contract and is public on Base Sepolia at
 $0.10 per accepted job.
 
-The current reviewed catalog has 13 entries across seven platforms: three
-available, five in validation, three planned, and two paused. The generated
+The current reviewed catalog has 14 entries across eight platforms: three
+available, six in validation, three planned, and two paused. The private
+`news.person` validation service gives the scoped InstaGet Herald client a
+sanitized, cached GDELT news boundary without exposing it as a paid public API.
+The generated
 ScrapeCreators review inventory is intentionally broader—currently 178
 operations—but those routes are not public pass-throughs. See
 `docs/catalog-expansion.md` for the admission rules and batching order.

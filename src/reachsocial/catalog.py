@@ -22,7 +22,7 @@ class InputField(BaseModel):
 
 
 class ProviderConfig(BaseModel):
-    name: Literal["scrapecreators", "apify", "mock"]
+    name: Literal["scrapecreators", "apify", "gdelt", "mock"]
     route: str = ""
     method: Literal["GET", "POST"] = "POST"
     actor_id: str = ""
@@ -37,7 +37,7 @@ class ServiceDefinition(BaseModel):
     input_fields: list[InputField]
     provider: ProviderConfig
     execution: Literal["sync", "async"] = "sync"
-    response_shape: Literal["profile", "item", "feed", "stories"] = "profile"
+    response_shape: Literal["profile", "item", "feed", "stories", "news"] = "profile"
     enabled: bool = False
     public: bool = False
     timeout_seconds: int = Field(default=25, ge=1, le=120)

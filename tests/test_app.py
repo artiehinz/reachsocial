@@ -33,7 +33,7 @@ def test_health_and_mcp_gate() -> None:
         assert openapi["paths"]["/v1/services/{service_id}/execute"]["post"][
             "responses"
         ]["402"]["headers"]["PAYMENT-REQUIRED"]
-        assert len(openapi["x-reachsocial-services"]) == 13
+        assert len(openapi["x-reachsocial-services"]) == 14
         assert client.get("/healthz").json() == {"status": "ok"}
         assert client.get("/readyz").json()["status"] == "ready"
         assert client.post("/mcp").status_code == 503
@@ -50,10 +50,10 @@ def test_health_and_mcp_gate() -> None:
         roadmap = client.get("/v1/catalog").json()
         assert roadmap["summary"] == {
             "available": 3,
-            "validation": 5,
+            "validation": 6,
             "planned": 3,
             "paused": 2,
-            "platforms": 7,
+            "platforms": 8,
         }
         assert client.get("/services/x.feed").status_code == 200
         assert client.get("/services/linkedin.profile").status_code == 200
