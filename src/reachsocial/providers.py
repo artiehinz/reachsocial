@@ -144,8 +144,10 @@ class GdeltAdapter:
     """Bounded GDELT DOC adapter for ReachSocial's private person-news contract."""
 
     base_url = _GDELT_DOC_URL
-    max_attempts = 3
-    max_retry_sleep_seconds = 12.0
+    # The B2B caller has a 60-second deadline. Keep the complete upstream
+    # retry budget comfortably inside that contract.
+    max_attempts = 2
+    max_retry_sleep_seconds = 5.0
 
     @staticmethod
     def _query_name(value: object) -> str:

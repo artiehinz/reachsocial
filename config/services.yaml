@@ -11,7 +11,7 @@ services:
     enabled: true
     public: false
     catalog_status: validation
-    timeout_seconds: 30
+    timeout_seconds: 20
     retries: 0
     cache_ttl_seconds: 21600
     estimated_upstream_cost_microusd: 0
