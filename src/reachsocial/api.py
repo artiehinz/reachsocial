@@ -39,7 +39,7 @@ from .payments import (
     x402_is_configured,
 )
 from .security import api_key_id, generate_api_key, hash_api_key, verify_api_key
-from .services import ExecutionService, stable_hash, utcnow_naive
+from .services import ExecutionService, client_can_access_service, stable_hash, utcnow_naive
 
 router = APIRouter(prefix="/v1", tags=["API"])
 
@@ -391,8 +391,33 @@ def get_service(service_id: str, catalog: Catalog = Depends(get_catalog)) -> dic
 
 
 @router.post("/resolve")
-def resolve(request: ExecuteRequest, _client: Client = Depends(require_client)) -> dict[str, str]:
-    return resolve_url(request.input.get("url"))
+def resolve(
+    request: ExecuteRequest,
+    client: Client = Depends(require_client),
+    session: Session = Depends(get_session),
+    catalog: Catalog = Depends(get_catalog),
+) -> dict[str, Any]:
+    """Resolve a social URL without implying that its provider route is live."""
+    result: dict[str, Any] = {
+        "schema_version": "1.0",
+        **resolve_url(request.input.get("url")),
+    }
+    service = catalog.by_id(result["service_id"])
+    if service is None:
+        raise HTTPException(
+            status_code=404,
+            detail={"code": "unknown_service", "message": "Unknown service"},
+        )
+    result.update(
+        {
+            "execution": service.execution,
+            "status": service.status,
+            "executable": bool(
+                service.enabled and client_can_access_service(session, client, service)
+            ),
+        }
+    )
+    return result
 
 
 @router.post("/services/{service_id}/execute")

@@ -1,5 +1,6 @@
 from fastapi.testclient import TestClient
 
+from reachsocial.api import ExecuteRequest, resolve
 from reachsocial.main import app
 
 
@@ -71,3 +72,34 @@ def test_health_and_mcp_gate() -> None:
         )
         assert client.get("/robots.txt").status_code == 200
         assert client.get("/sitemap.xml").status_code == 200
+
+
+def test_resolve_requires_authentication() -> None:
+    with TestClient(app) as client:
+        response = client.post(
+            "/v1/resolve",
+            json={"input": {"url": "https://instagram.com/openai"}},
+        )
+    assert response.status_code == 401
+
+
+def test_resolve_reports_catalog_state_without_provider_details(
+    session, client, catalog
+) -> None:
+    result = resolve(
+        ExecuteRequest(input={"url": "https://www.instagram.com/openai/"}),
+        client,
+        session,
+        catalog,
+    )
+
+    assert result == {
+        "schema_version": "1.0",
+        "platform": "Instagram",
+        "resource_type": "profile",
+        "canonical_url": "https://instagram.com/openai",
+        "service_id": "instagram.profile",
+        "execution": "sync",
+        "status": "available",
+        "executable": True,
+    }
