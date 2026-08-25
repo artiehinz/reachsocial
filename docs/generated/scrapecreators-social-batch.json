@@ -1,0 +1,363 @@
+{
+  "case_count": 14,
+  "credits_charged_total": 14,
+  "generated_at": "2026-08-25T01:43:20.862537Z",
+  "purpose": "bounded product-discovery validation; no route is accepted or enabled by this report",
+  "results": [
+    {
+      "credits_charged": 1,
+      "http_status": 200,
+      "outcome": "success",
+      "service_id": "instagram.profile",
+      "shape": {
+        "expected_keys_present": true,
+        "has_cursor": false,
+        "json_object": true,
+        "list_counts": {},
+        "top_level_keys": [
+          "credits_charged",
+          "credits_remaining",
+          "status",
+          "success"
+        ]
+      }
+    },
+    {
+      "credits_charged": 1,
+      "http_status": 200,
+      "outcome": "success",
+      "service_id": "instagram.profile_posts",
+      "shape": {
+        "expected_keys_present": true,
+        "has_cursor": false,
+        "json_object": true,
+        "list_counts": {
+          "items": 12
+        },
+        "top_level_keys": [
+          "auto_load_more_enabled",
+          "credits_charged",
+          "credits_remaining",
+          "items",
+          "more_available",
+          "next_max_id",
+          "num_results",
+          "pinned_profile_grid_items_ids",
+          "profile_grid_items",
+          "profile_grid_items_cursor",
+          "special_empty_state",
+          "status",
+          "success",
+          "user"
+        ]
+      }
+    },
+    {
+      "credits_charged": 1,
+      "http_status": 200,
+      "outcome": "success",
+      "service_id": "instagram.search",
+      "shape": {
+        "expected_keys_present": false,
+        "has_cursor": false,
+        "json_object": true,
+        "list_counts": {
+          "users": 48
+        },
+        "top_level_keys": [
+          "credits_charged",
+          "credits_remaining",
+          "hashtags",
+          "keywords",
+          "places",
+          "query",
+          "rank_token",
+          "success",
+          "users"
+        ]
+      }
+    },
+    {
+      "credits_charged": 1,
+      "http_status": 200,
+      "outcome": "success",
+      "service_id": "x.profile",
+      "shape": {
+        "expected_keys_present": true,
+        "has_cursor": false,
+        "json_object": true,
+        "list_counts": {},
+        "top_level_keys": [
+          "__typename",
+          "affiliates_highlighted_label",
+          "avatar",
+          "business_account",
+          "core",
+          "creator_subscriptions_count",
+          "credits_charged",
+          "credits_remaining",
+          "dm_permissions",
+          "has_graduated_access",
+          "has_hidden_subscriptions_on_profile",
+          "highlights_info",
+          "id",
+          "is_blue_verified",
+          "is_profile_translatable",
+          "legacy"
+        ]
+      }
+    },
+    {
+      "credits_charged": 1,
+      "http_status": 200,
+      "outcome": "success",
+      "service_id": "x.post",
+      "shape": {
+        "expected_keys_present": true,
+        "has_cursor": false,
+        "json_object": true,
+        "list_counts": {},
+        "top_level_keys": [
+          "__typename",
+          "core",
+          "credits_charged",
+          "credits_remaining",
+          "edit_control",
+          "grok_analysis_button",
+          "grok_annotations",
+          "is_translatable",
+          "legacy",
+          "rest_id",
+          "source",
+          "success",
+          "unmention_data",
+          "views"
+        ]
+      }
+    },
+    {
+      "credits_charged": 1,
+      "http_status": 200,
+      "outcome": "success",
+      "service_id": "x.user_tweets",
+      "shape": {
+        "expected_keys_present": true,
+        "has_cursor": false,
+        "json_object": true,
+        "list_counts": {
+          "tweets": 100
+        },
+        "top_level_keys": [
+          "credits_charged",
+          "credits_remaining",
+          "success",
+          "tweets"
+        ]
+      }
+    },
+    {
+      "credits_charged": 1,
+      "http_status": 200,
+      "outcome": "success",
+      "service_id": "tiktok.profile",
+      "shape": {
+        "expected_keys_present": true,
+        "has_cursor": false,
+        "json_object": true,
+        "list_counts": {},
+        "top_level_keys": [
+          "credits_charged",
+          "credits_remaining",
+          "itemList",
+          "stats",
+          "statsV2",
+          "success",
+          "user"
+        ]
+      }
+    },
+    {
+      "credits_charged": 1,
+      "http_status": 200,
+      "outcome": "success",
+      "service_id": "tiktok.video",
+      "shape": {
+        "expected_keys_present": true,
+        "has_cursor": false,
+        "json_object": true,
+        "list_counts": {},
+        "top_level_keys": [
+          "aweme_detail",
+          "credits_charged",
+          "credits_remaining",
+          "success"
+        ]
+      }
+    },
+    {
+      "credits_charged": 1,
+      "http_status": 200,
+      "outcome": "success",
+      "service_id": "tiktok.feed",
+      "shape": {
+        "expected_keys_present": true,
+        "has_cursor": true,
+        "json_object": true,
+        "list_counts": {
+          "aweme_list": 10
+        },
+        "top_level_keys": [
+          "aweme_list",
+          "credits_charged",
+          "credits_remaining",
+          "has_more",
+          "max_cursor",
+          "status_code",
+          "success"
+        ]
+      }
+    },
+    {
+      "credits_charged": 1,
+      "http_status": 200,
+      "outcome": "success",
+      "service_id": "tiktok.user_search",
+      "shape": {
+        "expected_keys_present": true,
+        "has_cursor": true,
+        "json_object": true,
+        "list_counts": {},
+        "top_level_keys": [
+          "challenge_list",
+          "credits_charged",
+          "credits_remaining",
+          "cursor",
+          "extra",
+          "feedback_type",
+          "global_doodle_config",
+          "has_more",
+          "input_keyword",
+          "log_pb",
+          "music_list",
+          "qc",
+          "rid",
+          "status_code",
+          "success",
+          "type"
+        ]
+      }
+    },
+    {
+      "credits_charged": 1,
+      "http_status": 200,
+      "outcome": "success",
+      "service_id": "youtube.channel",
+      "shape": {
+        "expected_keys_present": true,
+        "has_cursor": false,
+        "json_object": true,
+        "list_counts": {},
+        "top_level_keys": [
+          "avatar",
+          "banner",
+          "channel",
+          "channelId",
+          "country",
+          "credits_charged",
+          "credits_remaining",
+          "description",
+          "email",
+          "handle",
+          "instagram",
+          "isFamilySafe",
+          "isVerified",
+          "joinedDateText",
+          "keywords",
+          "links"
+        ]
+      }
+    },
+    {
+      "credits_charged": 1,
+      "http_status": 200,
+      "outcome": "success",
+      "service_id": "youtube.video",
+      "shape": {
+        "expected_keys_present": true,
+        "has_cursor": false,
+        "json_object": true,
+        "list_counts": {},
+        "top_level_keys": [
+          "captionTracks",
+          "channel",
+          "chapters",
+          "collaborators",
+          "commentCountInt",
+          "commentCountText",
+          "credits_charged",
+          "credits_remaining",
+          "description",
+          "descriptionLinks",
+          "downloadOptions",
+          "durationFormatted",
+          "durationMs",
+          "genre",
+          "id",
+          "isPaidPromotion"
+        ]
+      }
+    },
+    {
+      "credits_charged": 1,
+      "http_status": 200,
+      "outcome": "success",
+      "service_id": "youtube.channel_videos",
+      "shape": {
+        "expected_keys_present": true,
+        "has_cursor": true,
+        "json_object": true,
+        "list_counts": {
+          "videos": 30
+        },
+        "top_level_keys": [
+          "channels",
+          "continuationToken",
+          "credits_charged",
+          "credits_remaining",
+          "lives",
+          "playlists",
+          "shelves",
+          "shorts",
+          "success",
+          "videos"
+        ]
+      }
+    },
+    {
+      "credits_charged": 1,
+      "http_status": 200,
+      "outcome": "success",
+      "service_id": "youtube.search",
+      "shape": {
+        "expected_keys_present": true,
+        "has_cursor": true,
+        "json_object": true,
+        "list_counts": {
+          "videos": 23
+        },
+        "top_level_keys": [
+          "channels",
+          "continuationToken",
+          "credits_charged",
+          "credits_remaining",
+          "lives",
+          "playlists",
+          "shelves",
+          "shorts",
+          "success",
+          "videos"
+        ]
+      }
+    }
+  ]
+}

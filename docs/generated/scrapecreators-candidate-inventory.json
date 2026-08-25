@@ -264,6 +264,7 @@
         "country",
         "cursor",
         "end_date",
+        "language",
         "media_type",
         "query",
         "search_type",
@@ -1313,6 +1314,19 @@
       "upstream_path": "/v1/pinterest/user/boards"
     },
     {
+      "candidate_id": "reddit.post",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "url"
+      ],
+      "platform": "Reddit",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Post",
+      "upstream_path": "/v1/reddit/post"
+    },
+    {
       "candidate_id": "reddit.post.comments",
       "deprecated": false,
       "method": "GET",
@@ -1599,6 +1613,21 @@
       "upstream_path": "/v1/spotify/artist"
     },
     {
+      "candidate_id": "spotify.playlist",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "cursor",
+        "id",
+        "url"
+      ],
+      "platform": "Spotify",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Playlist",
+      "upstream_path": "/v1/spotify/playlist"
+    },
+    {
       "candidate_id": "spotify.podcast",
       "deprecated": false,
       "method": "GET",
@@ -1653,6 +1682,49 @@
       "review_state": "unreviewed",
       "title": "Track",
       "upstream_path": "/v1/spotify/track"
+    },
+    {
+      "candidate_id": "telegram.channel",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "cache_max_age",
+        "handle"
+      ],
+      "platform": "Telegram",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Channel Details",
+      "upstream_path": "/v1/telegram/channel"
+    },
+    {
+      "candidate_id": "telegram.channel.posts",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "cache_max_age",
+        "cursor",
+        "handle"
+      ],
+      "platform": "Telegram",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Channel Posts",
+      "upstream_path": "/v1/telegram/channel/posts"
+    },
+    {
+      "candidate_id": "telegram.post",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "cache_max_age",
+        "url"
+      ],
+      "platform": "Telegram",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Post Details",
+      "upstream_path": "/v1/telegram/post"
     },
     {
       "candidate_id": "threads.post",
@@ -1754,6 +1826,7 @@
       "deprecated": false,
       "method": "GET",
       "parameters": [
+        "advertiser_name",
         "cursor",
         "query"
       ],
@@ -2479,6 +2552,19 @@
       "upstream_path": "/v1/youtube/search/hashtag"
     },
     {
+      "candidate_id": "youtube.search.typeahead",
+      "deprecated": false,
+      "method": "GET",
+      "parameters": [
+        "query"
+      ],
+      "platform": "YouTube",
+      "review_flags": [],
+      "review_state": "unreviewed",
+      "title": "Search Typeahead",
+      "upstream_path": "/v1/youtube/search/typeahead"
+    },
+    {
       "candidate_id": "youtube.shorts.trending",
       "deprecated": false,
       "method": "GET",
@@ -2657,13 +2743,13 @@
       "upstream_path": "/v3/tiktok/profile/videos"
     }
   ],
-  "generated_at": "2026-08-09T21:39:14+00:00",
+  "generated_at": "2026-08-25T01:38:01+00:00",
   "notice": "Review-only provider inventory. Entries are not ReachSocial services, are not priced, and must never be enabled without a normalized contract and live cost test.",
   "schema_version": "1.0",
   "source": "https://docs.scrapecreators.com/openapi.json",
   "summary": {
     "excluded": 5,
-    "operations": 178,
+    "operations": 184,
     "platforms": {
       "Amazon Shop": 1,
       "Apple Music": 4,
@@ -2686,11 +2772,12 @@
       "Linktree": 1,
       "Pillar": 1,
       "Pinterest": 4,
-      "Reddit": 7,
+      "Reddit": 8,
       "Rumble": 5,
       "Snapchat": 3,
       "SoundCloud": 3,
-      "Spotify": 6,
+      "Spotify": 7,
+      "Telegram": 3,
       "Threads": 5,
       "TikTok": 22,
       "TikTok Ad Library": 2,
@@ -2698,8 +2785,8 @@
       "Truth Social": 3,
       "Twitch": 4,
       "Twitter": 6,
-      "YouTube": 16
+      "YouTube": 17
     },
-    "unreviewed": 173
+    "unreviewed": 179
   }
 }

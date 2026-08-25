@@ -1,0 +1,272 @@
+{
+  "case_count": 3,
+  "credits_charged_total": 3,
+  "generated_at": "2026-08-25T02:10:44.324452Z",
+  "purpose": "bounded product-discovery validation; no route is accepted or enabled by this report",
+  "results": [
+    {
+      "credits_charged": 1,
+      "http_status": 200,
+      "outcome": "success",
+      "service_id": "x.post",
+      "shape": {
+        "expected_keys_present": true,
+        "has_cursor": false,
+        "json_object": true,
+        "list_counts": {},
+        "top_level_keys": [
+          "__typename",
+          "core",
+          "credits_charged",
+          "credits_remaining",
+          "edit_control",
+          "grok_analysis_button",
+          "grok_annotations",
+          "is_translatable",
+          "legacy",
+          "rest_id",
+          "source",
+          "success",
+          "unmention_data",
+          "views"
+        ]
+      },
+      "ui_fixture": {
+        "item": {
+          "author": {
+            "biography": "Scraper in Chief @scrapecreators",
+            "counts": {
+              "content": 1680,
+              "followers": null,
+              "following": 0
+            },
+            "display_name": "Adrian | The Web Scraping Guy",
+            "handle": "adrian_horning_",
+            "verified": false
+          },
+          "caption": "I\u2019ve scraped huge retailers, real estate sites, county websites, and sold [link] which scraped lululemon. \n\nAnd here is EVERYTHING I know about web scraping \ud83d\udc47",
+          "media": {
+            "has_media": true,
+            "item_count": 1
+          },
+          "metrics": {
+            "comments": 40,
+            "likes": 424,
+            "shares": 31,
+            "views": null
+          },
+          "type": null
+        },
+        "kind": "post"
+      }
+    },
+    {
+      "credits_charged": 1,
+      "http_status": 200,
+      "outcome": "success",
+      "service_id": "x.user_tweets",
+      "shape": {
+        "expected_keys_present": true,
+        "has_cursor": false,
+        "json_object": true,
+        "list_counts": {
+          "tweets": 100
+        },
+        "top_level_keys": [
+          "credits_charged",
+          "credits_remaining",
+          "success",
+          "tweets"
+        ]
+      },
+      "ui_fixture": {
+        "item_count": 100,
+        "items": [
+          {
+            "author": {
+              "biography": "CEO [link] Free AI training for the smartest engineers. Will tweet as I wish and suffer the consequences. Accelerando: @kellyclaudeai",
+              "counts": {
+                "content": 5222,
+                "followers": null,
+                "following": 0
+              },
+              "display_name": "Austen Allred",
+              "handle": "Austen",
+              "verified": false
+            },
+            "caption": "AI adoption is sooooo much slower in most companies than you would expect it is reading X",
+            "media": {
+              "has_media": true,
+              "item_count": 1
+            },
+            "metrics": {
+              "comments": 320,
+              "likes": 2637,
+              "shares": 114,
+              "views": null
+            },
+            "type": null
+          },
+          {
+            "author": {
+              "biography": "CEO [link] Free AI training for the smartest engineers. Will tweet as I wish and suffer the consequences. Accelerando: @kellyclaudeai",
+              "counts": {
+                "content": 5222,
+                "followers": null,
+                "following": 0
+              },
+              "display_name": "Austen Allred",
+              "handle": "Austen",
+              "verified": false
+            },
+            "caption": "The likelihood that he\u2019s dead is just really, really high",
+            "media": {
+              "has_media": true,
+              "item_count": 1
+            },
+            "metrics": {
+              "comments": 855,
+              "likes": 134977,
+              "shares": 2819,
+              "views": null
+            },
+            "type": "photo"
+          },
+          {
+            "author": {
+              "biography": "CEO [link] Free AI training for the smartest engineers. Will tweet as I wish and suffer the consequences. Accelerando: @kellyclaudeai",
+              "counts": {
+                "content": 5222,
+                "followers": null,
+                "following": 0
+              },
+              "display_name": "Austen Allred",
+              "handle": "Austen",
+              "verified": false
+            },
+            "caption": "Wife: \u201cWhat did your teacher remember about September 11th?\u201d\n\nNine-year-old: \u201cShe was only four then, she doesn\u2019t remember it at all.\u201d",
+            "media": {
+              "has_media": true,
+              "item_count": 1
+            },
+            "metrics": {
+              "comments": 369,
+              "likes": 123863,
+              "shares": 2628,
+              "views": null
+            },
+            "type": null
+          }
+        ],
+        "kind": "feed"
+      }
+    },
+    {
+      "credits_charged": 1,
+      "http_status": 200,
+      "outcome": "success",
+      "service_id": "youtube.search",
+      "shape": {
+        "expected_keys_present": true,
+        "has_cursor": true,
+        "json_object": true,
+        "list_counts": {
+          "videos": 23
+        },
+        "top_level_keys": [
+          "channels",
+          "continuationToken",
+          "credits_charged",
+          "credits_remaining",
+          "lives",
+          "playlists",
+          "shelves",
+          "shorts",
+          "success",
+          "videos"
+        ]
+      },
+      "ui_fixture": {
+        "item_count": 23,
+        "items": [
+          {
+            "author": {
+              "biography": null,
+              "counts": {
+                "content": null,
+                "followers": null,
+                "following": null
+              },
+              "display_name": null,
+              "handle": "FinanceBureauOfficial",
+              "verified": false
+            },
+            "caption": "OpenAI Is FALLING Apart And Sam Altman Is Panicking",
+            "media": {
+              "has_media": true,
+              "item_count": 1
+            },
+            "metrics": {
+              "comments": null,
+              "likes": null,
+              "shares": null,
+              "views": null
+            },
+            "type": "video"
+          },
+          {
+            "author": {
+              "biography": null,
+              "counts": {
+                "content": null,
+                "followers": null,
+                "following": null
+              },
+              "display_name": null,
+              "handle": "elithecomputerguy",
+              "verified": false
+            },
+            "caption": "OpenAI Sales Vice President Quits - OpenAI is DEAD",
+            "media": {
+              "has_media": true,
+              "item_count": 1
+            },
+            "metrics": {
+              "comments": null,
+              "likes": null,
+              "shares": null,
+              "views": null
+            },
+            "type": "video"
+          },
+          {
+            "author": {
+              "biography": null,
+              "counts": {
+                "content": null,
+                "followers": null,
+                "following": null
+              },
+              "display_name": null,
+              "handle": "Alex.kantrowitz",
+              "verified": false
+            },
+            "caption": "Big Tech\u2019s Insane Hidden AI Spending, Ranking Anthropic vs. OpenAI, AI For Travel Debate",
+            "media": {
+              "has_media": true,
+              "item_count": 1
+            },
+            "metrics": {
+              "comments": null,
+              "likes": null,
+              "shares": null,
+              "views": null
+            },
+            "type": "video"
+          }
+        ],
+        "kind": "search"
+      }
+    }
+  ]
+}

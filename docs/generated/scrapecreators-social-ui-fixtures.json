@@ -1,0 +1,1001 @@
+{
+  "case_count": 18,
+  "credits_charged_total": 18,
+  "generated_at": "2026-08-25T02:08:18.120277Z",
+  "purpose": "bounded product-discovery validation; no route is accepted or enabled by this report",
+  "results": [
+    {
+      "credits_charged": 1,
+      "http_status": 200,
+      "outcome": "success",
+      "service_id": "instagram.profile",
+      "shape": {
+        "expected_keys_present": true,
+        "has_cursor": false,
+        "json_object": true,
+        "list_counts": {},
+        "top_level_keys": [
+          "credits_charged",
+          "credits_remaining",
+          "status",
+          "success"
+        ]
+      },
+      "ui_fixture": {
+        "kind": "profile",
+        "profile": {
+          "biography": "Discover what's new on Instagram \ud83d\udd0e\u2728",
+          "counts": {
+            "content": null,
+            "followers": null,
+            "following": null
+          },
+          "display_name": "Instagram",
+          "handle": "instagram",
+          "verified": true
+        }
+      }
+    },
+    {
+      "credits_charged": 1,
+      "http_status": 200,
+      "outcome": "success",
+      "service_id": "instagram.profile_posts",
+      "shape": {
+        "expected_keys_present": true,
+        "has_cursor": false,
+        "json_object": true,
+        "list_counts": {
+          "items": 12
+        },
+        "top_level_keys": [
+          "auto_load_more_enabled",
+          "credits_charged",
+          "credits_remaining",
+          "items",
+          "more_available",
+          "next_max_id",
+          "num_results",
+          "pinned_profile_grid_items_ids",
+          "profile_grid_items",
+          "profile_grid_items_cursor",
+          "special_empty_state",
+          "status",
+          "success",
+          "user"
+        ]
+      },
+      "ui_fixture": {
+        "item_count": 12,
+        "items": [
+          {
+            "author": {
+              "biography": null,
+              "counts": {
+                "content": null,
+                "followers": null,
+                "following": null
+              },
+              "display_name": "Instagram",
+              "handle": "instagram",
+              "verified": true
+            },
+            "caption": "{'strong_id__': '17985086517026156', 'bit_flags': 0, 'created_at': 1787587070, 'created_at_utc': 1787587070, 'did_report_as_spam': False, 'is_ranked_comment': False, 'pk': '17985086517026156', 'share_enabled': False, 'content_type': 'comment', 'media_id': '3970882401274001277', '",
+            "media": {
+              "has_media": false,
+              "item_count": 1
+            },
+            "metrics": {
+              "comments": 4180,
+              "likes": null,
+              "shares": null,
+              "views": null
+            },
+            "type": "clips"
+          },
+          {
+            "author": {
+              "biography": null,
+              "counts": {
+                "content": null,
+                "followers": null,
+                "following": null
+              },
+              "display_name": "Instagram",
+              "handle": "instagram",
+              "verified": true
+            },
+            "caption": "{'strong_id__': '18482691898111874', 'bit_flags': 0, 'created_at': 1787155171, 'created_at_utc': 1787155171, 'did_report_as_spam': False, 'is_ranked_comment': False, 'pk': '18482691898111874', 'share_enabled': False, 'content_type': 'comment', 'media_id': '3967266982361430113', '",
+            "media": {
+              "has_media": false,
+              "item_count": 1
+            },
+            "metrics": {
+              "comments": 16454,
+              "likes": null,
+              "shares": null,
+              "views": null
+            },
+            "type": "clips"
+          },
+          {
+            "author": {
+              "biography": null,
+              "counts": {
+                "content": null,
+                "followers": null,
+                "following": null
+              },
+              "display_name": "Instagram",
+              "handle": "instagram",
+              "verified": true
+            },
+            "caption": "{'strong_id__': '18112653155072376', 'bit_flags': 0, 'created_at': 1787070068, 'created_at_utc': 1787070068, 'did_report_as_spam': False, 'is_ranked_comment': False, 'pk': '18112653155072376', 'share_enabled': False, 'content_type': 'comment', 'media_id': '3966539643390317103', '",
+            "media": {
+              "has_media": false,
+              "item_count": 1
+            },
+            "metrics": {
+              "comments": 10975,
+              "likes": null,
+              "shares": null,
+              "views": null
+            },
+            "type": "clips"
+          }
+        ],
+        "kind": "feed"
+      }
+    },
+    {
+      "credits_charged": 1,
+      "http_status": 200,
+      "outcome": "success",
+      "service_id": "instagram.search",
+      "shape": {
+        "expected_keys_present": true,
+        "has_cursor": false,
+        "json_object": true,
+        "list_counts": {
+          "users": 48
+        },
+        "top_level_keys": [
+          "credits_charged",
+          "credits_remaining",
+          "hashtags",
+          "keywords",
+          "places",
+          "query",
+          "rank_token",
+          "success",
+          "users"
+        ]
+      },
+      "ui_fixture": {
+        "item_count": 48,
+        "items": [
+          {
+            "biography": null,
+            "counts": {
+              "content": null,
+              "followers": null,
+              "following": null
+            },
+            "display_name": "Nike",
+            "handle": "nike",
+            "verified": true
+          },
+          {
+            "biography": null,
+            "counts": {
+              "content": null,
+              "followers": null,
+              "following": null
+            },
+            "display_name": "Pushp Niketan School",
+            "handle": "pushpniketandsm",
+            "verified": false
+          },
+          {
+            "biography": null,
+            "counts": {
+              "content": null,
+              "followers": null,
+              "following": null
+            },
+            "display_name": "Nike Football",
+            "handle": "nikefootball",
+            "verified": true
+          }
+        ],
+        "kind": "search"
+      }
+    },
+    {
+      "credits_charged": 1,
+      "http_status": 200,
+      "outcome": "success",
+      "service_id": "x.profile",
+      "shape": {
+        "expected_keys_present": true,
+        "has_cursor": false,
+        "json_object": true,
+        "list_counts": {},
+        "top_level_keys": [
+          "__typename",
+          "affiliates_highlighted_label",
+          "avatar",
+          "business_account",
+          "core",
+          "creator_subscriptions_count",
+          "credits_charged",
+          "credits_remaining",
+          "dm_permissions",
+          "has_graduated_access",
+          "has_hidden_subscriptions_on_profile",
+          "highlights_info",
+          "id",
+          "is_blue_verified",
+          "is_profile_translatable",
+          "legacy"
+        ]
+      },
+      "ui_fixture": {
+        "kind": "profile",
+        "profile": {
+          "biography": null,
+          "counts": {
+            "content": null,
+            "followers": null,
+            "following": null
+          },
+          "display_name": null,
+          "handle": null,
+          "verified": false
+        }
+      }
+    },
+    {
+      "credits_charged": 1,
+      "http_status": 200,
+      "outcome": "success",
+      "service_id": "x.post",
+      "shape": {
+        "expected_keys_present": true,
+        "has_cursor": false,
+        "json_object": true,
+        "list_counts": {},
+        "top_level_keys": [
+          "__typename",
+          "core",
+          "credits_charged",
+          "credits_remaining",
+          "edit_control",
+          "grok_analysis_button",
+          "grok_annotations",
+          "is_translatable",
+          "legacy",
+          "rest_id",
+          "source",
+          "success",
+          "unmention_data",
+          "views"
+        ]
+      },
+      "ui_fixture": {
+        "item": {
+          "author": {},
+          "caption": null,
+          "media": {
+            "has_media": false,
+            "item_count": 1
+          },
+          "metrics": {
+            "comments": null,
+            "likes": null,
+            "shares": null,
+            "views": null
+          },
+          "type": null
+        },
+        "kind": "post"
+      }
+    },
+    {
+      "credits_charged": 1,
+      "http_status": 200,
+      "outcome": "success",
+      "service_id": "x.user_tweets",
+      "shape": {
+        "expected_keys_present": true,
+        "has_cursor": false,
+        "json_object": true,
+        "list_counts": {
+          "tweets": 100
+        },
+        "top_level_keys": [
+          "credits_charged",
+          "credits_remaining",
+          "success",
+          "tweets"
+        ]
+      },
+      "ui_fixture": {
+        "item_count": 100,
+        "items": [
+          {
+            "author": {},
+            "caption": null,
+            "media": {
+              "has_media": false,
+              "item_count": 1
+            },
+            "metrics": {
+              "comments": null,
+              "likes": null,
+              "shares": null,
+              "views": null
+            },
+            "type": null
+          },
+          {
+            "author": {},
+            "caption": null,
+            "media": {
+              "has_media": false,
+              "item_count": 1
+            },
+            "metrics": {
+              "comments": null,
+              "likes": null,
+              "shares": null,
+              "views": null
+            },
+            "type": null
+          },
+          {
+            "author": {},
+            "caption": null,
+            "media": {
+              "has_media": false,
+              "item_count": 1
+            },
+            "metrics": {
+              "comments": null,
+              "likes": null,
+              "shares": null,
+              "views": null
+            },
+            "type": null
+          }
+        ],
+        "kind": "feed"
+      }
+    },
+    {
+      "credits_charged": 1,
+      "http_status": 200,
+      "outcome": "success",
+      "service_id": "tiktok.profile",
+      "shape": {
+        "expected_keys_present": true,
+        "has_cursor": false,
+        "json_object": true,
+        "list_counts": {},
+        "top_level_keys": [
+          "credits_charged",
+          "credits_remaining",
+          "itemList",
+          "stats",
+          "statsV2",
+          "success",
+          "user"
+        ]
+      },
+      "ui_fixture": {
+        "kind": "profile",
+        "profile": {
+          "biography": "orca enthusiast\nmeg thee stallion fan\ni post on youtube on saturdays (for the most part)",
+          "counts": {
+            "content": 3229,
+            "followers": 159300000,
+            "following": 1439
+          },
+          "display_name": "charli d\u2019amelio",
+          "handle": "charlidamelio",
+          "verified": true
+        }
+      }
+    },
+    {
+      "credits_charged": 1,
+      "http_status": 200,
+      "outcome": "success",
+      "service_id": "tiktok.video",
+      "shape": {
+        "expected_keys_present": true,
+        "has_cursor": false,
+        "json_object": true,
+        "list_counts": {},
+        "top_level_keys": [
+          "aweme_detail",
+          "credits_charged",
+          "credits_remaining",
+          "success"
+        ]
+      },
+      "ui_fixture": {
+        "item": {
+          "author": {
+            "biography": "El Presidente/Barstool Sports Founder.",
+            "counts": {
+              "content": null,
+              "followers": 4760392,
+              "following": 97
+            },
+            "display_name": "Dave Portnoy",
+            "handle": null,
+            "verified": false
+          },
+          "caption": "Stopped by the viral @Amici Pizza to figure out if it\u2019s the food or social media that is causing lines around the block",
+          "media": {
+            "has_media": true,
+            "item_count": 1
+          },
+          "metrics": {
+            "comments": null,
+            "likes": null,
+            "shares": null,
+            "views": null
+          },
+          "type": null
+        },
+        "kind": "post"
+      }
+    },
+    {
+      "credits_charged": 1,
+      "http_status": 200,
+      "outcome": "success",
+      "service_id": "tiktok.feed",
+      "shape": {
+        "expected_keys_present": true,
+        "has_cursor": true,
+        "json_object": true,
+        "list_counts": {
+          "aweme_list": 10
+        },
+        "top_level_keys": [
+          "aweme_list",
+          "credits_charged",
+          "credits_remaining",
+          "has_more",
+          "max_cursor",
+          "status_code",
+          "success"
+        ]
+      },
+      "ui_fixture": {
+        "item_count": 10,
+        "items": [
+          {
+            "author": {
+              "biography": "orca enthusiast\nmeg thee stallion fan\ni post on youtube on saturdays (for the most part)",
+              "counts": {
+                "content": null,
+                "followers": 159307562,
+                "following": 1439
+              },
+              "display_name": "charli d\u2019amelio",
+              "handle": null,
+              "verified": false
+            },
+            "caption": "dc @shanewiththebody",
+            "media": {
+              "has_media": true,
+              "item_count": 1
+            },
+            "metrics": {
+              "comments": null,
+              "likes": null,
+              "shares": null,
+              "views": null
+            },
+            "type": null
+          },
+          {
+            "author": {
+              "biography": "orca enthusiast\nmeg thee stallion fan\ni post on youtube on saturdays (for the most part)",
+              "counts": {
+                "content": null,
+                "followers": 159307562,
+                "following": 1439
+              },
+              "display_name": "charli d\u2019amelio",
+              "handle": null,
+              "verified": false
+            },
+            "caption": "dc @TYLA",
+            "media": {
+              "has_media": true,
+              "item_count": 1
+            },
+            "metrics": {
+              "comments": null,
+              "likes": null,
+              "shares": null,
+              "views": null
+            },
+            "type": null
+          },
+          {
+            "author": {
+              "biography": "orca enthusiast\nmeg thee stallion fan\ni post on youtube on saturdays (for the most part)",
+              "counts": {
+                "content": null,
+                "followers": 159307562,
+                "following": 1439
+              },
+              "display_name": "charli d\u2019amelio",
+              "handle": null,
+              "verified": false
+            },
+            "caption": null,
+            "media": {
+              "has_media": true,
+              "item_count": 1
+            },
+            "metrics": {
+              "comments": null,
+              "likes": null,
+              "shares": null,
+              "views": null
+            },
+            "type": null
+          }
+        ],
+        "kind": "feed"
+      }
+    },
+    {
+      "credits_charged": 1,
+      "http_status": 200,
+      "outcome": "success",
+      "service_id": "tiktok.user_search",
+      "shape": {
+        "expected_keys_present": true,
+        "has_cursor": true,
+        "json_object": true,
+        "list_counts": {},
+        "top_level_keys": [
+          "challenge_list",
+          "credits_charged",
+          "credits_remaining",
+          "cursor",
+          "extra",
+          "feedback_type",
+          "global_doodle_config",
+          "has_more",
+          "input_keyword",
+          "log_pb",
+          "music_list",
+          "qc",
+          "rid",
+          "status_code",
+          "success",
+          "type"
+        ]
+      },
+      "ui_fixture": {
+        "item_count": 0,
+        "items": [],
+        "kind": "search"
+      }
+    },
+    {
+      "credits_charged": 1,
+      "http_status": 200,
+      "outcome": "success",
+      "service_id": "youtube.channel",
+      "shape": {
+        "expected_keys_present": true,
+        "has_cursor": false,
+        "json_object": true,
+        "list_counts": {},
+        "top_level_keys": [
+          "avatar",
+          "banner",
+          "channel",
+          "channelId",
+          "country",
+          "credits_charged",
+          "credits_remaining",
+          "description",
+          "email",
+          "handle",
+          "instagram",
+          "isFamilySafe",
+          "isVerified",
+          "joinedDateText",
+          "keywords",
+          "links"
+        ]
+      },
+      "ui_fixture": {
+        "kind": "profile",
+        "profile": {
+          "biography": null,
+          "counts": {
+            "content": 11216,
+            "followers": null,
+            "following": null
+          },
+          "display_name": "The Pat McAfee Show",
+          "handle": "@ThePatMcAfeeShow",
+          "verified": true
+        }
+      }
+    },
+    {
+      "credits_charged": 1,
+      "http_status": 200,
+      "outcome": "success",
+      "service_id": "youtube.video",
+      "shape": {
+        "expected_keys_present": true,
+        "has_cursor": false,
+        "json_object": true,
+        "list_counts": {},
+        "top_level_keys": [
+          "captionTracks",
+          "channel",
+          "chapters",
+          "collaborators",
+          "commentCountInt",
+          "commentCountText",
+          "credits_charged",
+          "credits_remaining",
+          "description",
+          "descriptionLinks",
+          "downloadOptions",
+          "durationFormatted",
+          "durationMs",
+          "genre",
+          "id",
+          "isPaidPromotion"
+        ]
+      },
+      "ui_fixture": {
+        "item": {
+          "author": {},
+          "caption": "The official video for \u201cNever Gonna Give You Up\u201d by Rick Astley. \n\nNever: The Autobiography \ud83d\udcda OUT NOW! \nFollow this link to get your copy and listen to Rick\u2019s \u2018Never\u2019 playlist \u2764\ufe0f #RickAstleyNever\n[link]\n\n\u201cNever Gonna Give You Up\u201d was a global smash on its release in July 1987, to",
+          "media": {
+            "has_media": true,
+            "item_count": 1
+          },
+          "metrics": {
+            "comments": null,
+            "likes": null,
+            "shares": null,
+            "views": null
+          },
+          "type": "video"
+        },
+        "kind": "post"
+      }
+    },
+    {
+      "credits_charged": 1,
+      "http_status": 200,
+      "outcome": "success",
+      "service_id": "youtube.channel_videos",
+      "shape": {
+        "expected_keys_present": true,
+        "has_cursor": true,
+        "json_object": true,
+        "list_counts": {
+          "videos": 30
+        },
+        "top_level_keys": [
+          "channels",
+          "continuationToken",
+          "credits_charged",
+          "credits_remaining",
+          "lives",
+          "playlists",
+          "shelves",
+          "shorts",
+          "success",
+          "videos"
+        ]
+      },
+      "ui_fixture": {
+        "item_count": 30,
+        "items": [
+          {
+            "author": {},
+            "caption": "Welcome to The Pat McAfee Show LIVE from Noon-3PM EST Mon-Fri. You can also find us live on ESPN, ESPN+, & TikTok!\n\nBecome a #McAfeeMafia member! \u00a0\u00a0\u00a0/\u00a0@thepatmcafeeshow\u00a0\u00a0\n\nSUBSCRIBE:\n\u00a0\u00a0\u00a0/\u00a0@thepatmcafeeshow\u00a0\u00a0\n\nMERCH: [link]\n\nSubscribe to the Pat McAfee Show(s)!\n @Hammer Dahn  \n @T",
+            "media": {
+              "has_media": true,
+              "item_count": 1
+            },
+            "metrics": {
+              "comments": null,
+              "likes": null,
+              "shares": null,
+              "views": null
+            },
+            "type": "video"
+          },
+          {
+            "author": {},
+            "caption": "Welcome to The Pat McAfee Show LIVE from Noon-3PM EST Mon-Fri. You can also find us live on ESPN, ESPN+, & TikTok!\n\nBecome a #McAfeeMafia member! \u00a0\u00a0\u00a0/\u00a0@thepatmcafeeshow\u00a0\u00a0\n\nSUBSCRIBE:\n\u00a0\u00a0\u00a0/\u00a0@thepatmcafeeshow\u00a0\u00a0\n\nMERCH: [link]\n\nSubscribe to the Pat McAfee Show(s)!\n @Hammer Dahn  \n @T",
+            "media": {
+              "has_media": true,
+              "item_count": 1
+            },
+            "metrics": {
+              "comments": null,
+              "likes": null,
+              "shares": null,
+              "views": null
+            },
+            "type": "video"
+          },
+          {
+            "author": {},
+            "caption": "Welcome to The Pat McAfee Show LIVE from Noon-3PM EST Mon-Fri. You can also find us live on ESPN, ESPN+, & TikTok!\n\nBecome a #McAfeeMafia member! \u00a0\u00a0\u00a0/\u00a0@thepatmcafeeshow\u00a0\u00a0\n\nSUBSCRIBE:\n\u00a0\u00a0\u00a0/\u00a0@thepatmcafeeshow\u00a0\u00a0\n\nMERCH: [link]\n\nSubscribe to the Pat McAfee Show(s)!\n @Hammer Dahn  \n @T",
+            "media": {
+              "has_media": true,
+              "item_count": 1
+            },
+            "metrics": {
+              "comments": null,
+              "likes": null,
+              "shares": null,
+              "views": null
+            },
+            "type": "video"
+          }
+        ],
+        "kind": "feed"
+      }
+    },
+    {
+      "credits_charged": 1,
+      "http_status": 200,
+      "outcome": "success",
+      "service_id": "youtube.search",
+      "shape": {
+        "expected_keys_present": true,
+        "has_cursor": true,
+        "json_object": true,
+        "list_counts": {
+          "videos": 23
+        },
+        "top_level_keys": [
+          "channels",
+          "continuationToken",
+          "credits_charged",
+          "credits_remaining",
+          "lives",
+          "playlists",
+          "shelves",
+          "shorts",
+          "success",
+          "videos"
+        ]
+      },
+      "ui_fixture": {
+        "item_count": 23,
+        "items": [
+          {
+            "biography": null,
+            "counts": {
+              "content": null,
+              "followers": null,
+              "following": null
+            },
+            "display_name": null,
+            "handle": null,
+            "verified": false
+          },
+          {
+            "biography": null,
+            "counts": {
+              "content": null,
+              "followers": null,
+              "following": null
+            },
+            "display_name": null,
+            "handle": null,
+            "verified": false
+          },
+          {
+            "biography": null,
+            "counts": {
+              "content": null,
+              "followers": null,
+              "following": null
+            },
+            "display_name": null,
+            "handle": null,
+            "verified": false
+          }
+        ],
+        "kind": "search"
+      }
+    },
+    {
+      "credits_charged": 1,
+      "http_status": 200,
+      "outcome": "success",
+      "service_id": "instagram.variant_discovery",
+      "shape": {
+        "expected_keys_present": true,
+        "has_cursor": false,
+        "json_object": true,
+        "list_counts": {
+          "items": 12
+        },
+        "top_level_keys": [
+          "auto_load_more_enabled",
+          "credits_charged",
+          "credits_remaining",
+          "items",
+          "more_available",
+          "next_max_id",
+          "num_results",
+          "pinned_profile_grid_items_ids",
+          "profile_grid_items",
+          "profile_grid_items_cursor",
+          "special_empty_state",
+          "status",
+          "success",
+          "user"
+        ]
+      }
+    },
+    {
+      "credits_charged": 1,
+      "http_status": 200,
+      "outcome": "success",
+      "service_id": "instagram.image",
+      "shape": {
+        "expected_keys_present": true,
+        "has_cursor": false,
+        "json_object": true,
+        "list_counts": {},
+        "top_level_keys": [
+          "credits_charged",
+          "credits_remaining",
+          "extensions",
+          "status",
+          "success"
+        ]
+      },
+      "ui_fixture": {
+        "item": {
+          "author": {
+            "biography": null,
+            "counts": {
+              "content": null,
+              "followers": null,
+              "following": null
+            },
+            "display_name": "NASA",
+            "handle": "nasa",
+            "verified": true
+          },
+          "caption": null,
+          "media": {
+            "has_media": true,
+            "item_count": 1
+          },
+          "metrics": {
+            "comments": 2779,
+            "likes": null,
+            "shares": null,
+            "views": null
+          },
+          "type": null
+        },
+        "kind": "post"
+      }
+    },
+    {
+      "credits_charged": 1,
+      "http_status": 200,
+      "outcome": "success",
+      "service_id": "instagram.carousel",
+      "shape": {
+        "expected_keys_present": true,
+        "has_cursor": false,
+        "json_object": true,
+        "list_counts": {},
+        "top_level_keys": [
+          "credits_charged",
+          "credits_remaining",
+          "extensions",
+          "status",
+          "success"
+        ]
+      },
+      "ui_fixture": {
+        "item": {
+          "author": {
+            "biography": null,
+            "counts": {
+              "content": null,
+              "followers": null,
+              "following": null
+            },
+            "display_name": "NASA",
+            "handle": "nasa",
+            "verified": true
+          },
+          "caption": null,
+          "media": {
+            "has_media": true,
+            "item_count": 1
+          },
+          "metrics": {
+            "comments": 826,
+            "likes": null,
+            "shares": null,
+            "views": null
+          },
+          "type": null
+        },
+        "kind": "post"
+      }
+    },
+    {
+      "credits_charged": 1,
+      "http_status": 200,
+      "outcome": "success",
+      "service_id": "instagram.reel",
+      "shape": {
+        "expected_keys_present": true,
+        "has_cursor": false,
+        "json_object": true,
+        "list_counts": {},
+        "top_level_keys": [
+          "credits_charged",
+          "credits_remaining",
+          "extensions",
+          "status",
+          "success"
+        ]
+      },
+      "ui_fixture": {
+        "item": {
+          "author": {
+            "biography": null,
+            "counts": {
+              "content": null,
+              "followers": null,
+              "following": null
+            },
+            "display_name": "NASA\u2019s Johnson Space Center",
+            "handle": "nasajohnson",
+            "verified": true
+          },
+          "caption": null,
+          "media": {
+            "has_media": true,
+            "item_count": 1
+          },
+          "metrics": {
+            "comments": 670,
+            "likes": null,
+            "shares": null,
+            "views": null
+          },
+          "type": "clips"
+        },
+        "kind": "post"
+      }
+    }
+  ]
+}

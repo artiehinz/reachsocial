@@ -29,6 +29,59 @@ actual purchased pack price. The existing Instagram endpoints retain their
 current Base Sepolia availability. The newly implemented X and TikTok endpoints
 remain `enabled: false` and `public: false` until this release gate is cleared.
 
+### Bounded product-discovery batch — 2026-08-25
+
+The refreshed ScrapeCreators OpenAPI inventory contains 184 review candidates.
+That inventory is not a product backlog or publication approval. The bounded
+batch used the product-relevant routes only and stored sanitized route/shape
+evidence in `docs/generated/`; it never stored raw provider payloads,
+identifiers, media URLs, or credentials.
+
+- 14 one-credit calls succeeded for Instagram profile/profile-posts/search; X
+  profile/post/user-tweets; TikTok profile/video/feed/user-search; and YouTube
+  channel/video/channel-videos/search.
+- A four-credit NASA Instagram grid pass also succeeded for the image,
+  carousel, and reel detail variants. A prior three-credit Instagram pass
+  confirmed carousel and reel, but did not expose an image in its first grid.
+- The bounded cycle therefore used 21 provider credits. Based on the prior
+  estimated 82-credit remainder, the estimated remaining free balance is 61;
+  reconcile this with the provider account before buying a pack.
+
+No new route is accepted, enabled, public, or entitled to InstaGet as a result
+of this discovery evidence. Each still requires a reviewed ReachSocial service
+definition, normalizer, sanitized consumer fixture, cost verification, and a
+separate release decision.
+
+### UI-fixture capture follow-up — 2026-08-25
+
+A second controlled capture produced compact, sanitized presentation fixtures
+for the offline InstaGet UI lab. The base capture repeated the 14-route batch
+plus Instagram image/carousel/reel variants (18 credits). A three-call follow-up
+captured the wrapper shapes needed for the X post/feed and YouTube video-search
+cards (3 credits). The two JSON files retain only short public presentation
+text, display fields, counts, and media-presence flags; they exclude raw
+provider envelopes, provider IDs, source/media URLs, request IDs, and
+credentials.
+
+The additional cycle used 21 credits. The complete recorded discovery and UI
+fixture work is therefore 42 credits against the earlier estimated 82-credit
+remainder, leaving an estimated 40 credits; reconcile the actual balance in
+the provider account before additional paid testing.
+
+### Local media capture follow-up — 2026-08-25
+
+The local admin UI lab was refreshed with bounded media files rather than
+provider URLs. The 18-route capture charged 17 credits (the carousel route
+returned `not_found` without a charge); a TikTok/browser-format retry and two
+carousel retries used five more credits. The final carousel capture includes
+six locally stored slides, and the lab serves all captured assets only through
+its browser-admin route with `no-store` caching. These temporary files are not
+committed or deployed as public static assets.
+
+The recorded provider-testing total is now 64 credits, leaving an estimated
+18 credits from the earlier 82-credit remainder. Confirm the account balance
+before any further live calls.
+
 The first stale Instagram post fixture returned `not_found`; a current public
 post then passed. This confirms non-retryable content errors are translated
 without a fallback provider call.

@@ -1,0 +1,57 @@
+{
+  "case_count": 4,
+  "credits_charged_total": 3,
+  "generated_at": "2026-08-25T01:44:43.060558Z",
+  "purpose": "bounded product-discovery validation; no route is accepted or enabled by this report",
+  "results": [
+    {
+      "credits_charged": 1,
+      "http_status": 200,
+      "outcome": "success",
+      "service_id": "instagram.variant_discovery"
+    },
+    {
+      "credits_charged": 0,
+      "outcome": "not_present_in_sample",
+      "service_id": "instagram.image"
+    },
+    {
+      "credits_charged": 1,
+      "http_status": 200,
+      "outcome": "success",
+      "service_id": "instagram.carousel",
+      "shape": {
+        "expected_keys_present": true,
+        "has_cursor": false,
+        "json_object": true,
+        "list_counts": {},
+        "top_level_keys": [
+          "credits_charged",
+          "credits_remaining",
+          "extensions",
+          "status",
+          "success"
+        ]
+      }
+    },
+    {
+      "credits_charged": 1,
+      "http_status": 200,
+      "outcome": "success",
+      "service_id": "instagram.reel",
+      "shape": {
+        "expected_keys_present": true,
+        "has_cursor": false,
+        "json_object": true,
+        "list_counts": {},
+        "top_level_keys": [
+          "credits_charged",
+          "credits_remaining",
+          "extensions",
+          "status",
+          "success"
+        ]
+      }
+    }
+  ]
+}

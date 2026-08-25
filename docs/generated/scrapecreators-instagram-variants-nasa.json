@@ -1,0 +1,95 @@
+{
+  "case_count": 4,
+  "credits_charged_total": 4,
+  "generated_at": "2026-08-25T01:45:28.701353Z",
+  "purpose": "bounded product-discovery validation; no route is accepted or enabled by this report",
+  "results": [
+    {
+      "credits_charged": 1,
+      "http_status": 200,
+      "outcome": "success",
+      "service_id": "instagram.variant_discovery",
+      "shape": {
+        "expected_keys_present": true,
+        "has_cursor": false,
+        "json_object": true,
+        "list_counts": {
+          "items": 12
+        },
+        "top_level_keys": [
+          "auto_load_more_enabled",
+          "credits_charged",
+          "credits_remaining",
+          "items",
+          "more_available",
+          "next_max_id",
+          "num_results",
+          "pinned_profile_grid_items_ids",
+          "profile_grid_items",
+          "profile_grid_items_cursor",
+          "special_empty_state",
+          "status",
+          "success",
+          "user"
+        ]
+      }
+    },
+    {
+      "credits_charged": 1,
+      "http_status": 200,
+      "outcome": "success",
+      "service_id": "instagram.image",
+      "shape": {
+        "expected_keys_present": true,
+        "has_cursor": false,
+        "json_object": true,
+        "list_counts": {},
+        "top_level_keys": [
+          "credits_charged",
+          "credits_remaining",
+          "extensions",
+          "status",
+          "success"
+        ]
+      }
+    },
+    {
+      "credits_charged": 1,
+      "http_status": 200,
+      "outcome": "success",
+      "service_id": "instagram.carousel",
+      "shape": {
+        "expected_keys_present": true,
+        "has_cursor": false,
+        "json_object": true,
+        "list_counts": {},
+        "top_level_keys": [
+          "credits_charged",
+          "credits_remaining",
+          "extensions",
+          "status",
+          "success"
+        ]
+      }
+    },
+    {
+      "credits_charged": 1,
+      "http_status": 200,
+      "outcome": "success",
+      "service_id": "instagram.reel",
+      "shape": {
+        "expected_keys_present": true,
+        "has_cursor": false,
+        "json_object": true,
+        "list_counts": {},
+        "top_level_keys": [
+          "credits_charged",
+          "credits_remaining",
+          "extensions",
+          "status",
+          "success"
+        ]
+      }
+    }
+  ]
+}
