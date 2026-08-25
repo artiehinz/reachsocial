@@ -1,6 +1,6 @@
 # Provider contract status
 
-Last verified: 2026-08-09. This file contains no credentials or raw provider payloads.
+Last verified: 2026-08-25. This file contains no credentials or raw provider payloads.
 
 ## InstaGet internal consumer contract
 
@@ -32,6 +32,31 @@ remain `enabled: false` and `public: false` until this release gate is cleared.
 The first stale Instagram post fixture returned `not_found`; a current public
 post then passed. This confirms non-retryable content errors are translated
 without a fallback provider call.
+
+### InstaGet Herald acceptance
+
+ReachSocial commit `50d5284fddb3f04527b3566a3950b5622cb68ece` is running
+on Herald as image digest
+`sha256:8b3a284399a750014a20651bfb50a9091a7f52197360fbd58ca5b2c1d5455ed0`.
+The active internal `InstaGet-Herald` client is entitled only to
+`instagram.profile`, `instagram.post`, and its pre-existing `news.person`
+integration.
+
+Bounded uncached Instagram shadows passed with schema `1.0`, normalization
+`v1`, and one charged provider unit each:
+
+- profile request `req_12164987baa94854a9ee99f7dc49c720`;
+- post request `req_565a3401f752480a9c4bcbe89edba4ce`; and
+- guarded InstaGet worker request `req_e098ea9fdb0b4aa9b9b94f629c2fa0d8`.
+
+The full diagnosis and acceptance cycle used six provider credits: two final
+shadows, one guarded worker call, one structure-only diagnostic, and two
+post attempts that reached the provider while exposing and then confirming
+the normalization/idempotency fixes. A client rate-limit rejection occurred
+before the provider boundary and cost zero. Starting from the owner's stated
+88-credit free balance, the estimated remainder is 82 credits. This estimate
+is test-capacity evidence only; no paid pack has been purchased or reconciled,
+so `cost_verified` remains false.
 
 ## Apify
 

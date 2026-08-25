@@ -58,16 +58,19 @@ operational monitoring. Public unpaid MCP is not planned.
 
 ## InstaGet readiness
 
-ReachSocial is contract-ready for an Instagram-only Herald shadow start, but
-is not yet accepted for an InstaGet cutover. The consumer repository has:
+ReachSocial and InstaGet completed the Instagram-only Herald shadow and guarded
+worker acceptance on 2026-08-25. This is comparison-stage acceptance, not a
+Production or public-search cutover. The consumer repository has:
 
 - strict schema `1.0`/normalization `v1` validation;
 - a server-only client with no browser exposure or legacy-provider fallback;
 - a strict consumer for the protected URL-resolution contract;
 - sanitized profile/post fixtures;
 - independent fail-closed switches for every routed Instagram, X, TikTok, and
-  LinkedIn service; and
-- a guarded, one-call live-shadow command.
+  LinkedIn service;
+- a guarded, one-call live-shadow command; and
+- a dedicated `social` Celery queue and worker, isolated from rate-limited
+  background news work.
 
 Fresh profile and post routing is code-ready for synchronous Instagram, X, and
 TikTok services, but only Instagram is eligible for the first shadow. X and
@@ -75,25 +78,30 @@ TikTok remain dark until their ReachSocial catalog entries are promoted.
 LinkedIn remains blocked in InstaGet until durable async job polling is wired;
 it must not be sent through the synchronous execution path.
 
-Before the first live InstaGet call, complete Instagram cost evidence, verify
-the deployed ReachSocial revision and rollback state, then create a separate
-`InstaGet-Herald` client entitled only to `instagram.profile` and
-`instagram.post`. The raw key goes directly to protected Herald configuration.
+The scoped `InstaGet-Herald` client and its protected key are installed. Two
+representative direct shadows passed, followed by one guarded live worker call.
+Three subsequent broker replays completed on the isolated `social` queue with
+all public/write gates off, no new provider call, and zero application
+projection growth. InstaGet commit
+`2db5be206b29266b0e6f5a9b2db99445ba3cd54d` is the accepted Herald release.
 
-After two representative calls pass, the next code cycle may connect a
-comparison-only worker/task entry point. Public search, persistence, media
-leases, Social Credits, and Production remain separate later approvals.
+The free credit balance proves bounded test capacity but does not prove paid
+unit economics. Public search, persistence, media leases, Social Credits, and
+Production remain separate later approvals. Production is also blocked until
+the quarantined read-only Herald data filesystem receives offline repair and
+post-repair validation.
 
 ## Ordered next release work
 
-1. Record the actual ScrapeCreators plan/pack economics and run the five
-   bounded live contract tests. Promote only passing services.
+1. Record the actual ScrapeCreators plan/pack economics and reconcile dated
+   paid cost evidence. Promote only services whose live contract and margin
+   gates pass.
 2. Run the dedicated Base Sepolia paid API smoke command and reconcile its
    transaction, receipt, request, and single provider attempt.
-3. Provision the scoped InstaGet Herald B2B client and complete two one-call
-   Instagram shadow checks.
-4. Exercise and soak the existing guarded InstaGet worker entry point; keep
-   all public/write flags off.
+3. Repair and revalidate the quarantined Herald data filesystem before any
+   Production promotion or data-pipeline write.
+4. Keep the accepted Instagram comparison worker dark while collecting
+   operational evidence; do not enable public/write flags as part of soak.
 5. Implement durable InstaGet polling for async ReachSocial jobs before any
    LinkedIn service flag can be enabled.
 6. Enable authenticated B2B MCP after its independent live protocol and limit
