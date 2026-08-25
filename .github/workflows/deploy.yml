@@ -49,7 +49,7 @@ jobs:
             < scripts/deploy_droplet.sh
           ssh -i ~/.ssh/reachsocial_deploy -o StrictHostKeyChecking=accept-new "$SSH_USER@$SSH_HOST" \
             "REACHSOCIAL_IMAGE_REPOSITORY='$DOCR_REGISTRY/reachsocial' bash -s" < scripts/prune_deploy_images.sh
-      - name: Provision the scoped InstaGet Herald news client
+      - name: Provision the scoped InstaGet Herald client
         env:
           SSH_HOST: ${{ secrets.REACHSOCIAL_DEPLOY_HOST }}
           SSH_USER: ${{ secrets.REACHSOCIAL_DEPLOY_USER }}
@@ -60,4 +60,6 @@ jobs:
           printf '%s\n' "$INSTAGET_HERALD_API_KEY" | \
             ssh -i ~/.ssh/reachsocial_deploy -o StrictHostKeyChecking=accept-new "$SSH_USER@$SSH_HOST" \
               "cd '$DEPLOY_PATH' && docker compose exec -T app python scripts/provision_client.py \
-                InstaGet-Herald --api-key-stdin --service news.person --rate-limit 12 --concurrency 1"
+                InstaGet-Herald --api-key-stdin --service news.person \
+                --service instagram.profile --service instagram.post \
+                --rate-limit 12 --concurrency 1"
