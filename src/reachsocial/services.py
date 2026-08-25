@@ -130,7 +130,11 @@ class ExecutionService:
                 IdempotencyRecord.key == key,
             )
         )
-        if record is None or record.expires_at <= utcnow_naive():
+        if record is None:
+            return None
+        if record.expires_at <= utcnow_naive():
+            session.delete(record)
+            session.flush()
             return None
         if record.input_hash != input_hash:
             raise IdempotencyConflict("Idempotency key was already used with different input")

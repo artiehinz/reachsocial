@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 import pytest
 from sqlalchemy import select
 
@@ -11,10 +13,15 @@ from reachsocial.errors import (
     UnknownService,
 )
 from reachsocial.errors import TestCapacityReached as CapacityReached
-from reachsocial.models import ClientService, ProviderAttempt, RequestLog
+from reachsocial.models import (
+    ClientService,
+    IdempotencyRecord,
+    ProviderAttempt,
+    RequestLog,
+)
 from reachsocial.providers import ProviderResult
 from reachsocial.runtime import RuntimeState
-from reachsocial.services import ExecutionService
+from reachsocial.services import ExecutionService, utcnow_naive
 
 
 @pytest.mark.asyncio
@@ -44,6 +51,45 @@ async def test_execute_caches_and_replays_idempotent_response(session, client, c
     assert cached["cached"] is True
     assert replay == first
     assert len(list(session.scalars(select(RequestLog)))) == 2
+
+
+@pytest.mark.asyncio
+async def test_expired_idempotency_record_is_replaced_without_a_duplicate_key(
+    session, client, catalog
+) -> None:
+    executor = ExecutionService(catalog, RuntimeState())
+    first = await executor.execute(
+        session,
+        client=client,
+        service_id="instagram.profile",
+        input_data={"url": "https://instagram.com/example"},
+        idempotency_key="replace-expired",
+    )
+    record = session.scalar(
+        select(IdempotencyRecord).where(IdempotencyRecord.key == "replace-expired")
+    )
+    assert record is not None
+    record.expires_at = utcnow_naive() - timedelta(seconds=1)
+    session.commit()
+
+    replacement = await executor.execute(
+        session,
+        client=client,
+        service_id="instagram.profile",
+        input_data={"url": "https://instagram.com/example"},
+        idempotency_key="replace-expired",
+    )
+
+    records = list(
+        session.scalars(
+            select(IdempotencyRecord).where(
+                IdempotencyRecord.key == "replace-expired"
+            )
+        )
+    )
+    assert first["request_id"] != replacement["request_id"]
+    assert replacement["cached"] is True
+    assert len(records) == 1
 
 
 @pytest.mark.asyncio
