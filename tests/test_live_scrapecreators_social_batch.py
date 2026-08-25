@@ -68,6 +68,10 @@ def test_ui_fixture_keeps_presentation_fields_without_ids_or_urls() -> None:
     assert "private-token" not in repr(fixture)
 
 
+def test_safe_text_never_stringifies_a_provider_mapping() -> None:
+    assert batch._safe_text({"private_id": "provider-private-id"}) is None
+
+
 def test_instagram_variant_classifier_never_returns_an_upstream_value() -> None:
     assert batch._instagram_variant_url({"code": "image-code", "media_type": 1}) == (
         "image",

@@ -121,7 +121,7 @@ def _first_or_deep(source: dict[str, Any], *paths: str) -> Any:
 
 def _safe_text(value: Any, *, limit: int = 280) -> str | None:
     """Keep small public presentation text; remove links and provider tokens."""
-    if value is None:
+    if not isinstance(value, (str, int, float)):
         return None
     text = _URL_PATTERN.sub("[link]", str(value)).replace("\x00", " ").strip()
     return text[:limit] or None
