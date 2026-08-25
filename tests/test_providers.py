@@ -8,7 +8,10 @@ from reachsocial.errors import (
     ProviderTimeout,
     ProviderUnavailable,
 )
-from reachsocial.normalized import normalize_provider_payload
+from reachsocial.normalized import (
+    normalize_provider_payload,
+    normalized_result_is_complete,
+)
 from reachsocial.providers import (
     ApifyAdapter,
     GdeltAdapter,
@@ -360,6 +363,64 @@ def test_normalized_x_post_excludes_provider_payload() -> None:
     assert result["item"]["published_at"] == "2024-01-01T12:00:00Z"
     assert "credits_charged" not in str(result)
     assert "provider" not in str(result)
+
+
+def test_normalized_current_instagram_post_envelope_is_consumer_complete() -> None:
+    result = normalize_provider_payload(
+        "instagram.post",
+        "https://instagram.com/p/Current123",
+        {
+            "success": True,
+            "credits_charged": 1,
+            "data": {
+                "xdt_shortcode_media": {
+                    "id": "987654321",
+                    "shortcode": "Current123",
+                    "product_type": "clips",
+                    "display_url": "https://cdn.example/preview.jpg",
+                    "video_url": "https://cdn.example/video.mp4",
+                    "video_duration": 12.5,
+                    "video_play_count": 500,
+                    "taken_at_timestamp": 1_700_000_000,
+                    "comment_count": 7,
+                    "edge_media_preview_like": {"count": 42},
+                    "edge_media_to_caption": {
+                        "edges": [{"node": {"text": "Current caption"}}]
+                    },
+                    "owner": {
+                        "id": "123",
+                        "username": "example",
+                        "full_name": "Example Person",
+                        "is_verified": False,
+                    },
+                }
+            },
+        },
+    )
+
+    item = result["item"]
+    assert item["platform_id"] == "987654321"
+    assert item["text"] == "Current caption"
+    assert item["published_at"] == "2023-11-14T22:13:20Z"
+    assert item["metrics"] == {
+        "likes": 42,
+        "comments": 7,
+        "shares": None,
+        "views": 500,
+    }
+    assert item["author"]["handle"] == "example"
+    assert item["media"][0]["url"] == "https://cdn.example/video.mp4"
+    assert normalized_result_is_complete("instagram.post", result)
+
+
+def test_incomplete_provider_success_cannot_cross_the_normalized_contract() -> None:
+    result = normalize_provider_payload(
+        "instagram.post",
+        "https://instagram.com/p/Missing123",
+        {"success": True, "credits_charged": 1, "data": {}},
+    )
+
+    assert not normalized_result_is_complete("instagram.post", result)
 
 
 def test_normalized_apidojo_x_feed_fields() -> None:

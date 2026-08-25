@@ -306,10 +306,18 @@ def _instagram_media(source: dict[str, Any]) -> list[dict[str, Any]]:
         )
     ]
     children = _items(
-        _first(source, "carousel_media", "carouselMedia", "childPosts", "sidecarChildren") or []
+        _first(
+            source,
+            "carousel_media",
+            "carouselMedia",
+            "childPosts",
+            "sidecarChildren",
+            "edge_sidecar_to_children.edges",
+        )
+        or []
     )
     for child in children:
-        candidates.extend(_instagram_media(child))
+        candidates.extend(_instagram_media(_mapping(child.get("node")) or child))
     return _dedupe_media(candidates)
 
 
@@ -424,13 +432,23 @@ def _content(platform: str, canonical_url: str, source: dict[str, Any]) -> dict[
             _url(_first(author_source, "url", "twitterUrl")),
         ),
         "text": _text(
-            _first(source, "caption", "text", "desc", "description", "legacy.full_text", "title")
+            _first(
+                source,
+                "caption",
+                "text",
+                "desc",
+                "description",
+                "edge_media_to_caption.edges.0.node.text",
+                "legacy.full_text",
+                "title",
+            )
         ),
         "published_at": _timestamp(
             _first(
                 source,
                 "timestamp",
                 "taken_at",
+                "taken_at_timestamp",
                 "takenAt",
                 "createTime",
                 "create_time",
@@ -443,10 +461,10 @@ def _content(platform: str, canonical_url: str, source: dict[str, Any]) -> dict[
         "expires_at": _timestamp(_first(source, "expires_at", "expiresAt")),
         "media": media,
         "metrics": {
-            "likes": _integer(_first(source, "likes_count", "likesCount", "likeCount", "diggCount", "statistics.diggCount", "statistics.digg_count", "legacy.favorite_count")),
-            "comments": _integer(_first(source, "comments_count", "commentsCount", "commentCount", "replyCount", "statistics.commentCount", "statistics.comment_count", "legacy.reply_count")),
+            "likes": _integer(_first(source, "likes_count", "likesCount", "likeCount", "edge_media_preview_like.count", "diggCount", "statistics.diggCount", "statistics.digg_count", "legacy.favorite_count")),
+            "comments": _integer(_first(source, "comments_count", "comment_count", "commentsCount", "commentCount", "edge_media_preview_comment.count", "replyCount", "statistics.commentCount", "statistics.comment_count", "legacy.reply_count")),
             "shares": _integer(_first(source, "shares_count", "sharesCount", "shareCount", "retweetCount", "statistics.shareCount", "statistics.share_count", "legacy.retweet_count")),
-            "views": _integer(_first(source, "video_view_count", "videoViewCount", "viewCount", "playCount", "statistics.playCount", "statistics.play_count", "views")),
+            "views": _integer(_first(source, "video_view_count", "video_play_count", "videoViewCount", "viewCount", "playCount", "statistics.playCount", "statistics.play_count", "views")),
         },
         "relationships": {
             "reply_to_id": _text(_first(legacy, "in_reply_to_status_id_str")),
@@ -463,7 +481,12 @@ def normalize_provider_payload(
     if service_id == "instagram.profile":
         return {"profile": _profile("Instagram", canonical_url, data)}
     if service_id == "instagram.post":
-        return {"item": _content("Instagram", canonical_url, data)}
+        item = (
+            _mapping(data.get("xdt_shortcode_media"))
+            or _mapping(data.get("shortcode_media"))
+            or data
+        )
+        return {"item": _content("Instagram", canonical_url, item)}
     if service_id == "instagram.stories":
         rows = _items(payload.get("items")) if "items" in payload else _items(payload)
         return {
@@ -553,3 +576,30 @@ def normalize_provider_payload(
         }
         return {"profile": _profile("LinkedIn", canonical_url, item, service_fields=fields)}
     return {"item": _content("Unknown", canonical_url, data)}
+
+
+def normalized_result_is_complete(service_id: str, data: dict[str, Any]) -> bool:
+    """Reject provider-success envelopes that cannot satisfy the stable contract."""
+    if service_id.endswith(".profile"):
+        profile = _mapping(data.get("profile"))
+        return bool(
+            profile.get("platform")
+            and profile.get("canonical_url")
+            and profile.get("platform_id")
+        )
+    if service_id in {"instagram.post", "x.post", "tiktok.video"}:
+        item = _mapping(data.get("item"))
+        author = _mapping(item.get("author"))
+        has_content = bool(
+            item.get("text")
+            or item.get("media")
+            or author.get("platform_id")
+            or author.get("handle")
+        )
+        return bool(
+            item.get("platform")
+            and item.get("canonical_url")
+            and item.get("platform_id")
+            and has_content
+        )
+    return True

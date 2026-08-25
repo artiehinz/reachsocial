@@ -23,7 +23,7 @@ from .errors import (
     ReachSocialError,
     ResourceNotFound,
 )
-from .normalized import normalize_provider_payload
+from .normalized import normalize_provider_payload, normalized_result_is_complete
 
 
 @dataclass(frozen=True)
@@ -398,6 +398,16 @@ class ScrapeCreatorsAdapter:
                 upstream_cost_microusd=credits * unit_cost,
             )
         normalized = normalize_provider_payload(service.id, str(input_data["url"]), payload)
+        if not normalized_result_is_complete(service.id, normalized):
+            raise _costed_error(
+                ProviderUnavailable(
+                    "ScrapeCreators returned an incomplete normalized result"
+                ),
+                reference=response.headers.get("x-request-id"),
+                units=credits,
+                unit_cost_microusd=unit_cost,
+                upstream_cost_microusd=credits * unit_cost,
+            )
         if service.response_shape in {"feed", "stories"}:
             limit = int(input_data.get("max_items") or 20)
             normalized["items"] = normalized.get("items", [])[:limit]
