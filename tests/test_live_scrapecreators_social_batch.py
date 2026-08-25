@@ -82,3 +82,11 @@ def test_instagram_variant_classifier_never_returns_an_upstream_value() -> None:
         "https://www.instagram.com/reel/reel-code/",
     )
     assert batch._instagram_variant_url({"media_type": 1}) is None
+
+
+def test_failed_refresh_preserves_the_last_successful_capture() -> None:
+    merged = batch._merge_report_rows(
+        [{"service_id": "instagram.profile", "outcome": "success", "ui_fixture": {"kind": "profile"}}],
+        [{"service_id": "instagram.profile", "outcome": "provider_error"}],
+    )
+    assert merged == [{"service_id": "instagram.profile", "outcome": "success", "ui_fixture": {"kind": "profile"}}]

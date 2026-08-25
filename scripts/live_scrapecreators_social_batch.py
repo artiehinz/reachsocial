@@ -440,6 +440,28 @@ async def run(
     return report
 
 
+def _merge_report_rows(existing_results: Any, refreshed_results: Any) -> list[dict[str, Any]]:
+    """Keep a usable capture when a narrow paid refresh fails."""
+    existing_rows = {
+        str(row.get("service_id")): row
+        for row in existing_results
+        if isinstance(row, dict)
+    }
+    for refreshed_row in refreshed_results:
+        if not isinstance(refreshed_row, dict):
+            continue
+        service_id = str(refreshed_row.get("service_id"))
+        previous_row = existing_rows.get(service_id)
+        if (
+            refreshed_row.get("outcome") != "success"
+            and isinstance(previous_row, dict)
+            and previous_row.get("outcome") == "success"
+        ):
+            continue
+        existing_rows[service_id] = refreshed_row
+    return list(existing_rows.values())
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, default=Path("docs/generated/scrapecreators-social-batch.json"))
@@ -478,9 +500,7 @@ def main() -> None:
     )
     if existing_report is not None:
         try:
-            existing_rows = {str(row.get("service_id")): row for row in existing_report.get("results", []) if isinstance(row, dict)}
-            existing_rows.update({str(row.get("service_id")): row for row in report["results"]})
-            report["results"] = list(existing_rows.values())
+            report["results"] = _merge_report_rows(existing_report.get("results", []), report["results"])
             report["case_count"] = len(report["results"])
             report["credits_charged_total"] = sum(int(row.get("credits_charged") or 0) for row in report["results"])
             args.output.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
