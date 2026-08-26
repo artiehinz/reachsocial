@@ -18,6 +18,7 @@ import re
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
 
 import httpx
 
@@ -27,7 +28,7 @@ from reachsocial.config import get_settings
 Case = tuple[str, str, dict[str, str], tuple[str, ...]]
 _URL_PATTERN = re.compile(r"https?://\S+", re.IGNORECASE)
 _MEDIA_FIELD_TOKENS = ("video", "image", "thumbnail", "cover", "display", "media", "avatar", "profile_pic")
-_MEDIA_MAX_BYTES = 12 * 1024 * 1024
+_MEDIA_MAX_BYTES = 30 * 1024 * 1024
 
 
 CASES: tuple[Case, ...] = (
@@ -50,6 +51,14 @@ CASES: tuple[Case, ...] = (
     ("youtube.video", "/v1/youtube/video", {"url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"}, ()),
     ("youtube.channel_videos", "/v1/youtube/channel-videos", {"handle": "ThePatMcAfeeShow", "sort": "latest"}, ("videos",)),
     ("youtube.search", "/v1/youtube/search", {"query": "OpenAI", "type": "videos", "sortBy": "relevance"}, ("videos",)),
+)
+
+# These are deliberately opt-in capture follow-ups, not additions to the
+# product-validation batch.  They let the offline lab show a saved destination
+# for a concrete search result without silently spending a paid provider call.
+FOLLOW_UP_CASES: tuple[Case, ...] = (
+    ("instagram.nikefootball_profile", "/v1/instagram/profile", {"handle": "nikefootball"}, ("data",)),
+    ("instagram.nikefootball_search", "/v1/instagram/search", {"query": "nikefootball"}, ("users",)),
 )
 
 
@@ -144,13 +153,13 @@ def _ui_profile(source: dict[str, Any]) -> dict[str, Any]:
     source = {**source, **user} if user else source
     return {
         "display_name": _safe_text(_first_or_deep(source, "full_name", "fullName", "displayName", "name", "nickname", "user.nickname", "channelTitle"), limit=100),
-        "handle": _safe_text(_first_or_deep(source, "username", "userName", "handle", "uniqueId", "screen_name", "user.uniqueId", "channelHandle", "channelTitle"), limit=100),
+        "handle": _safe_text(_first_or_deep(source, "username", "userName", "handle", "uniqueId", "unique_id", "screen_name", "user.uniqueId", "channelHandle", "channelTitle"), limit=100),
         "biography": _safe_text(_first_or_deep(source, "biography", "bio", "description", "signature", "user.signature")),
         "verified": bool(_first_or_deep(source, "is_verified", "verified", "isVerified", "user.verified")),
         "counts": {
-            "followers": _safe_int(_first_or_deep(source, "follower_count", "followers", "followersCount", "followerCount", "stats.followerCount", "subscriberCount")),
-            "following": _safe_int(_first_or_deep(source, "following_count", "following", "followingCount", "stats.followingCount")),
-            "content": _safe_int(_first_or_deep(source, "media_count", "posts_count", "videoCount", "stats.videoCount", "videoCount")),
+            "followers": _safe_int(_first(source, "edge_followed_by.count", "follower_count", "followers", "followersCount", "followerCount", "stats.followerCount", "legacy.followers_count", "subscriberCount")),
+            "following": _safe_int(_first(source, "edge_follow.count", "following_count", "following", "followingCount", "stats.followingCount", "legacy.friends_count")),
+            "content": _safe_int(_first(source, "edge_owner_to_timeline_media.count", "media_count", "posts_count", "videoCount", "stats.videoCount", "legacy.statuses_count")),
         },
     }
 
@@ -171,10 +180,10 @@ def _ui_post(source: dict[str, Any]) -> dict[str, Any]:
         "caption": _safe_text(_first_or_deep(source, "caption", "text", "desc", "description", "title", "full_text", "legacy.full_text")),
         "author": _ui_profile(author) if author else {},
         "metrics": {
-            "likes": _safe_int(_first_or_deep(source, "likes_count", "likesCount", "likeCount", "diggCount", "statistics.diggCount", "favorite_count", "legacy.favorite_count")),
-            "comments": _safe_int(_first_or_deep(source, "comments_count", "commentsCount", "commentCount", "comment_count", "statistics.commentCount", "reply_count", "legacy.reply_count")),
+            "likes": _safe_int(_first(source, "likes_count", "likesCount", "likeCount", "diggCount", "digg_count", "statistics.diggCount", "statistics.digg_count", "favorite_count", "legacy.favorite_count")),
+            "comments": _safe_int(_first(source, "comments_count", "commentsCount", "commentCount", "comment_count", "statistics.commentCount", "statistics.comment_count", "reply_count", "legacy.reply_count")),
             "shares": _safe_int(_first_or_deep(source, "shares_count", "sharesCount", "shareCount", "statistics.shareCount", "retweet_count", "legacy.retweet_count")),
-            "views": _safe_int(_first_or_deep(source, "video_view_count", "videoViewCount", "viewCount", "playCount", "statistics.playCount", "views", "viewCount")),
+            "views": _safe_int(_first(source, "video_view_count", "videoViewCount", "viewCount", "playCount", "play_count", "statistics.playCount", "statistics.play_count", "views", "viewCount")),
         },
         "media": {
             "has_media": bool(_first_or_deep(source, "display_url", "displayUrl", "video_url", "videoUrl", "video", "image", "thumbnail", "cover", "thumbnailUrl")),
@@ -186,13 +195,13 @@ def _ui_post(source: dict[str, Any]) -> dict[str, Any]:
 def _ui_fixture(service_id: str, payload: dict[str, Any]) -> dict[str, Any]:
     """Project one raw response into a compact UI fixture with no IDs or URLs."""
     data = _result_data(payload)
-    if service_id in {"instagram.profile", "x.profile", "tiktok.profile", "youtube.channel"}:
+    if service_id in {"instagram.profile", "instagram.nikefootball_profile", "x.profile", "tiktok.profile", "youtube.channel"}:
         source = _mapping(data.get("channel")) or data
         return {"kind": "profile", "profile": _ui_profile(source)}
     if service_id in {"instagram.profile_posts", "x.user_tweets", "tiktok.feed", "youtube.channel_videos"}:
         rows = _rows(_first(data, "items", "tweets", "aweme_list", "videos") or [])
         return {"kind": "feed", "items": [_ui_post(row) for row in rows[:3]], "item_count": len(rows)}
-    if service_id in {"instagram.search", "tiktok.user_search"}:
+    if service_id in {"instagram.search", "instagram.nikefootball_search", "tiktok.user_search"}:
         rows = _rows(_first(data, "users", "items", "videos", "channels") or [])
         return {"kind": "search", "items": [_ui_profile(row) for row in rows[:3]], "item_count": len(rows)}
     if service_id == "youtube.search":
@@ -206,9 +215,9 @@ def _ui_fixture(service_id: str, payload: dict[str, Any]) -> dict[str, Any]:
     return {"kind": "post", "item": _ui_post(data)}
 
 
-def _media_candidates(value: Any, parent_key: str = "") -> list[str]:
+def _media_candidates(value: Any, parent_key: str = "") -> list[tuple[str, str]]:
     """Find direct media candidates in memory without retaining their URLs."""
-    found: list[str] = []
+    found: list[tuple[str, str]] = []
     if isinstance(value, dict):
         for key, nested in value.items():
             key_name = str(key).lower()
@@ -219,19 +228,43 @@ def _media_candidates(value: Any, parent_key: str = "") -> list[str]:
             found.extend(_media_candidates(nested, parent_key))
     elif isinstance(value, str) and value.startswith(("https://", "http://")):
         if any(token in parent_key for token in _MEDIA_FIELD_TOKENS):
-            found.append(value)
-    priority = lambda url: (0 if any(token in url.lower() for token in ("thumbnail", "cover", "image", "display")) else 1, url)
-    return sorted(dict.fromkeys(found), key=priority)
+            found.append((value, parent_key))
+    deduped = {url: context for url, context in found}
+    return sorted(deduped.items(), key=lambda item: item[0])
+
+
+def _media_candidate_priority(context: str, *, prefer_video: bool) -> int:
+    is_video = any(token in context for token in ("video", "play_addr", "download"))
+    return 0 if is_video == prefer_video else 1
+
+
+def _is_video_media_candidate(context: str) -> bool:
+    return any(token in context for token in ("video", "play_addr", "download"))
+
+
+def _selected_media_candidates(service_id: str, candidates: list[tuple[str, str]]) -> list[tuple[str, str]]:
+    """Keep only the assets needed for an honest compact lab preview."""
+    if service_id == "tiktok.video":
+        videos = [item for item in candidates if _is_video_media_candidate(item[1])]
+        posters = [item for item in candidates if not _is_video_media_candidate(item[1])]
+        return videos[:1] + posters[:1]
+    if service_id == "instagram.carousel":
+        return candidates[:6]
+    if service_id.startswith(("instagram.profile", "instagram.search")) or service_id in {"x.profile", "tiktok.profile", "youtube.channel"}:
+        return sorted(candidates, key=lambda item: (0 if any(token in item[1] for token in ("profile", "avatar")) else 1, item[0]))[:1]
+    return candidates[:1]
 
 
 def _raw_rows_for_fixture(service_id: str, payload: dict[str, Any]) -> list[dict[str, Any]]:
     data = _result_data(payload)
-    if service_id in {"instagram.profile", "x.profile", "tiktok.profile", "youtube.channel"}:
+    if service_id in {"instagram.profile", "instagram.nikefootball_profile", "x.profile", "tiktok.profile", "youtube.channel"}:
         return [_mapping(data.get("channel")) or data]
     if service_id in {"instagram.profile_posts", "x.user_tweets", "tiktok.feed", "youtube.channel_videos", "youtube.search"}:
         return _rows(_first(data, "items", "tweets", "aweme_list", "videos", "shorts") or [])
     if service_id == "tiktok.video":
         return [_mapping(data.get("aweme_detail")) or data]
+    if service_id in {"instagram.search", "instagram.nikefootball_search", "tiktok.user_search"}:
+        return _rows(_first(data, "users", "items", "videos", "channels") or [])
     if service_id in {"instagram.image", "instagram.carousel", "instagram.reel"}:
         return [_mapping(data.get("xdt_shortcode_media")) or _mapping(data.get("shortcode_media")) or data]
     return [data]
@@ -246,6 +279,9 @@ async def _download_media_asset(
             if response.status_code != 200:
                 return None
             content_type = response.headers.get("content-type", "").split(";", 1)[0].lower()
+            suffix_hint = Path(urlparse(source_url).path).suffix.lower()
+            if content_type == "application/octet-stream" and suffix_hint in {".mp4", ".mov", ".webm"}:
+                content_type = "video/mp4" if suffix_hint == ".mp4" else f"video/{suffix_hint[1:]}"
             if not content_type.startswith(("image/", "video/")) or content_type == "image/heic":
                 return None
             expected_size = int(response.headers.get("content-length") or 0)
@@ -289,8 +325,16 @@ async def _attach_media_assets(
         candidates = _media_candidates(raw_row)
         if not candidates:
             continue
+        prefer_video = service_id == "tiktok.video"
+        candidates.sort(
+            key=lambda item: (
+                _media_candidate_priority(item[1], prefer_video=prefer_video),
+                item[0],
+            )
+        )
+        candidates = _selected_media_candidates(service_id, candidates)
         assets: list[dict[str, str]] = []
-        for asset_index, candidate in enumerate(candidates[:6], 1):
+        for asset_index, (candidate, _context) in enumerate(candidates, 1):
             asset = await _download_media_asset(client, candidate, media_dir / f"{service_id.replace('.', '-')}-{index}-{asset_index}")
             if asset:
                 name, asset_type = asset
@@ -299,6 +343,9 @@ async def _attach_media_assets(
             target_row["media_asset"] = assets[0]["name"]
             target_row["media_asset_type"] = assets[0]["type"]
             target_row["media_assets"] = assets
+            thumbnail = next((asset for asset in assets if asset["type"] == "image"), None)
+            if thumbnail is not None:
+                target_row["media_thumbnail_asset"] = thumbnail["name"]
 
 
 async def _run_case(
@@ -420,12 +467,22 @@ async def run(
     cases: tuple[Case, ...] = CASES,
     media_dir: Path | None = None,
     instagram_variant_kinds: tuple[str, ...] = ("image", "carousel", "reel"),
+    download_tiktok_media: bool = False,
+    x_post_url: str | None = None,
 ) -> dict[str, Any]:
     api_key = get_settings().scrapecreators_api_key
     if not api_key:
         raise SystemExit("SCRAPECREATORS_API_KEY is not configured")
+    effective_cases: list[Case] = []
+    for service_id, route, params, expected_keys in cases:
+        adjusted = dict(params)
+        if service_id == "tiktok.video" and download_tiktok_media:
+            adjusted["download_media"] = "true"
+        if service_id == "x.post" and x_post_url:
+            adjusted["url"] = x_post_url
+        effective_cases.append((service_id, route, adjusted, expected_keys))
     async with httpx.AsyncClient(base_url="https://api.scrapecreators.com", timeout=35.0) as client:
-        results = [await _run_case(client, case, api_key, media_dir=media_dir) for case in cases] if include_base_cases else []
+        results = [await _run_case(client, case, api_key, media_dir=media_dir) for case in effective_cases] if include_base_cases else []
         if include_instagram_variants:
             results.extend(await _run_instagram_variants(client, api_key, handle=instagram_handle, media_dir=media_dir, kinds=instagram_variant_kinds))
     report = {
@@ -468,9 +525,11 @@ def main() -> None:
     parser.add_argument("--include-instagram-variants", action="store_true")
     parser.add_argument("--variants-only", action="store_true")
     parser.add_argument("--instagram-handle", default="instagram")
-    parser.add_argument("--case", action="append", choices=[case[0] for case in CASES], help="Run only a named base case; may be specified more than once.")
+    parser.add_argument("--case", action="append", choices=[case[0] for case in (*CASES, *FOLLOW_UP_CASES)], help="Run only a named bounded capture case; may be specified more than once.")
     parser.add_argument("--media-dir", type=Path, help="Optional local directory for bounded image/video assets used by the UI lab.")
     parser.add_argument("--variant-kind", action="append", choices=("image", "carousel", "reel"), help="Run only selected Instagram variant detail calls.")
+    parser.add_argument("--download-tiktok-media", action="store_true", help="Request the provider's paid permanent TikTok media URL for the selected TikTok video case.")
+    parser.add_argument("--x-post-url", help="Use one explicit canonical X post URL for the selected x.post capture.")
     parser.add_argument("--merge-existing", action="store_true", help="Replace matching service rows in an existing output file after a narrow refresh.")
     parser.add_argument("--confirm-paid-provider-calls", action="store_true")
     args = parser.parse_args()
@@ -478,7 +537,8 @@ def main() -> None:
         raise SystemExit("Re-run with --confirm-paid-provider-calls to acknowledge provider cost")
     if args.variants_only and not args.include_instagram_variants:
         parser.error("--variants-only requires --include-instagram-variants")
-    selected_cases = tuple(case for case in CASES if not args.case or case[0] in set(args.case))
+    all_cases = (*CASES, *FOLLOW_UP_CASES)
+    selected_cases = CASES if not args.case else tuple(case for case in all_cases if case[0] in set(args.case))
     existing_report: dict[str, Any] | None = None
     if args.merge_existing and args.output.exists():
         try:
@@ -496,6 +556,8 @@ def main() -> None:
             cases=selected_cases,
             media_dir=args.media_dir,
             instagram_variant_kinds=tuple(args.variant_kind or ("image", "carousel", "reel")),
+            download_tiktok_media=args.download_tiktok_media,
+            x_post_url=args.x_post_url,
         )
     )
     if existing_report is not None:

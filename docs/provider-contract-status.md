@@ -86,6 +86,27 @@ The first stale Instagram post fixture returned `not_found`; a current public
 post then passed. This confirms non-retryable content errors are translated
 without a fallback provider call.
 
+### Targeted UI-capture completion — 2026-08-25
+
+After the provider allowance was replenished, a controlled follow-up completed
+the previously incomplete admin-lab examples. Seven requests used 16 provider
+credits: the Instagram profile, broad username search, Nike Football profile,
+and corrected X post each used one; permanent TikTok media used ten; and the
+Nike Football search was retried once after its capture alias was corrected.
+
+- The Instagram profile capture now contains an avatar plus profile, follower,
+  and following totals.
+- `nikefootball` search leads to a separately captured Nike Football profile,
+  including its avatar, biography, and profile totals.
+- The X post now matches the requested Austen URL, rather than the previous
+  unrelated provider result.
+- The TikTok response supplies a saved local MP4, a same-item saved poster,
+  author handle, and available likes, views, and comments.
+
+Only sanitized presentation fields and local media filenames were retained.
+Raw provider payloads, URLs, IDs, and credentials remain excluded. This is
+offline UI evidence only; it does not accept or enable any new public service.
+
 ### InstaGet Herald acceptance
 
 ReachSocial commit `50d5284fddb3f04527b3566a3950b5622cb68ece` is running

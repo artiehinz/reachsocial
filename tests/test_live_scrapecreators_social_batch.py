@@ -34,6 +34,7 @@ def test_bounded_batch_covers_the_requested_first_product_slice() -> None:
 def test_named_case_selection_is_limited_to_the_bounded_batch() -> None:
     selected = tuple(case for case in batch.CASES if case[0] in {"x.post", "youtube.search"})
     assert [case[0] for case in selected] == ["x.post", "youtube.search"]
+    assert [case[0] for case in batch.FOLLOW_UP_CASES] == ["instagram.nikefootball_profile", "instagram.nikefootball_search"]
 
 
 def test_report_shape_is_sanitized_and_never_preserves_provider_payload_values() -> None:
@@ -70,6 +71,36 @@ def test_ui_fixture_keeps_presentation_fields_without_ids_or_urls() -> None:
 
 def test_safe_text_never_stringifies_a_provider_mapping() -> None:
     assert batch._safe_text({"private_id": "provider-private-id"}) is None
+
+
+def test_instagram_profile_preserves_nested_public_counts() -> None:
+    fixture = batch._ui_fixture(
+        "instagram.profile",
+        {
+            "data": {
+                "user": {
+                    "username": "example",
+                    "edge_followed_by": {"count": 31},
+                    "edge_follow": {"count": 7},
+                    "edge_owner_to_timeline_media": {"count": 14},
+                }
+            }
+        },
+    )
+    assert fixture["profile"]["counts"] == {"followers": 31, "following": 7, "content": 14}
+
+
+def test_tiktok_media_candidates_prefer_the_video_source_when_requested() -> None:
+    assert batch._media_candidate_priority("cover", prefer_video=True) == 1
+    assert batch._media_candidate_priority("video.download_addr", prefer_video=True) == 0
+    selected = batch._selected_media_candidates(
+        "tiktok.video",
+        [("https://provider.example/video.mp4", "video.download_addr"), ("https://provider.example/cover.jpg", "cover")],
+    )
+    assert selected == [
+        ("https://provider.example/video.mp4", "video.download_addr"),
+        ("https://provider.example/cover.jpg", "cover"),
+    ]
 
 
 def test_instagram_variant_classifier_never_returns_an_upstream_value() -> None:
