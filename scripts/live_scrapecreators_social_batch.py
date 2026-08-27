@@ -24,10 +24,20 @@ import httpx
 
 from reachsocial.config import get_settings
 
-
 Case = tuple[str, str, dict[str, str], tuple[str, ...]]
 _URL_PATTERN = re.compile(r"https?://\S+", re.IGNORECASE)
-_MEDIA_FIELD_TOKENS = ("video", "image", "thumbnail", "cover", "display", "media", "avatar", "profile_pic")
+_MEDIA_FIELD_TOKENS = (
+    "video",
+    "image",
+    "thumbnail",
+    "cover",
+    "display",
+    "media",
+    "avatar",
+    "profile_pic",
+    "play",
+    "download",
+)
 _MEDIA_MAX_BYTES = 30 * 1024 * 1024
 
 
@@ -49,8 +59,8 @@ CASES: tuple[Case, ...] = (
     ("tiktok.user_search", "/v1/tiktok/search/users", {"query": "charli"}, ()),
     ("youtube.channel", "/v1/youtube/channel", {"handle": "ThePatMcAfeeShow"}, ("channel",)),
     ("youtube.video", "/v1/youtube/video", {"url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"}, ()),
-    ("youtube.channel_videos", "/v1/youtube/channel-videos", {"handle": "ThePatMcAfeeShow", "sort": "latest"}, ("videos",)),
-    ("youtube.search", "/v1/youtube/search", {"query": "OpenAI", "type": "videos", "sortBy": "relevance"}, ("videos",)),
+    ("youtube.channel_videos", "/v1/youtube/channel-videos", {"handle": "ThePatMcAfeeShow", "sort": "latest", "includeExtras": "true"}, ("videos",)),
+    ("youtube.search", "/v1/youtube/search", {"query": "OpenAI", "type": "videos", "sortBy": "relevance", "includeExtras": "true"}, ("videos",)),
 )
 
 # These are deliberately opt-in capture follow-ups, not additions to the
@@ -59,6 +69,8 @@ CASES: tuple[Case, ...] = (
 FOLLOW_UP_CASES: tuple[Case, ...] = (
     ("instagram.nikefootball_profile", "/v1/instagram/profile", {"handle": "nikefootball"}, ("data",)),
     ("instagram.nikefootball_search", "/v1/instagram/search", {"query": "nikefootball"}, ("users",)),
+    ("tiktok.stoolpresidente_profile", "/v1/tiktok/profile", {"handle": "stoolpresidente"}, ()),
+    ("youtube.rickastley_channel", "/v1/youtube/channel", {"handle": "RickAstleyYT"}, ("channel",)),
 )
 
 
@@ -143,6 +155,41 @@ def _safe_int(value: Any) -> int | None:
         return None
 
 
+def _safe_count(value: Any) -> int | None:
+    """Parse provider counts while tolerating compact public display strings."""
+    direct = _safe_int(value)
+    if direct is not None:
+        return direct
+    if not isinstance(value, str):
+        return None
+    match = re.search(r"([\d,.]+)\s*([KMB])?", value.strip(), re.IGNORECASE)
+    if not match:
+        return None
+    try:
+        number = float(match.group(1).replace(",", ""))
+    except ValueError:
+        return None
+    multiplier = {"K": 1_000, "M": 1_000_000, "B": 1_000_000_000}.get(
+        (match.group(2) or "").upper(), 1
+    )
+    return int(number * multiplier)
+
+
+def _safe_text_list(value: Any, *, limit: int = 8) -> list[str]:
+    values = value if isinstance(value, list) else [value]
+    result: list[str] = []
+    for item in values:
+        pieces = item.split(",") if isinstance(item, str) else [item]
+        for piece in pieces:
+            text = _safe_text(piece, limit=80)
+            if not text or text.isdigit() or any(text.casefold() == existing.casefold() for existing in result):
+                continue
+            result.append(text)
+            if len(result) >= limit:
+                return result
+    return result
+
+
 def _result_data(payload: dict[str, Any]) -> dict[str, Any]:
     data = _mapping(payload.get("data"))
     return data or payload
@@ -151,11 +198,26 @@ def _result_data(payload: dict[str, Any]) -> dict[str, Any]:
 def _ui_profile(source: dict[str, Any]) -> dict[str, Any]:
     user = _mapping(source.get("user"))
     source = {**source, **user} if user else source
+    categories = _safe_text_list(
+        _first_or_deep(
+            source,
+            "category",
+            "category_name",
+            "business_category_name",
+            "account_type",
+            "keywords",
+        )
+    )
+    tags = _safe_text_list(
+        _first_or_deep(source, "tags", "labels", "hashtags", "interests")
+    )
     return {
         "display_name": _safe_text(_first_or_deep(source, "full_name", "fullName", "displayName", "name", "nickname", "user.nickname", "channelTitle"), limit=100),
         "handle": _safe_text(_first_or_deep(source, "username", "userName", "handle", "uniqueId", "unique_id", "screen_name", "user.uniqueId", "channelHandle", "channelTitle"), limit=100),
         "biography": _safe_text(_first_or_deep(source, "biography", "bio", "description", "signature", "user.signature")),
         "verified": bool(_first_or_deep(source, "is_verified", "verified", "isVerified", "user.verified")),
+        "categories": categories,
+        "tags": [tag for tag in tags if not any(tag.casefold() == category.casefold() for category in categories)],
         "counts": {
             "followers": _safe_int(_first(source, "edge_followed_by.count", "follower_count", "followers", "followersCount", "followerCount", "stats.followerCount", "legacy.followers_count", "subscriberCount")),
             "following": _safe_int(_first(source, "edge_follow.count", "following_count", "following", "followingCount", "stats.followingCount", "legacy.friends_count")),
@@ -166,7 +228,12 @@ def _ui_profile(source: dict[str, Any]) -> dict[str, Any]:
 
 def _ui_post(source: dict[str, Any]) -> dict[str, Any]:
     tweet_result = _mapping(_mapping(source.get("tweet_results")).get("result"))
-    source = tweet_result or source
+    source = (
+        tweet_result
+        or _mapping(source.get("aweme_detail"))
+        or _mapping(source.get("aweme_info"))
+        or source
+    )
     author = (
         _mapping(source.get("owner"))
         or _mapping(source.get("author"))
@@ -180,10 +247,12 @@ def _ui_post(source: dict[str, Any]) -> dict[str, Any]:
         "caption": _safe_text(_first_or_deep(source, "caption", "text", "desc", "description", "title", "full_text", "legacy.full_text")),
         "author": _ui_profile(author) if author else {},
         "metrics": {
-            "likes": _safe_int(_first(source, "likes_count", "likesCount", "likeCount", "diggCount", "digg_count", "statistics.diggCount", "statistics.digg_count", "favorite_count", "legacy.favorite_count")),
-            "comments": _safe_int(_first(source, "comments_count", "commentsCount", "commentCount", "comment_count", "statistics.commentCount", "statistics.comment_count", "reply_count", "legacy.reply_count")),
-            "shares": _safe_int(_first_or_deep(source, "shares_count", "sharesCount", "shareCount", "statistics.shareCount", "retweet_count", "legacy.retweet_count")),
-            "views": _safe_int(_first(source, "video_view_count", "videoViewCount", "viewCount", "playCount", "play_count", "statistics.playCount", "statistics.play_count", "views", "viewCount")),
+            "likes": _safe_count(_first_or_deep(source, "likes_count", "likesCount", "likeCount", "like_count", "likeCountText", "diggCount", "digg_count", "statistics.diggCount", "statistics.digg_count", "stats.diggCount", "stats.digg_count", "favorite_count", "legacy.favorite_count")),
+            "comments": _safe_count(_first_or_deep(source, "comments_count", "commentsCount", "commentCount", "comment_count", "commentCountText", "statistics.commentCount", "statistics.comment_count", "stats.commentCount", "stats.comment_count", "reply_count", "legacy.reply_count")),
+            "shares": _safe_count(_first_or_deep(source, "shares_count", "sharesCount", "shareCount", "share_count", "statistics.shareCount", "retweet_count", "legacy.retweet_count")),
+            "views": _safe_count(_first_or_deep(source, "video_view_count", "videoViewCount", "viewCount", "viewCountText", "shortViewCountText", "playCount", "play_count", "statistics.playCount", "statistics.play_count", "stats.playCount", "stats.play_count", "views.count", "views")),
+            "bookmarks": _safe_count(_first_or_deep(source, "bookmarkCount", "bookmark_count", "collectCount", "collect_count", "statistics.collectCount", "stats.collectCount", "legacy.bookmark_count")),
+            "quotes": _safe_count(_first_or_deep(source, "quoteCount", "quote_count", "legacy.quote_count")),
         },
         "media": {
             "has_media": bool(_first_or_deep(source, "display_url", "displayUrl", "video_url", "videoUrl", "video", "image", "thumbnail", "cover", "thumbnailUrl")),
@@ -195,7 +264,7 @@ def _ui_post(source: dict[str, Any]) -> dict[str, Any]:
 def _ui_fixture(service_id: str, payload: dict[str, Any]) -> dict[str, Any]:
     """Project one raw response into a compact UI fixture with no IDs or URLs."""
     data = _result_data(payload)
-    if service_id in {"instagram.profile", "instagram.nikefootball_profile", "x.profile", "tiktok.profile", "youtube.channel"}:
+    if service_id in {"instagram.profile", "instagram.nikefootball_profile", "x.profile", "tiktok.profile", "tiktok.stoolpresidente_profile", "youtube.channel", "youtube.rickastley_channel"}:
         source = _mapping(data.get("channel")) or data
         return {"kind": "profile", "profile": _ui_profile(source)}
     if service_id in {"instagram.profile_posts", "x.user_tweets", "tiktok.feed", "youtube.channel_videos"}:
@@ -242,22 +311,44 @@ def _is_video_media_candidate(context: str) -> bool:
     return any(token in context for token in ("video", "play_addr", "download"))
 
 
-def _selected_media_candidates(service_id: str, candidates: list[tuple[str, str]]) -> list[tuple[str, str]]:
+def _selected_media_candidates(
+    service_id: str,
+    candidates: list[tuple[str, str]],
+    *,
+    prefer_video: bool = False,
+) -> list[tuple[str, str]]:
     """Keep only the assets needed for an honest compact lab preview."""
-    if service_id == "tiktok.video":
+    if prefer_video:
         videos = [item for item in candidates if _is_video_media_candidate(item[1])]
         posters = [item for item in candidates if not _is_video_media_candidate(item[1])]
-        return videos[:1] + posters[:1]
+        return videos[:3] + posters[:3]
     if service_id == "instagram.carousel":
         return candidates[:6]
-    if service_id.startswith(("instagram.profile", "instagram.search")) or service_id in {"x.profile", "tiktok.profile", "youtube.channel"}:
+    if service_id.startswith(("instagram.profile", "instagram.search")) or service_id in {"x.profile", "tiktok.profile", "tiktok.stoolpresidente_profile", "youtube.channel", "youtube.rickastley_channel"}:
         return sorted(candidates, key=lambda item: (0 if any(token in item[1] for token in ("profile", "avatar")) else 1, item[0]))[:1]
     return candidates[:1]
 
 
+def _raw_post_author(source: dict[str, Any]) -> dict[str, Any]:
+    tweet_result = _mapping(_mapping(source.get("tweet_results")).get("result"))
+    source = (
+        tweet_result
+        or _mapping(source.get("aweme_detail"))
+        or _mapping(source.get("aweme_info"))
+        or source
+    )
+    return (
+        _mapping(source.get("owner"))
+        or _mapping(source.get("author"))
+        or _mapping(source.get("user"))
+        or _mapping(_first(source, "core.user_results.result"))
+        or _mapping(source.get("channel"))
+    )
+
+
 def _raw_rows_for_fixture(service_id: str, payload: dict[str, Any]) -> list[dict[str, Any]]:
     data = _result_data(payload)
-    if service_id in {"instagram.profile", "instagram.nikefootball_profile", "x.profile", "tiktok.profile", "youtube.channel"}:
+    if service_id in {"instagram.profile", "instagram.nikefootball_profile", "x.profile", "tiktok.profile", "tiktok.stoolpresidente_profile", "youtube.channel", "youtube.rickastley_channel"}:
         return [_mapping(data.get("channel")) or data]
     if service_id in {"instagram.profile_posts", "x.user_tweets", "tiktok.feed", "youtube.channel_videos", "youtube.search"}:
         return _rows(_first(data, "items", "tweets", "aweme_list", "videos", "shorts") or [])
@@ -321,24 +412,44 @@ async def _attach_media_assets(
     else:
         target_rows = [_mapping(fixture.get("item"))]
     media_dir.mkdir(parents=True, exist_ok=True)
-    for index, (raw_row, target_row) in enumerate(zip(raw_rows[:3], target_rows[:3]), 1):
+    for index, (raw_row, target_row) in enumerate(
+        zip(raw_rows[:3], target_rows[:3], strict=False), 1
+    ):
         candidates = _media_candidates(raw_row)
-        if not candidates:
-            continue
-        prefer_video = service_id == "tiktok.video"
+        declared_type = str(target_row.get("type") or "").casefold()
+        prefer_video = service_id in {"tiktok.video", "tiktok.feed", "instagram.reel", "youtube.video", "youtube.channel_videos", "youtube.search"} or declared_type in {
+            "clips",
+            "reel",
+            "reels",
+            "video",
+        }
         candidates.sort(
             key=lambda item: (
                 _media_candidate_priority(item[1], prefer_video=prefer_video),
                 item[0],
             )
         )
-        candidates = _selected_media_candidates(service_id, candidates)
+        candidates = _selected_media_candidates(
+            service_id,
+            candidates,
+            prefer_video=prefer_video,
+        )
         assets: list[dict[str, str]] = []
+        captured_types: set[str] = set()
         for asset_index, (candidate, _context) in enumerate(candidates, 1):
+            expected_type = "video" if _is_video_media_candidate(_context) else "image"
+            if expected_type in captured_types:
+                continue
             asset = await _download_media_asset(client, candidate, media_dir / f"{service_id.replace('.', '-')}-{index}-{asset_index}")
             if asset:
                 name, asset_type = asset
+                if asset_type in captured_types:
+                    (media_dir / name).unlink(missing_ok=True)
+                    continue
                 assets.append({"name": name, "type": asset_type})
+                captured_types.add(asset_type)
+                if not prefer_video or captured_types == {"video", "image"}:
+                    break
         if assets:
             target_row["media_asset"] = assets[0]["name"]
             target_row["media_asset_type"] = assets[0]["type"]
@@ -346,6 +457,26 @@ async def _attach_media_assets(
             thumbnail = next((asset for asset in assets if asset["type"] == "image"), None)
             if thumbnail is not None:
                 target_row["media_thumbnail_asset"] = thumbnail["name"]
+        if fixture_kind in {"feed", "post"} or service_id == "youtube.search":
+            raw_author = _raw_post_author(raw_row)
+            target_author = _mapping(target_row.get("author"))
+            author_candidates = sorted(
+                _media_candidates(raw_author),
+                key=lambda item: (
+                    0 if any(token in item[1] for token in ("profile", "avatar", "thumbnail")) else 1,
+                    item[0],
+                ),
+            )
+            if target_author:
+                for author_candidate, _context in author_candidates[:3]:
+                    author_asset = await _download_media_asset(
+                        client,
+                        author_candidate,
+                        media_dir / f"{service_id.replace('.', '-')}-{index}-author",
+                    )
+                    if author_asset:
+                        target_author["media_asset"] = author_asset[0]
+                        break
 
 
 async def _run_case(
@@ -546,7 +677,9 @@ def main() -> None:
             if isinstance(loaded, dict):
                 existing_report = loaded
         except (OSError, ValueError):
-            raise SystemExit("unable to read the existing sanitized fixture output")
+            raise SystemExit(
+                "unable to read the existing sanitized fixture output"
+            ) from None
     report = asyncio.run(
         run(
             args.output,
@@ -567,7 +700,9 @@ def main() -> None:
             report["credits_charged_total"] = sum(int(row.get("credits_charged") or 0) for row in report["results"])
             args.output.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
         except (OSError, ValueError, TypeError):
-            raise SystemExit("unable to merge the existing sanitized fixture output")
+            raise SystemExit(
+                "unable to merge the existing sanitized fixture output"
+            ) from None
     print(f"cases={report['case_count']}")
     print(f"credits_charged_total={report['credits_charged_total']}")
     for row in report["results"]:

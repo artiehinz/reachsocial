@@ -190,9 +190,7 @@ class GdeltAdapter:
             image = _safe_public_url(row.get("socialimage"))
             domain = _clean_text(row.get("domain"), max_length=255)
             language = _clean_text(row.get("language"), max_length=64)
-            published_at = _clean_text(
-                row.get("seendate") or row.get("date"), max_length=64
-            )
+            published_at = _clean_text(row.get("seendate") or row.get("date"), max_length=64)
             article = {
                 "title": title,
                 "url": url,
@@ -283,6 +281,8 @@ def _handle(url: object) -> str:
         raise ProviderUnavailable("The canonical profile URL has no handle")
     if parts[0] in {"in", "pub"} and len(parts) > 1:
         return parts[1]
+    if parts[0] in {"c", "channel", "user"} and len(parts) > 1:
+        return parts[1]
     return parts[0].removeprefix("@")
 
 
@@ -330,12 +330,20 @@ class ScrapeCreatorsAdapter:
         canonical_url = str(input_data.get("url", ""))
         routes: dict[str, tuple[str, dict[str, str]]] = {
             "instagram.profile": ("/v1/instagram/profile", {"handle": _handle(canonical_url)}),
+            "instagram.feed": (
+                "/v2/instagram/user/posts",
+                {"handle": _handle(canonical_url)},
+            ),
             "instagram.post": (
                 "/v1/instagram/post",
                 {"url": canonical_url, "download_media": "false"},
             ),
             "x.profile": ("/v1/twitter/profile", {"handle": _handle(canonical_url)}),
             "x.post": ("/v1/twitter/tweet", {"url": canonical_url}),
+            "x.feed": (
+                "/v1/twitter/user-tweets",
+                {"handle": _handle(canonical_url)},
+            ),
             "tiktok.profile": ("/v1/tiktok/profile", {"handle": _handle(canonical_url)}),
             "tiktok.feed": (
                 "/v3/tiktok/profile/videos",
@@ -346,6 +354,19 @@ class ScrapeCreatorsAdapter:
                 },
             ),
             "tiktok.video": ("/v2/tiktok/video", {"url": canonical_url}),
+            "youtube.channel": (
+                "/v1/youtube/channel",
+                {"handle": _handle(canonical_url)},
+            ),
+            "youtube.feed": (
+                "/v1/youtube/channel-videos",
+                {
+                    "handle": _handle(canonical_url),
+                    "sort": "latest",
+                    "includeExtras": "true",
+                },
+            ),
+            "youtube.video": ("/v1/youtube/video", {"url": canonical_url}),
         }
         route = routes.get(service.id)
         if route is None:
@@ -400,9 +421,7 @@ class ScrapeCreatorsAdapter:
         normalized = normalize_provider_payload(service.id, str(input_data["url"]), payload)
         if not normalized_result_is_complete(service.id, normalized):
             raise _costed_error(
-                ProviderUnavailable(
-                    "ScrapeCreators returned an incomplete normalized result"
-                ),
+                ProviderUnavailable("ScrapeCreators returned an incomplete normalized result"),
                 reference=response.headers.get("x-request-id"),
                 units=credits,
                 unit_cost_microusd=unit_cost,
@@ -461,9 +480,7 @@ class ApifyAdapter:
         return 1
 
     @classmethod
-    def start_params(
-        cls, service: ServiceDefinition, input_data: dict[str, Any]
-    ) -> dict[str, str]:
+    def start_params(cls, service: ServiceDefinition, input_data: dict[str, Any]) -> dict[str, str]:
         cap = service.provider.max_total_charge_microusd
         if cap <= 0:
             raise ProviderUnavailable("Apify charge cap is not configured")
@@ -525,9 +542,7 @@ class ApifyAdapter:
         start_params = self.start_params(service, input_data)
         headers = {"Authorization": f"Bearer {self.token}", "Accept": "application/json"}
         deadline = (
-            self._monotonic()
-            + service.timeout_seconds
-            + self.cost_stabilization_grace_seconds
+            self._monotonic() + service.timeout_seconds + self.cost_stabilization_grace_seconds
         )
         timeout = min(30, service.timeout_seconds)
         async with httpx.AsyncClient(timeout=timeout) as client:
@@ -633,9 +648,7 @@ class ApifyAdapter:
                 )
                 items = dataset.json()
             except ReachSocialError as exc:
-                raise _costed_error(
-                    exc, reference=run_id, upstream_cost_microusd=run_cost
-                ) from exc
+                raise _costed_error(exc, reference=run_id, upstream_cost_microusd=run_cost) from exc
             except ValueError as exc:
                 raise _costed_error(
                     ProviderUnavailable("Apify returned invalid dataset JSON"),
@@ -652,11 +665,7 @@ class ApifyAdapter:
             actual_cost = run_cost
             units = len(items)
             unit_cost = (
-                int(
-                    (Decimal(actual_cost) / Decimal(units)).quantize(
-                        Decimal("1"), ROUND_HALF_UP
-                    )
-                )
+                int((Decimal(actual_cost) / Decimal(units)).quantize(Decimal("1"), ROUND_HALF_UP))
                 if actual_cost and units
                 else service.provider_unit_cost_microusd
             )

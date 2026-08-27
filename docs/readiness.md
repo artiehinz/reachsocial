@@ -1,25 +1,24 @@
 # ReachSocial readiness and next release gates
 
-Updated: 2026-08-24
+Updated: 2026-08-27
 
 ## Current catalog truth
 
 | State | Services |
 | --- | --- |
 | Available | `instagram.profile`, `instagram.post`, `linkedin.profile` |
-| Validation | `x.profile`, `x.post`, `tiktok.profile`, `tiktok.feed`, `tiktok.video` |
-| Paused | `instagram.stories`, `x.feed` |
-| Planned | `youtube.video`, `facebook.profile`, `reddit.post` |
+| Private | `news.person`, `instagram.feed`, `x.profile`, `x.feed`, `x.post`, `tiktok.profile`, `tiktok.feed`, `tiktok.video`, `youtube.channel`, `youtube.feed`, `youtube.video` |
+| Paused | `instagram.stories` |
+| Planned | `facebook.profile`, `reddit.post` |
 
 `GET /v1/services` is intentionally the executable subset. `GET /v1/catalog`
 is the reviewed product roadmap. The ScrapeCreators engineering inventory has
 178 operations, of which 173 remain unreviewed; it is not a public catalog.
 
-The five ScrapeCreators validation services already have adapters, sanitized
-normalization fixtures, and credential-gated live contract coverage. Their
-shared release blocker is the real purchased credit price and dated cost
-evidence. They remain non-executable until that value is recorded and their
-margin-safe public price is accepted.
+The private services above have reviewed adapters, normalized fixtures, and
+credential-gated live coverage. They are executable only for explicitly
+entitled internal clients. Public sale remains blocked on purchased credit
+economics and margin-safe pricing.
 
 ## URL resolution contract
 
@@ -32,9 +31,8 @@ it. Known but unreviewed URL shapes fail closed instead of guessing a service.
 Resolution does not make a catalog entry executable. Catalog state, client
 entitlements, and the normal execution endpoint remain independent gates.
 
-`x.feed` remains paused because the bounded live Actor run returned sentinel
-records rather than normalized posts. `instagram.stories` has no approved
-bounded Actor. Neither is silently routed to another paid provider.
+`x.feed` now uses the reviewed bounded ScrapeCreators route; the older Apify
+route remains rejected. `instagram.stories` has no approved bounded provider.
 
 ## Agent and MCP readiness
 
@@ -58,38 +56,29 @@ operational monitoring. Public unpaid MCP is not planned.
 
 ## InstaGet readiness
 
-ReachSocial and InstaGet completed the Instagram-only Herald shadow and guarded
-worker acceptance on 2026-08-25. This is comparison-stage acceptance, not a
-Production or public-search cutover. The consumer repository has:
+ReachSocial and InstaGet completed the four-network live contract matrix on
+2026-08-27. The consumer repository has:
 
 - strict schema `1.0`/normalization `v1` validation;
 - a server-only client with no browser exposure or legacy-provider fallback;
 - a strict consumer for the protected URL-resolution contract;
 - sanitized profile/post fixtures;
 - independent fail-closed switches for every routed Instagram, X, TikTok, and
-  LinkedIn service;
+  YouTube service;
 - a guarded, one-call live-shadow command; and
 - a dedicated `social` Celery queue and worker, isolated from rate-limited
   background news work.
 
-Fresh profile and post routing is code-ready for synchronous Instagram, X, and
-TikTok services, but only Instagram is eligible for the first shadow. X and
-TikTok remain dark until their ReachSocial catalog entries are promoted.
-LinkedIn remains blocked in InstaGet until durable async job polling is wired;
-it must not be sent through the synchronous execution path.
+Fresh profile/feed and post routing is code-ready for synchronous Instagram, X,
+TikTok, and YouTube services. LinkedIn remains on its existing managed async
+path and is not sent through synchronous ReachSocial execution.
 
-The scoped `InstaGet-Herald` client and its protected key are installed. Two
-representative direct shadows passed, followed by one guarded live worker call.
-Three subsequent broker replays completed on the isolated `social` queue with
-all public/write gates off, no new provider call, and zero application
-projection growth. InstaGet commit
-`2db5be206b29266b0e6f5a9b2db99445ba3cd54d` is the accepted Herald release.
+The deployment workflow scopes `InstaGet-Herald` to `news.person` plus the
+twelve approved social profile/feed/post services and permits two concurrent
+requests, matching InstaGet's parallel profile/feed worker.
 
-The free credit balance proves bounded test capacity but does not prove paid
-unit economics. Public search, persistence, media leases, Social Credits, and
-Production remain separate later approvals. Production is also blocked until
-the quarantined read-only Herald data filesystem receives offline repair and
-post-repair validation.
+The provider credit balance proves bounded test capacity but does not prove paid
+unit economics. Public ReachSocial sale remains a separate later approval.
 
 ## Ordered next release work
 
@@ -98,16 +87,14 @@ post-repair validation.
    gates pass.
 2. Run the dedicated Base Sepolia paid API smoke command and reconcile its
    transaction, receipt, request, and single provider attempt.
-3. Repair and revalidate the quarantined Herald data filesystem before any
-   Production promotion or data-pipeline write.
-4. Keep the accepted Instagram comparison worker dark while collecting
-   operational evidence; do not enable public/write flags as part of soak.
-5. Implement durable InstaGet polling for async ReachSocial jobs before any
+3. Monitor the internal four-network Herald flow, cache hit rate, provider cost,
+   media relay failures, and consumer Usage settlement.
+4. Implement durable InstaGet polling for async ReachSocial jobs before any
    LinkedIn service flag can be enabled.
-6. Enable authenticated B2B MCP after its independent live protocol and limit
+5. Enable authenticated B2B MCP after its independent live protocol and limit
    tests.
-7. Expand the provider-neutral catalog in batches: Instagram/TikTok comments
-   and transcripts, YouTube, Facebook/Reddit/LinkedIn company/post, then
+6. Expand the provider-neutral catalog in batches: Instagram/TikTok comments
+   and transcripts, Facebook/Reddit/LinkedIn company/post, then
    independently reviewed long-tail platforms.
 
 Mainnet, public x402 MCP, prepaid balances, and broad directory submissions

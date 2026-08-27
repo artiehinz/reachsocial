@@ -3,7 +3,6 @@ from __future__ import annotations
 import importlib.util
 from pathlib import Path
 
-
 _SCRIPT = Path(__file__).resolve().parents[1] / "scripts" / "live_scrapecreators_social_batch.py"
 _SPEC = importlib.util.spec_from_file_location("live_scrapecreators_social_batch", _SCRIPT)
 assert _SPEC and _SPEC.loader
@@ -34,7 +33,12 @@ def test_bounded_batch_covers_the_requested_first_product_slice() -> None:
 def test_named_case_selection_is_limited_to_the_bounded_batch() -> None:
     selected = tuple(case for case in batch.CASES if case[0] in {"x.post", "youtube.search"})
     assert [case[0] for case in selected] == ["x.post", "youtube.search"]
-    assert [case[0] for case in batch.FOLLOW_UP_CASES] == ["instagram.nikefootball_profile", "instagram.nikefootball_search"]
+    assert [case[0] for case in batch.FOLLOW_UP_CASES] == [
+        "instagram.nikefootball_profile",
+        "instagram.nikefootball_search",
+        "tiktok.stoolpresidente_profile",
+        "youtube.rickastley_channel",
+    ]
 
 
 def test_report_shape_is_sanitized_and_never_preserves_provider_payload_values() -> None:
@@ -73,6 +77,12 @@ def test_safe_text_never_stringifies_a_provider_mapping() -> None:
     assert batch._safe_text({"private_id": "provider-private-id"}) is None
 
 
+def test_safe_count_accepts_provider_display_counts() -> None:
+    assert batch._safe_count("1.2M views") == 1_200_000
+    assert batch._safe_count("4,321") == 4_321
+    assert batch._safe_count("hidden") is None
+
+
 def test_instagram_profile_preserves_nested_public_counts() -> None:
     fixture = batch._ui_fixture(
         "instagram.profile",
@@ -96,11 +106,65 @@ def test_tiktok_media_candidates_prefer_the_video_source_when_requested() -> Non
     selected = batch._selected_media_candidates(
         "tiktok.video",
         [("https://provider.example/video.mp4", "video.download_addr"), ("https://provider.example/cover.jpg", "cover")],
+        prefer_video=True,
     )
     assert selected == [
         ("https://provider.example/video.mp4", "video.download_addr"),
         ("https://provider.example/cover.jpg", "cover"),
     ]
+
+
+def test_ui_post_finds_nested_metrics_and_additional_counters() -> None:
+    post = batch._ui_post(
+        {
+            "aweme_info": {
+                "author": {"unique_id": "creator", "nickname": "Creator"},
+                "stats": {
+                    "diggCount": 12,
+                    "commentCount": 3,
+                    "shareCount": 4,
+                    "playCount": 55,
+                    "collectCount": 6,
+                },
+            }
+        }
+    )
+
+    assert post["author"]["handle"] == "creator"
+    assert post["metrics"] == {
+        "likes": 12,
+        "comments": 3,
+        "shares": 4,
+        "views": 55,
+        "bookmarks": 6,
+        "quotes": None,
+    }
+
+
+def test_ui_profile_keeps_bounded_public_categories_and_tags() -> None:
+    profile = batch._ui_profile(
+        {
+            "username": "creator",
+            "category_name": "Video creator",
+            "tags": ["Comedy", "Lifestyle"],
+        }
+    )
+
+    assert profile["categories"] == ["Video creator"]
+    assert profile["tags"] == ["Comedy", "Lifestyle"]
+
+
+def test_ui_profile_splits_and_deduplicates_provider_tags() -> None:
+    profile = batch._ui_profile(
+        {
+            "username": "creator",
+            "keywords": "Music, Pop, music, 3",
+            "tags": "Official, Pop",
+        }
+    )
+
+    assert profile["categories"] == ["Music", "Pop"]
+    assert profile["tags"] == ["Official"]
 
 
 def test_instagram_variant_classifier_never_returns_an_upstream_value() -> None:

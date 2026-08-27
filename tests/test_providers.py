@@ -22,9 +22,7 @@ from reachsocial.providers import (
 
 
 def test_gdelt_person_news_request_is_exact_and_bounded() -> None:
-    params = GdeltAdapter.request_params(
-        {"full_name": '  Lionel "Messi"  ', "max_items": 999}
-    )
+    params = GdeltAdapter.request_params({"full_name": '  Lionel "Messi"  ', "max_items": 999})
 
     assert params == {
         "query": '"Lionel Messi"',
@@ -75,9 +73,7 @@ def test_gdelt_person_news_normalization_drops_unsafe_and_duplicate_urls() -> No
             "country_code": "US",
         }
     ]
-    assert data["countries"] == [
-        {"code": "US", "name": "United States", "count": 1}
-    ]
+    assert data["countries"] == [{"code": "US", "name": "United States", "count": 1}]
 
 
 def service(service_id: str) -> ServiceDefinition:
@@ -130,6 +126,40 @@ def test_scrapecreators_routes_cover_x_and_tiktok() -> None:
     }
 
 
+def test_scrapecreators_routes_cover_profile_feeds_and_youtube() -> None:
+    instagram_url, instagram_params = ScrapeCreatorsAdapter.request_for(
+        service("instagram.feed"), {"url": "https://instagram.com/nasa"}
+    )
+    x_url, x_params = ScrapeCreatorsAdapter.request_for(
+        service("x.feed"), {"url": "https://x.com/nasa"}
+    )
+    channel_url, channel_params = ScrapeCreatorsAdapter.request_for(
+        service("youtube.channel"), {"url": "https://youtube.com/@NASA"}
+    )
+    feed_url, feed_params = ScrapeCreatorsAdapter.request_for(
+        service("youtube.feed"), {"url": "https://youtube.com/channel/UC1234567890"}
+    )
+    video_url, video_params = ScrapeCreatorsAdapter.request_for(
+        service("youtube.video"),
+        {"url": "https://youtube.com/watch?v=dQw4w9WgXcQ"},
+    )
+
+    assert instagram_url.endswith("/v2/instagram/user/posts")
+    assert instagram_params == {"handle": "nasa"}
+    assert x_url.endswith("/v1/twitter/user-tweets")
+    assert x_params == {"handle": "nasa"}
+    assert channel_url.endswith("/v1/youtube/channel")
+    assert channel_params == {"handle": "NASA"}
+    assert feed_url.endswith("/v1/youtube/channel-videos")
+    assert feed_params == {
+        "handle": "UC1234567890",
+        "sort": "latest",
+        "includeExtras": "true",
+    }
+    assert video_url.endswith("/v1/youtube/video")
+    assert video_params == {"url": "https://youtube.com/watch?v=dQw4w9WgXcQ"}
+
+
 def test_apify_payloads_are_service_specific() -> None:
     x_service = service("x.feed").model_copy(
         update={"provider": {"name": "apify", "actor_id": "apidojo~tweet-scraper"}}
@@ -138,9 +168,9 @@ def test_apify_payloads_are_service_specific() -> None:
         update={"provider": {"name": "apify", "actor_id": "actor"}}
     )
 
-    assert ApifyAdapter.payload_for(
-        x_service, {"url": "https://x.com/nasa", "max_items": 20}
-    )["searchTerms"] == ["from:nasa"]
+    assert ApifyAdapter.payload_for(x_service, {"url": "https://x.com/nasa", "max_items": 20})[
+        "searchTerms"
+    ] == ["from:nasa"]
     assert ApifyAdapter.payload_for(
         linkedin_service, {"url": "https://linkedin.com/in/example"}
     ) == {"profileUrls": ["https://linkedin.com/in/example"], "maxProfiles": 1}
@@ -351,9 +381,7 @@ def test_normalized_x_post_excludes_provider_payload() -> None:
                 "created_at": "Mon Jan 01 12:00:00 +0000 2024",
             },
             "core": {
-                "user_results": {
-                    "result": {"rest_id": "7", "legacy": {"screen_name": "example"}}
-                }
+                "user_results": {"result": {"rest_id": "7", "legacy": {"screen_name": "example"}}}
             },
         },
     )
@@ -384,9 +412,7 @@ def test_normalized_current_instagram_post_envelope_is_consumer_complete() -> No
                     "taken_at_timestamp": 1_700_000_000,
                     "comment_count": 7,
                     "edge_media_preview_like": {"count": 42},
-                    "edge_media_to_caption": {
-                        "edges": [{"node": {"text": "Current caption"}}]
-                    },
+                    "edge_media_to_caption": {"edges": [{"node": {"text": "Current caption"}}]},
                     "owner": {
                         "id": "123",
                         "username": "example",
@@ -567,6 +593,79 @@ def test_normalized_snake_case_tiktok_feed_and_media() -> None:
     assert item["media"][0]["url"] == "https://cdn.example/video.mp4"
     assert item["metrics"] == {"likes": 5, "comments": 2, "shares": 1, "views": 50}
     assert result["next_cursor"] == "1700000001"
+    assert result["has_more"] is True
+
+
+def test_normalized_youtube_channel_and_video_feed() -> None:
+    profile = normalize_provider_payload(
+        "youtube.channel",
+        "https://youtube.com/@Example",
+        {
+            "channel": {
+                "channelId": "UC1234567890",
+                "channelHandle": "@Example",
+                "channelTitle": "Example Channel",
+                "description": "Channel bio",
+                "avatar": {
+                    "image": {
+                        "sources": [
+                            {"url": "https://cdn.example/avatar.jpg", "width": 900}
+                        ]
+                    }
+                },
+                "isVerified": True,
+                "subscriberCountText": "2.9M subscribers",
+                "videoCount": 123,
+                "country": "US",
+                "keywords": ["news", "video"],
+            }
+        },
+    )["profile"]
+    assert profile["platform_id"] == "UC1234567890"
+    assert profile["handle"] == "Example"
+    assert profile["display_name"] == "Example Channel"
+    assert profile["avatar_url"] == "https://cdn.example/avatar.jpg"
+    assert profile["verified"] is True
+    assert profile["counts"]["followers"] == 2_900_000
+    assert profile["fields"]["keywords"] == ["news", "video"]
+
+    result = normalize_provider_payload(
+        "youtube.feed",
+        "https://youtube.com/@Example",
+        {
+            "videos": [
+                {
+                    "videoId": "dQw4w9WgXcQ",
+                    "title": "Example video",
+                    "description": "Description",
+                    "thumbnailUrl": "https://cdn.example/thumb.jpg",
+                    "viewCountText": "1.8B views",
+                    "likeCountText": "19.3M",
+                    "commentCountText": "2.4M comments",
+                    "channel": {
+                        "channelId": "UC1234567890",
+                        "channelHandle": "@Example",
+                        "channelTitle": "Example Channel",
+                        "avatar": {"url": "https://cdn.example/avatar.jpg"},
+                    },
+                }
+            ],
+            "continuationToken": "next-page",
+        },
+    )
+    item = result["items"][0]
+    assert item["canonical_url"] == "https://youtube.com/watch?v=dQw4w9WgXcQ"
+    assert item["platform_id"] == "dQw4w9WgXcQ"
+    assert item["type"] == "video"
+    assert item["author"]["handle"] == "Example"
+    assert item["media"][0]["url"] == "https://cdn.example/thumb.jpg"
+    assert item["metrics"] == {
+        "likes": 19_300_000,
+        "comments": 2_400_000,
+        "shares": None,
+        "views": 1_800_000_000,
+    }
+    assert result["next_cursor"] == "next-page"
     assert result["has_more"] is True
 
 

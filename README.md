@@ -43,9 +43,8 @@ uv run python scripts/manage_clients.py limits ExampleClient --daily-spend-cents
 uv run python scripts/manage_clients.py usage ExampleClient
 ```
 
-Do not create the InstaGet client yet. That key is created only in the separately
-approved Herald integration cycle so its raw value can go directly into protected
-InstaGet server environments.
+The production workflow idempotently provisions the approved `InstaGet-Herald`
+client from its protected key and explicit internal service allowlist.
 
 ## API contract
 
@@ -94,9 +93,9 @@ disabled because its bounded dataset returned no tweet records. LinkedIn
 enrichment passed its capped live contract and is public on Base Sepolia at
 $0.10 per accepted job.
 
-The current reviewed catalog has 14 entries across eight platforms: three
-available, six in validation, three planned, and two paused. The private
-`news.person` validation service gives the scoped InstaGet Herald client a
+The current reviewed catalog has 17 entries across eight platforms: three
+publicly available, eleven private, two planned, and one paused. The private
+`news.person` service gives the scoped InstaGet Herald client a
 sanitized, cached GDELT news boundary without exposing it as a paid public API.
 The generated
 ScrapeCreators review inventory is intentionally broader—currently 178
@@ -146,5 +145,5 @@ same-volume SQLite snapshot before migration, wait for `/readyz`, automatically
 restore the previous image on failure, and retain the active plus immediately
 previous images. Same-volume snapshots do not satisfy the external-backup gate.
 
-InstaGet code, data, provider calls, media storage, people pages, library, and
-deployment are intentionally outside this cycle and remain unchanged.
+InstaGet consumes the private Instagram, X, TikTok, and YouTube services through
+its separate server-only client; ReachSocial still never downloads media bytes.

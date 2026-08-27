@@ -34,7 +34,7 @@ def test_health_and_mcp_gate() -> None:
         assert openapi["paths"]["/v1/services/{service_id}/execute"]["post"][
             "responses"
         ]["402"]["headers"]["PAYMENT-REQUIRED"]
-        assert len(openapi["x-reachsocial-services"]) == 14
+        assert len(openapi["x-reachsocial-services"]) == 17
         assert client.get("/healthz").json() == {"status": "ok"}
         assert client.get("/readyz").json()["status"] == "ready"
         assert client.post("/mcp").status_code == 503
@@ -51,16 +51,16 @@ def test_health_and_mcp_gate() -> None:
         roadmap = client.get("/v1/catalog").json()
         assert roadmap["summary"] == {
             "available": 3,
-            "private": 1,
-            "validation": 5,
-            "planned": 3,
-            "paused": 2,
+            "private": 11,
+            "validation": 0,
+            "planned": 2,
+            "paused": 1,
             "platforms": 8,
         }
         assert client.get("/services/x.feed").status_code == 200
         assert client.get("/services/linkedin.profile").status_code == 200
         assert "X Latest Feed" in client.get("/catalog").text
-        assert "Paused" in client.get("/services/x.feed").text
+        assert "Private" in client.get("/services/x.feed").text
         assert "LinkedIn Profile Enrichment" in client.get("/catalog").text
         llms = client.get("/llms.txt")
         assert llms.headers["content-type"].startswith("text/plain")

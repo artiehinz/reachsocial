@@ -50,6 +50,8 @@ _X_HANDLE = re.compile(r"^[A-Za-z0-9_]{1,15}$")
 _TIKTOK_HANDLE = re.compile(r"^[A-Za-z0-9._]{2,24}$")
 _LINKEDIN_SLUG = re.compile(r"^[A-Za-z0-9_-]{2,120}$")
 _YOUTUBE_VIDEO_ID = re.compile(r"^[A-Za-z0-9_-]{6,20}$")
+_YOUTUBE_CHANNEL_ID = re.compile(r"^UC[A-Za-z0-9_-]{8,64}$")
+_YOUTUBE_HANDLE = re.compile(r"^[A-Za-z0-9._-]{2,100}$")
 _REDDIT_ID = re.compile(r"^[A-Za-z0-9]{3,16}$")
 _REDDIT_COMMUNITY = re.compile(r"^[A-Za-z0-9_]{2,32}$")
 _FACEBOOK_SLUG = re.compile(r"^[A-Za-z0-9.]{2,100}$")
@@ -200,16 +202,47 @@ def resolve_url(value: object) -> dict[str, str]:
             video_id = segments[0]
         elif host == "youtube.com" and parsed.path == "/watch":
             video_id = dict(parse_qsl(parsed.query)).get("v", "")
-        elif host == "youtube.com" and len(segments) == 2 and segments[0] in {
-            "embed",
-            "live",
-            "shorts",
-        }:
+        elif (
+            host == "youtube.com"
+            and len(segments) == 2
+            and segments[0]
+            in {
+                "embed",
+                "live",
+                "shorts",
+            }
+        ):
             video_id = segments[1]
-        if not _YOUTUBE_VIDEO_ID.fullmatch(video_id):
-            raise InvalidInput("This YouTube URL type is not supported")
-        url = f"https://youtube.com/watch?v={video_id}"
-        resource_type, service_id, platform = "video", "youtube.video", "YouTube"
+        if _YOUTUBE_VIDEO_ID.fullmatch(video_id):
+            url = f"https://youtube.com/watch?v={video_id}"
+            resource_type, service_id = "video", "youtube.video"
+        else:
+            channel_kind = ""
+            channel_value = ""
+            if host == "youtube.com" and segments:
+                if segments[0].startswith("@"):
+                    channel_kind, channel_value = "@", segments[0][1:]
+                elif len(segments) >= 2 and segments[0].lower() in {
+                    "c",
+                    "channel",
+                    "user",
+                }:
+                    channel_kind, channel_value = segments[0].lower(), segments[1]
+            is_channel = (
+                (channel_kind == "@" and bool(_YOUTUBE_HANDLE.fullmatch(channel_value)))
+                or (
+                    channel_kind == "channel" and bool(_YOUTUBE_CHANNEL_ID.fullmatch(channel_value))
+                )
+                or (
+                    channel_kind in {"c", "user"} and bool(_YOUTUBE_HANDLE.fullmatch(channel_value))
+                )
+            )
+            if not is_channel:
+                raise InvalidInput("This YouTube URL type is not supported")
+            prefix = "@" if channel_kind == "@" else f"{channel_kind}/"
+            url = f"https://youtube.com/{prefix}{channel_value}"
+            resource_type, service_id = "channel", "youtube.channel"
+        platform = "YouTube"
     elif host in {"reddit.com", "redd.it"}:
         post_id = ""
         if host == "redd.it" and len(segments) == 1:
@@ -222,11 +255,7 @@ def resolve_url(value: object) -> dict[str, str]:
             and segments[2].lower() == "comments"
         ):
             post_id = segments[3]
-        elif (
-            host == "reddit.com"
-            and len(segments) >= 2
-            and segments[0].lower() == "comments"
-        ):
+        elif host == "reddit.com" and len(segments) >= 2 and segments[0].lower() == "comments":
             post_id = segments[1]
         if not _REDDIT_ID.fullmatch(post_id):
             raise InvalidInput("This Reddit URL type is not supported")
@@ -241,9 +270,7 @@ def resolve_url(value: object) -> dict[str, str]:
             and bool(_FACEBOOK_SLUG.fullmatch(segments[0]))
         )
         is_people_profile = (
-            len(segments) == 3
-            and segments[0].lower() == "people"
-            and segments[2].isdigit()
+            len(segments) == 3 and segments[0].lower() == "people" and segments[2].isdigit()
         )
         if not (is_numeric_profile or is_named_profile or is_people_profile):
             raise InvalidInput("This Facebook URL type is not supported")
@@ -267,9 +294,11 @@ def resolve_url(value: object) -> dict[str, str]:
 def validate_service_url(service_id: str, value: object) -> str:
     resolved = resolve_url(value)
     accepted_resolution = {
+        "instagram.feed": {"instagram.profile"},
         "instagram.stories": {"instagram.profile", "instagram.stories"},
         "x.feed": {"x.profile"},
         "tiktok.feed": {"tiktok.profile"},
+        "youtube.feed": {"youtube.channel"},
     }.get(service_id, {service_id})
     if resolved["service_id"] not in accepted_resolution:
         raise InvalidInput(f"A URL for {service_id} is required")

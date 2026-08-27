@@ -61,5 +61,8 @@ jobs:
             ssh -i ~/.ssh/reachsocial_deploy -o StrictHostKeyChecking=accept-new "$SSH_USER@$SSH_HOST" \
               "cd '$DEPLOY_PATH' && docker compose exec -T app python scripts/provision_client.py \
                 InstaGet-Herald --api-key-stdin --service news.person \
-                --service instagram.profile --service instagram.post \
-                --rate-limit 12 --concurrency 1"
+                --service instagram.profile --service instagram.feed --service instagram.post \
+                --service x.profile --service x.feed --service x.post \
+                --service tiktok.profile --service tiktok.feed --service tiktok.video \
+                --service youtube.channel --service youtube.feed --service youtube.video \
+                --rate-limit 30 --concurrency 2"

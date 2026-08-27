@@ -107,14 +107,15 @@ Only sanitized presentation fields and local media filenames were retained.
 Raw provider payloads, URLs, IDs, and credentials remain excluded. This is
 offline UI evidence only; it does not accept or enable any new public service.
 
-### InstaGet Herald acceptance
+### InstaGet Herald acceptance (2026-08-25 baseline)
 
-ReachSocial commit `50d5284fddb3f04527b3566a3950b5622cb68ece` is running
+The accepted baseline used ReachSocial commit `50d5284fddb3f04527b3566a3950b5622cb68ece`
 on Herald as image digest
 `sha256:8b3a284399a750014a20651bfb50a9091a7f52197360fbd58ca5b2c1d5455ed0`.
-The active internal `InstaGet-Herald` client is entitled only to
-`instagram.profile`, `instagram.post`, and its pre-existing `news.person`
-integration.
+The deployment contract now entitles the internal `InstaGet-Herald` client to
+`news.person` plus the twelve reviewed Instagram, X, TikTok, and YouTube
+profile/feed/post services. The client remains unable to call every other
+private or public service.
 
 Bounded uncached Instagram shadows passed with schema `1.0`, normalization
 `v1`, and one charged provider unit each:
