@@ -353,16 +353,6 @@ def _author(
 
 
 def _instagram_media(source: dict[str, Any]) -> list[dict[str, Any]]:
-    candidates: list[dict[str, Any] | None] = [
-        _media(
-            media_type="video" if _first(source, "video_url", "videoUrl") else "image",
-            source_url=_first(source, "video_url", "videoUrl", "display_url", "displayUrl", "url"),
-            preview_url=_first(source, "display_url", "displayUrl", "thumbnail_src", "thumbnail"),
-            width=_first(source, "dimensions.width", "width"),
-            height=_first(source, "dimensions.height", "height"),
-            duration=_first(source, "video_duration", "videoDuration"),
-        )
-    ]
     children = _items(
         _first(
             source,
@@ -374,8 +364,37 @@ def _instagram_media(source: dict[str, Any]) -> list[dict[str, Any]]:
         )
         or []
     )
+    candidates: list[dict[str, Any] | None] = []
     for child in children:
         candidates.extend(_instagram_media(_mapping(child.get("node")) or child))
+    if children:
+        return _dedupe_media(candidates)
+
+    video_url = _first(
+        source,
+        "video_url",
+        "videoUrl",
+        "video_versions.0.url",
+    )
+    image_url = _first(
+        source,
+        "display_uri",
+        "display_url",
+        "displayUrl",
+        "image_versions2.candidates.0.url",
+        "thumbnail_src",
+        "thumbnail",
+    )
+    candidates.append(
+        _media(
+            media_type="video" if video_url else "image",
+            source_url=video_url or image_url,
+            preview_url=image_url if video_url else None,
+            width=_first(source, "dimensions.width", "original_width", "width"),
+            height=_first(source, "dimensions.height", "original_height", "height"),
+            duration=_first(source, "video_duration", "videoDuration"),
+        )
+    )
     return _dedupe_media(candidates)
 
 

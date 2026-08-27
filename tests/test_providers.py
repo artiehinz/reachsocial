@@ -439,6 +439,67 @@ def test_normalized_current_instagram_post_envelope_is_consumer_complete() -> No
     assert normalized_result_is_complete("instagram.post", result)
 
 
+def test_normalized_instagram_feed_uses_media_assets_not_post_permalink() -> None:
+    result = normalize_provider_payload(
+        "instagram.feed",
+        "https://instagram.com/example",
+        {
+            "items": [
+                {
+                    "id": "987654321",
+                    "code": "Current123",
+                    "product_type": "carousel_container",
+                    "url": "https://www.instagram.com/p/Current123/",
+                    "display_uri": "https://cdn.example/carousel-cover.jpg",
+                    "carousel_media": [
+                        {
+                            "id": "slide-video",
+                            "video_versions": [
+                                {"url": "https://cdn.example/slide.mp4"}
+                            ],
+                            "image_versions2": {
+                                "candidates": [
+                                    {"url": "https://cdn.example/slide-preview.jpg"}
+                                ]
+                            },
+                        },
+                        {
+                            "id": "slide-image",
+                            "display_uri": "https://cdn.example/slide.jpg",
+                        },
+                    ],
+                    "owner": {"id": "123", "username": "example"},
+                }
+            ]
+        },
+    )
+
+    item = result["items"][0]
+    assert item["canonical_url"] == "https://instagram.com/p/Current123"
+    assert item["media"] == [
+        {
+            "type": "video",
+            "url": "https://cdn.example/slide.mp4",
+            "preview_url": "https://cdn.example/slide-preview.jpg",
+            "width": None,
+            "height": None,
+            "duration_seconds": None,
+            "expires_at": None,
+        },
+        {
+            "type": "image",
+            "url": "https://cdn.example/slide.jpg",
+            "preview_url": None,
+            "width": None,
+            "height": None,
+            "duration_seconds": None,
+            "expires_at": None,
+        },
+    ]
+    assert all(media["url"] != item["canonical_url"] for media in item["media"])
+    assert normalized_result_is_complete("instagram.feed", result)
+
+
 def test_incomplete_provider_success_cannot_cross_the_normalized_contract() -> None:
     result = normalize_provider_payload(
         "instagram.post",
