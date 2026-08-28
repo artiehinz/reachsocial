@@ -143,9 +143,9 @@ services:
     docs: Returns normalized text, author, engagement, and source media URLs.
 
   - id: x.feed
-    title: X Latest Feed
+    title: X Public Posts
     platform: X
-    description: Retrieve the latest normalized public posts from an X profile.
+    description: Retrieve a provider-selected set of normalized public posts from an X profile.
     response_shape: feed
     input_fields:
       - {name: url, description: Canonical X profile URL., format: url}
@@ -161,7 +161,7 @@ services:
     provider_unit_cost_microusd: 1880
     cost_verified: false
     price_cents: 5
-    docs: Private InstaGet integration returning a bounded normalized X feed and temporary media references.
+    docs: Private InstaGet integration returning a bounded normalized X feed and temporary media references. Provider ordering is not guaranteed to be chronological.
 
   - id: tiktok.profile
     title: TikTok Profile

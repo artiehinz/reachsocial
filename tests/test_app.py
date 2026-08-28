@@ -59,7 +59,7 @@ def test_health_and_mcp_gate() -> None:
         }
         assert client.get("/services/x.feed").status_code == 200
         assert client.get("/services/linkedin.profile").status_code == 200
-        assert "X Latest Feed" in client.get("/catalog").text
+        assert "X Public Posts" in client.get("/catalog").text
         assert "Private" in client.get("/services/x.feed").text
         assert "LinkedIn Profile Enrichment" in client.get("/catalog").text
         llms = client.get("/llms.txt")
