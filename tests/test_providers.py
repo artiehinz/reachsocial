@@ -152,7 +152,7 @@ def test_scrapecreators_routes_cover_profile_feeds_and_youtube() -> None:
     assert channel_params == {"handle": "NASA"}
     assert feed_url.endswith("/v1/youtube/channel-videos")
     assert feed_params == {
-        "handle": "UC1234567890",
+        "channelId": "UC1234567890",
         "sort": "latest",
         "includeExtras": "true",
     }
@@ -496,6 +496,7 @@ def test_normalized_instagram_feed_uses_media_assets_not_post_permalink() -> Non
             "expires_at": None,
         },
     ]
+    assert item["type"] == "carousel"
     assert all(media["url"] != item["canonical_url"] for media in item["media"])
     assert normalized_result_is_complete("instagram.feed", result)
 
@@ -737,3 +738,24 @@ def test_provider_authorization_errors_are_not_content_privacy_errors() -> None:
     )
     assert isinstance(_http_error("Apify", apify), ProviderAccessDenied)
     assert isinstance(_http_error("ScrapeCreators", scrapecreators), PrivateOrUnavailable)
+
+
+def test_instagram_mobile_feed_caption_counts_author_and_media_type():
+    result = normalize_provider_payload("instagram.feed", "https://instagram.com/example", {
+        "items": [{
+            "id": "123", "code": "Example123", "product_type": "clips",
+            "caption": {"text": "Full caption\nwith a second line"},
+            "like_count": 0, "comment_count": 2, "play_count": 1234,
+            "user": {"username": "example", "full_name": "Example Author"},
+            "video_versions": [{"url": "https://cdn.example/video.mp4"}],
+            "image_versions2": {"candidates": [{"url": "https://cdn.example/poster.jpg"}]},
+        }]
+    })
+    item = result["items"][0]
+    assert item["text"] == "Full caption\nwith a second line"
+    assert item["metrics"]["likes"] == 0
+    assert item["metrics"]["views"] == 1234
+    assert item["author"]["handle"] == "example"
+    assert item["type"] == "video"
+    assert len(item["media"]) == 1
+    assert item["media"][0]["preview_url"] == "https://cdn.example/poster.jpg"

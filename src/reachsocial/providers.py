@@ -356,12 +356,12 @@ class ScrapeCreatorsAdapter:
             "tiktok.video": ("/v2/tiktok/video", {"url": canonical_url}),
             "youtube.channel": (
                 "/v1/youtube/channel",
-                {"handle": _handle(canonical_url)},
+                {"channelId" if _segments(canonical_url)[0] == "channel" else "handle": _handle(canonical_url)},
             ),
             "youtube.feed": (
                 "/v1/youtube/channel-videos",
                 {
-                    "handle": _handle(canonical_url),
+                    "channelId" if _segments(canonical_url)[0] == "channel" else "handle": _handle(canonical_url),
                     "sort": "latest",
                     "includeExtras": "true",
                 },
