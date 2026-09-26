@@ -133,6 +133,25 @@ def _first_url(source: dict[str, Any], *paths: str) -> str | None:
     return next((url for path in paths if (url := _url(_first(source, path)))), None)
 
 
+def _first_browser_image_url(source: dict[str, Any], *paths: str) -> str | None:
+    # TikTok puts HEIC .image variants before separately signed JPEG URLs.
+    # Select a supplied compatible variant; never rewrite a signed URL.
+    candidates: list[str] = []
+    for path in paths:
+        value = _first(source, path)
+        if isinstance(value, dict):
+            value = _first(value, "url_list", "urlList", "url")
+        for candidate in value if isinstance(value, list) else [value]:
+            if url := _url(candidate):
+                candidates.append(url)
+    return next(
+        (url for url in candidates if urlparse(url).path.lower().endswith(
+            (".jpg", ".jpeg", ".png", ".webp", ".gif", ".avif")
+        )),
+        candidates[0] if candidates else None,
+    )
+
+
 def _media(
     *,
     media_type: str,
@@ -473,7 +492,7 @@ def _tiktok_media(source: dict[str, Any]) -> list[dict[str, Any]]:
     if photos:
         return _dedupe_media(_media(
             media_type="image",
-            source_url=_first(photo, "display_image.url_list.0", "imageURL.urlList.0", "url_list.0"),
+            source_url=_first_browser_image_url(photo, "display_image", "imageURL", "url_list"),
             width=_first(photo, "display_image.width", "width"),
             height=_first(photo, "display_image.height", "height"),
         ) for photo in photos)
@@ -494,14 +513,11 @@ def _tiktok_media(source: dict[str, Any]) -> list[dict[str, Any]]:
         "video.playAddr.urlList.0",
         "video.playAddr",
     )
-    preview = _first_url(
+    preview = _first_browser_image_url(
         source,
-        "video.cover.url_list.0",
-        "video.cover.urlList.0",
-        "video.originCover.url_list.0",
-        "video.origin_cover.url_list.0",
         "video.cover",
         "video.originCover",
+        "video.origin_cover",
     )
     return _dedupe_media(
         [

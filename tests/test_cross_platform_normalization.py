@@ -30,6 +30,29 @@ def test_tiktok_photo_slideshow_and_missing_feed_permalink():
     assert item['canonical_url'] == 'https://www.tiktok.com/@creator/photo/123'
 
 
+@pytest.mark.parametrize('service', ['tiktok.video', 'tiktok.feed'])
+@pytest.mark.parametrize('url_key', ['url_list', 'urlList'])
+def test_tiktok_uses_supplied_jpeg_cover_instead_of_first_heic_variant(service, url_key):
+    jpeg = 'https://cdn.example/cover.jpeg?x-signature=jpeg-signature&x-expires=123'
+    post = {'aweme_id': '123', 'video': {
+        'playAddr': 'https://cdn.example/video.mp4',
+        'cover': {url_key: [{'invalid': True}, 'https://cdn.example/cover.image', jpeg]},
+    }}
+    result = normalize_provider_payload(service, 'https://www.tiktok.com/@creator/video/123',
+        {'aweme_detail': post} if service == 'tiktok.video' else {'aweme_list': [post]})
+    item = result['item'] if service == 'tiktok.video' else result['items'][0]
+    assert item['media'][0]['preview_url'] == jpeg
+
+
+def test_tiktok_photo_slides_prefer_browser_images_without_rewriting_urls():
+    result = normalize_provider_payload('tiktok.video', 'https://www.tiktok.com/@creator/photo/123', {
+        'aweme_detail': {'aweme_id': '123', 'image_post_info': {'images': [
+            {'display_image': {'url_list': ['https://cdn.example/photo.image', 'https://cdn.example/photo.webp?signature=kept']}}
+        ]}}
+    })
+    assert result['item']['media'][0]['url'] == 'https://cdn.example/photo.webp?signature=kept'
+
+
 def test_x_uses_stable_author_id_and_retains_quotes_and_bookmarks():
     item = normalize_provider_payload('x.feed', 'https://x.com/creator', {'tweets': [{
         'rest_id': '123', 'core': {'user_results': {'result': {'id': 'opaque-graphql-id', 'rest_id': '42', 'legacy': {'screen_name': 'creator'}}}},
