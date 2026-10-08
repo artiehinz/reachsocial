@@ -37,6 +37,39 @@ from .services import ExecutionService, sync_service_records
 ROOT = Path(__file__).resolve().parents[2]
 templates = Jinja2Templates(directory=str(ROOT / "templates"))
 
+DISCOVERY_CACHE_PATHS = {
+    "/openapi.json",
+    "/llms.txt",
+    "/agent.md",
+    "/.well-known/api-catalog",
+    "/robots.txt",
+    "/sitemap.xml",
+}
+PUBLIC_PAGE_PATHS = {
+    "/",
+    "/catalog",
+    "/docs/api",
+    "/pricing",
+    "/contact",
+    "/status",
+}
+
+
+def public_cache_control(path: str) -> str | None:
+    if path.startswith("/static/"):
+        return "public, max-age=300, s-maxage=86400, stale-while-revalidate=604800"
+    if path in DISCOVERY_CACHE_PATHS or path in {"/v1/services", "/v1/catalog"}:
+        return "public, max-age=60, s-maxage=300, stale-while-revalidate=600"
+    if path.startswith("/v1/services/"):
+        return "public, max-age=60, s-maxage=300, stale-while-revalidate=600"
+    if (
+        path in PUBLIC_PAGE_PATHS
+        or path.startswith("/services/")
+        or path.startswith("/legal/")
+    ):
+        return "public, max-age=60, s-maxage=120, stale-while-revalidate=300"
+    return None
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
@@ -95,6 +128,18 @@ def create_app() -> FastAPI:
         ],
     )
     app.add_middleware(RequestLoggingMiddleware)
+
+    @app.middleware("http")
+    async def cache_control(request: Request, call_next):  # type: ignore[no-untyped-def]
+        response = await call_next(request)
+        header_value = (
+            public_cache_control(request.url.path)
+            if request.method in {"GET", "HEAD"} and 200 <= response.status_code < 300
+            else None
+        )
+        response.headers.setdefault("Cache-Control", header_value or "no-store")
+        return response
+
     if settings.x402_enabled:
         if not x402_is_configured(settings):
             raise RuntimeError(

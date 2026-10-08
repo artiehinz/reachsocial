@@ -74,6 +74,20 @@ def test_health_and_mcp_gate() -> None:
         assert client.get("/sitemap.xml").status_code == 200
 
 
+def test_cache_headers_only_allow_public_get_routes() -> None:
+    with TestClient(app) as client:
+        assert client.get("/v1/catalog").headers["cache-control"] == (
+            "public, max-age=60, s-maxage=300, stale-while-revalidate=600"
+        )
+        assert client.get("/catalog").headers["cache-control"] == (
+            "public, max-age=60, s-maxage=120, stale-while-revalidate=300"
+        )
+        assert client.get("/healthz").headers["cache-control"] == "no-store"
+        assert client.post("/v1/resolve", json={"input": {}}).headers[
+            "cache-control"
+        ] == "no-store"
+
+
 def test_resolve_requires_authentication() -> None:
     with TestClient(app) as client:
         response = client.post(

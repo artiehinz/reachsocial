@@ -39,8 +39,15 @@ services:
       - ./deploy/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
       - caddy_config:/config
+    networks:
+      - default
+      - edge
 
 volumes:
   reachsocial_data:
   caddy_data:
   caddy_config:
+
+networks:
+  edge:
+    name: reachsocial_edge
