@@ -1,0 +1,45 @@
+name: Volume backup
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "41 8 * * 0"
+
+permissions:
+  contents: read
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: digitalocean/action-doctl@v2
+        with:
+          token: ${{ secrets.REACHSOCIAL_DO_TOKEN }}
+      - name: Snapshot the production data volume
+        env:
+          VOLUME_ID: 70b711a5-c343-11f1-abb2-26bedf287139
+        run: |
+          snapshot_name="reachsocial-production-$(date -u +%Y%m%dT%H%M%SZ)"
+          doctl compute volume snapshot "$VOLUME_ID" \
+            --snapshot-name "$snapshot_name" \
+            --snapshot-desc "Automated ReachSocial and AEU recovery snapshot" \
+            --tag reachsocial-production-backup
+      - name: Retain the four newest automated snapshots
+        env:
+          VOLUME_ID: 70b711a5-c343-11f1-abb2-26bedf287139
+        run: |
+          doctl compute snapshot list --resource volume --output json \
+            | jq -r --arg volume "$VOLUME_ID" '
+                map(select(
+                  .resource_id == $volume and
+                  (.name | startswith("reachsocial-production-"))
+                ))
+                | sort_by(.created_at)
+                | reverse
+                | .[4:]
+                | .[].id
+              ' \
+            | while read -r snapshot_id; do
+                doctl compute snapshot delete "$snapshot_id" --force
+              done
