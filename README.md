@@ -114,10 +114,11 @@ remain literal; the quotes are not part of the hash.
 Set `REACHSOCIAL_ADDRESS` to the production hostname for normal HTTPS. During
 an IP-only deployment, set it to `http://<public-ip>` until DNS is connected.
 
-MCP remains disabled in this cycle. Public REST uses the CDP x402 facilitator on
-Base Sepolia (`eip155:84532`); B2B Bearer-key calls bypass x402. The public test
-path enforces a $5 UTC-day paid-provider cost cap, per-IP and per-payer limits,
-and shared concurrency bounds. Provider costs are recorded in integer micro-USD.
+Production MCP is enabled as an authenticated B2B surface; public REST uses the
+CDP x402 facilitator on Base Sepolia (`eip155:84532`). B2B Bearer-key calls bypass
+x402. The public test path enforces a $5 UTC-day paid-provider cost cap, per-IP
+and per-payer limits, and shared concurrency bounds. Provider costs are recorded
+in integer micro-USD.
 
 When the dedicated buyer account has testnet USDC and its three CDP secrets are
 available only in the protected shell environment, the guarded payment smoke
@@ -136,9 +137,12 @@ not read a repository `.env`, print a secret, perform automatic payment
 recovery, or make a second paid attempt.
 
 Do not switch to Base mainnet. Startup blocks `eip155:8453` unless every public
-service has verified positive margins, `ALLOW_MAINNET_X402=true`, and an encrypted
-external backup is enabled. Mainnet also remains operationally blocked until a
-restore drill, legal/TLS/replay/alert checks, and the planned Droplet resize pass.
+service has verified positive margins, `ALLOW_MAINNET_X402=true`, and encrypted
+external recovery is enabled. Nightly encrypted Restic backups and weekly
+DigitalOcean volume snapshots are configured. Mainnet remains operationally
+blocked until the receiving wallet custody and recovery are verified, every
+public service cost is verified, and the restore, settlement, refund, and
+emergency-pause drills pass.
 
 The application runs retention maintenance daily. Deployments take a bounded
 same-volume SQLite snapshot before migration, wait for `/readyz`, automatically
