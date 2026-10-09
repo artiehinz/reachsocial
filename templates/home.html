@@ -3,8 +3,8 @@
 {% block content %}
 <section class="hero">
   <p class="eyebrow">SOCIAL DATA FOR SOFTWARE AND AGENTS</p>
-  <h1>One stable contract for the public social web.</h1>
-  <p>Call normalized social profile and content services without coupling your application to an upstream provider. Use a private B2B key or pay per request with x402 on Base Sepolia.</p>
+  <h1>Social data your app can depend on.</h1>
+  <p>ReachSocial returns public profiles and content in one consistent format, so an upstream provider change does not have to become your outage. Use a private B2B key, or try pay-per-request x402 on Base Sepolia.</p>
   <div class="actions"><a class="button" href="/catalog">Explore the catalog</a><a class="button secondary" href="/agent.md">Open the agent guide</a></div>
   <div class="machine-links"><a href="/llms.txt">llms.txt</a><a href="/openapi.json">OpenAPI</a><a href="/.well-known/api-catalog">API catalog</a></div>
 </section>
@@ -17,7 +17,7 @@
 </section>
 
 <section>
-  <div class="section-heading"><div><p class="eyebrow">COVERAGE</p><h2>Start with verified services. See what comes next.</h2></div><a href="/catalog">Full catalog →</a></div>
+  <div class="section-heading"><div><p class="eyebrow">COVERAGE</p><h2>What you can call today, and what is still under review.</h2></div><a href="/catalog">Full catalog →</a></div>
   <div class="platform-grid">
   {% for platform, services in catalog.discoverable_services()|groupby('platform') %}
     <article><h3>{{ platform }}</h3><p>{{ services|length }} reviewed service{{ '' if services|length == 1 else 's' }}</p><div class="mini-statuses">{% for service in services %}<span class="dot {{ service.status }}" title="{{ service.status }}"></span>{% endfor %}</div></article>
@@ -35,5 +35,5 @@ Idempotency-Key: lookup-001
 {"input":{"url":"https://instagram.com/nasa"}}</code></pre></div>
 </section>
 
-<section><p class="eyebrow">WHY REACHSOCIAL</p><h2>Operationally boring—in a good way.</h2><div class="cards"><article><h3>Provider-neutral</h3><p>Stable service IDs and normalized response shapes isolate clients from provider-specific payload changes.</p></article><article><h3>Agent-discoverable</h3><p>OpenAPI, llms.txt, agent.md, and an RFC 9727 API catalog expose the same reviewed service definitions.</p></article><article><h3>Bounded by design</h3><p>Idempotency, concurrency limits, upstream spend caps, durable jobs, and replay protection constrain costly mistakes.</p></article><article><h3>Media-light</h3><p>ReachSocial returns source URLs and metadata. It does not download or retain requested social-media bytes.</p></article></div></section>
+<section><p class="eyebrow">WHY REACHSOCIAL</p><h2>Built for the ordinary ways requests go wrong.</h2><div class="cards"><article><h3>One contract</h3><p>Stable service IDs and normalized response shapes keep provider-specific payload changes out of your application.</p></article><article><h3>Easy to inspect</h3><p>OpenAPI, llms.txt, agent.md, and the API catalog describe the same reviewed services.</p></article><article><h3>Limits that matter</h3><p>Idempotency, concurrency limits, upstream spend caps, durable jobs, and replay protection put a ceiling on expensive mistakes.</p></article><article><h3>No media warehouse</h3><p>ReachSocial returns source URLs and metadata. It does not download or keep the social-media bytes you request.</p></article></div></section>
 {% endblock %}
