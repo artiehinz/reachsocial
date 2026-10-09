@@ -35,3 +35,7 @@
 		import client_ip_headers
 	}
 }
+
+www.{$LIBERATED_ADDRESS:liberated.site} {
+	redir https://{$LIBERATED_ADDRESS:liberated.site}{uri} permanent
+}
