@@ -37,6 +37,8 @@ from .models import (
 )
 from .normalizer import resolve_url
 from .payments import (
+    MAINNET_ACCEPTANCE_ASYNC_SERVICE_IDS,
+    MAINNET_ACCEPTANCE_SYNC_SERVICE_IDS,
     MAINNET_CANARY_SERVICE_ID,
     PUBLIC_X402_CLIENT_NAME,
     payment_id_from_payload,
@@ -629,6 +631,34 @@ async def execute_mainnet_canary(
     )
 
 
+@router.post("/acceptance/mainnet/{service_id}/execute", include_in_schema=False)
+async def execute_mainnet_acceptance(
+    service_id: str,
+    body: ExecuteRequest,
+    request: Request,
+    idempotency_key: Annotated[str | None, Header(alias="Idempotency-Key")] = None,
+    session: Session = Depends(get_session),
+    catalog: Catalog = Depends(get_catalog),
+    executor: ExecutionService = Depends(get_executor),
+) -> dict[str, Any]:
+    if service_id not in MAINNET_ACCEPTANCE_SYNC_SERVICE_IDS:
+        raise HTTPException(
+            status_code=404,
+            detail={"code": "unknown_service", "message": "Unknown service"},
+        )
+    return await execute_service(
+        service_id=service_id,
+        body=body,
+        request=request,
+        idempotency_key=idempotency_key,
+        service_credit=None,
+        client=None,
+        session=session,
+        catalog=catalog,
+        executor=executor,
+    )
+
+
 @router.post("/services/{service_id}/jobs", status_code=202)
 async def create_job(
     service_id: str,
@@ -716,6 +746,34 @@ def _job_submission_response(request: Request, job: AsyncJob) -> dict[str, Any]:
         "expires_at": job.expires_at.isoformat(),
         "recovery_url": f"{base}/v1/payments/recover/{job.service_id}",
     }
+
+
+@router.post("/acceptance/mainnet/{service_id}/jobs", include_in_schema=False, status_code=202)
+async def create_mainnet_acceptance_job(
+    service_id: str,
+    body: ExecuteRequest,
+    request: Request,
+    idempotency_key: Annotated[str | None, Header(alias="Idempotency-Key")] = None,
+    session: Session = Depends(get_session),
+    catalog: Catalog = Depends(get_catalog),
+    executor: ExecutionService = Depends(get_executor),
+) -> dict[str, Any]:
+    if service_id not in MAINNET_ACCEPTANCE_ASYNC_SERVICE_IDS:
+        raise HTTPException(
+            status_code=404,
+            detail={"code": "unknown_service", "message": "Unknown service"},
+        )
+    return await create_job(
+        service_id=service_id,
+        body=body,
+        request=request,
+        idempotency_key=idempotency_key,
+        service_credit=None,
+        client=None,
+        session=session,
+        catalog=catalog,
+        executor=executor,
+    )
 
 
 @router.post("/payments/recover/{service_id}")

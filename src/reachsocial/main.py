@@ -31,8 +31,10 @@ from .jobs import JobWorker
 from .maintenance import prune_operational_records
 from .observability import RequestLoggingMiddleware, configure_logging
 from .payments import (
+    MainnetAcceptanceX402Middleware,
     MainnetCanaryX402Middleware,
     ReachSocialX402Middleware,
+    mainnet_acceptance_safety_errors,
     mainnet_canary_safety_errors,
     mainnet_x402_safety_errors,
     x402_is_configured,
@@ -166,6 +168,15 @@ def create_app() -> FastAPI:
             raise RuntimeError("Base mainnet canary is blocked: " + "; ".join(canary_errors))
         app.add_middleware(
             MainnetCanaryX402Middleware,
+            settings=settings,
+            catalog=get_catalog(),
+        )
+    if settings.mainnet_x402_acceptance_enabled:
+        acceptance_errors = mainnet_acceptance_safety_errors(settings, get_catalog())
+        if acceptance_errors:
+            raise RuntimeError("Base mainnet acceptance is blocked: " + "; ".join(acceptance_errors))
+        app.add_middleware(
+            MainnetAcceptanceX402Middleware,
             settings=settings,
             catalog=get_catalog(),
         )

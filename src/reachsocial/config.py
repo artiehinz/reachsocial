@@ -29,6 +29,8 @@ class Settings(BaseSettings):
     allow_mainnet_x402: bool = False
     mainnet_x402_canary_enabled: bool = False
     mainnet_x402_canary_buyer: str = ""
+    mainnet_x402_acceptance_enabled: bool = False
+    mainnet_x402_acceptance_buyer: str = ""
     minimum_public_margin_cents: int = Field(default=1, ge=1)
     maintenance_interval_hours: int = Field(default=24, ge=1, le=168)
     default_rate_limit_per_minute: int = Field(default=30, ge=1, le=10000)

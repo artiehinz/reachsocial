@@ -129,6 +129,32 @@ phrase or raw signature.
 this recovery and local-signature check. The protected runtime configuration
 and an unpaid public quote were then verified against the replacement address.
 
+## Bounded Base-mainnet acceptance
+
+Before public sales, the three paid launch routes can be exercised through a
+hidden acceptance handler. It stays on a separate Base-mainnet x402 middleware
+while normal public routes remain on Base Sepolia. It accepts only the configured
+independent buyer, once each for Instagram profile, Instagram post, and LinkedIn
+profile; each payment must use native Base USDC at the catalog price. The handler
+blocks B2B and service-credit bypasses, reserves provider capacity before
+settlement, and retains the normal paid-result recovery path.
+
+The owner runs the local buyer command only after the acceptance handler has
+been enabled with the named buyer and all launch checks are green:
+
+```bash
+uv run python scripts/x402_mainnet_acceptance.py \
+  --expected-buyer <independent-buyer-address> \
+  --expected-pay-to <merchant-address> \
+  --instagram-post-url <public-instagram-post-or-reel-url> \
+  --confirm-mainnet-acceptance
+```
+
+The command reads the buyer phrase through hidden terminal input, validates the
+exact challenge before signing, sends at most one payment per route, verifies
+paid-result recovery, and polls LinkedIn with its protected job token. It does
+not retry an uncertain paid request.
+
 Before setting `X402_NETWORK=eip155:8453` and `ALLOW_MAINNET_X402=true`, rotate
 the exposed CDP credential, run restore verification, check the credit balance,
 complete an independent-buyer acceptance for each route, and record the

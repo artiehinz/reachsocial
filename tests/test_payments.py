@@ -14,15 +14,19 @@ from reachsocial.catalog import Catalog, InputField, ProviderConfig, ServiceDefi
 from reachsocial.config import Settings
 from reachsocial.models import MainnetCanaryAttempt, PaymentReceipt
 from reachsocial.payments import (
+    MAINNET_ACCEPTANCE_PATHS,
     MAINNET_CANARY_PATH,
+    MainnetAcceptanceX402Middleware,
     MainnetCanaryX402Middleware,
     ReachSocialX402Middleware,
     create_x402_payment_handler,
     is_b2b_request,
+    mainnet_acceptance_safety_errors,
     mainnet_canary_safety_errors,
     mainnet_x402_safety_errors,
     payment_id_from_payload,
     price_for_public_execution,
+    reserve_mainnet_acceptance,
     reserve_mainnet_canary,
     reserve_payment_receipt,
     service_id_from_path,
@@ -165,6 +169,24 @@ def test_mainnet_canary_requires_a_testnet_public_route_and_named_buyer(catalog)
     )
 
 
+def test_mainnet_acceptance_requires_testnet_public_routes_and_named_buyer(catalog) -> None:
+    settings = Settings(
+        x402_enabled=True,
+        x402_network="eip155:84532",
+        mainnet_x402_acceptance_enabled=True,
+        mainnet_x402_acceptance_buyer="0xcf8fD9bd415C36326597E8079fCb3125FE2dB369",
+    )
+
+    assert "instagram.profile needs a verified upstream cost" in mainnet_acceptance_safety_errors(
+        settings, catalog
+    )
+
+    settings.x402_network = "eip155:8453"
+    assert "the normal public x402 network must remain Base Sepolia" in mainnet_acceptance_safety_errors(
+        settings, catalog
+    )
+
+
 def test_payment_receipt_reservation_rejects_a_replayed_payload(session, monkeypatch) -> None:
     @contextmanager
     def session_factory():
@@ -223,6 +245,67 @@ def test_mainnet_canary_reservation_allows_only_one_named_buyer(session, monkeyp
     assert wrong_buyer is not None and wrong_buyer.reason == "mainnet_canary_buyer_rejected"
     assert session.scalar(select(MainnetCanaryAttempt)) is not None
     assert session.scalar(select(PaymentReceipt)).status == "verified"
+
+
+def test_mainnet_acceptance_reserves_each_route_once_for_the_named_buyer(session, monkeypatch, catalog) -> None:
+    @contextmanager
+    def session_factory():
+        yield session
+
+    monkeypatch.setattr("reachsocial.payments.SessionLocal", session_factory)
+    expected_payer = "0xcf8fD9bd415C36326597E8079fCb3125FE2dB369"
+    path = MAINNET_ACCEPTANCE_PATHS["instagram.post"]
+    context = SimpleNamespace(
+        payment_payload={"signature": "acceptance-one"},
+        requirements=SimpleNamespace(
+            network="eip155:8453",
+            asset="0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+            amount="50000",
+        ),
+        result=SimpleNamespace(payer=expected_payer),
+        transport_context=SimpleNamespace(request=SimpleNamespace(path=path)),
+    )
+    settings = Settings(
+        scrapecreators_credit_balance=10,
+        scrapecreators_credit_reserve=0,
+    )
+
+    assert (
+        reserve_mainnet_acceptance(
+            context, expected_payer=expected_payer, settings=settings, catalog=catalog
+        )
+        is None
+    )
+    repeated = reserve_mainnet_acceptance(
+        context, expected_payer=expected_payer, settings=settings, catalog=catalog
+    )
+    route_reused = reserve_mainnet_acceptance(
+        SimpleNamespace(
+            payment_payload={"signature": "acceptance-two"},
+            requirements=context.requirements,
+            result=SimpleNamespace(payer=expected_payer),
+            transport_context=context.transport_context,
+        ),
+        expected_payer=expected_payer,
+        settings=settings,
+        catalog=catalog,
+    )
+    wrong_buyer = reserve_mainnet_acceptance(
+        SimpleNamespace(
+            payment_payload={"signature": "acceptance-three"},
+            requirements=context.requirements,
+            result=SimpleNamespace(payer="0x0000000000000000000000000000000000000000"),
+            transport_context=context.transport_context,
+        ),
+        expected_payer=expected_payer,
+        settings=settings,
+        catalog=catalog,
+    )
+
+    assert repeated is not None and repeated.reason == "payment_replayed"
+    assert route_reused is not None and route_reused.reason == "mainnet_acceptance_route_already_used"
+    assert wrong_buyer is not None and wrong_buyer.reason == "mainnet_acceptance_buyer_rejected"
+    assert session.scalar(select(MainnetCanaryAttempt)).canary_key.endswith("instagram.post")
 
 
 def test_usdc_atomic_amount_is_reported_as_cents() -> None:
@@ -301,6 +384,39 @@ async def test_mainnet_canary_rejects_b2b_and_service_credit_bypasses() -> None:
             "method": "POST",
             "path": MAINNET_CANARY_PATH,
             "headers": [(b"authorization", b"Bearer private-key")],
+            "query_string": b"",
+            "scheme": "https",
+            "server": ("reachsocial.test", 443),
+        }
+    )
+
+    response = await middleware.dispatch(request, route_handler)
+
+    assert response.status_code == 403
+    assert payment_calls == []
+
+
+@pytest.mark.asyncio
+async def test_mainnet_acceptance_rejects_b2b_and_service_credit_bypasses() -> None:
+    middleware = object.__new__(MainnetAcceptanceX402Middleware)
+    payment_calls = []
+
+    async def payment_handler(request, call_next):
+        del request, call_next
+        payment_calls.append(True)
+        return JSONResponse({"payment": "required"}, status_code=402)
+
+    async def route_handler(request):
+        del request
+        return JSONResponse({"unexpected": True})
+
+    middleware._payment_handler = payment_handler
+    request = Request(
+        {
+            "type": "http",
+            "method": "POST",
+            "path": MAINNET_ACCEPTANCE_PATHS["instagram.profile"],
+            "headers": [(b"x-service-credit", b"private-credit")],
             "query_string": b"",
             "scheme": "https",
             "server": ("reachsocial.test", 443),

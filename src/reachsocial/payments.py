@@ -43,6 +43,17 @@ MAINNET_CANARY_KEY = "base-mainnet-instagram-profile-2026-10"
 MAINNET_CANARY_PRICE = "$0.05"
 MAINNET_CANARY_AMOUNT_ATOMIC = 50_000
 MAINNET_CANARY_USDC_ASSET = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
+MAINNET_ACCEPTANCE_PATHS = {
+    "instagram.profile": "/v1/acceptance/mainnet/instagram.profile/execute",
+    "instagram.post": "/v1/acceptance/mainnet/instagram.post/execute",
+    "linkedin.profile": "/v1/acceptance/mainnet/linkedin.profile/jobs",
+}
+MAINNET_ACCEPTANCE_ROUTES = {
+    f"POST {path}": service_id for service_id, path in MAINNET_ACCEPTANCE_PATHS.items()
+}
+MAINNET_ACCEPTANCE_SYNC_SERVICE_IDS = frozenset({"instagram.profile", "instagram.post"})
+MAINNET_ACCEPTANCE_ASYNC_SERVICE_IDS = frozenset({"linkedin.profile"})
+MAINNET_ACCEPTANCE_KEY_PREFIX = "base-mainnet-acceptance-2026-10"
 
 
 def service_id_from_path(path: str) -> str | None:
@@ -105,6 +116,34 @@ def mainnet_canary_safety_errors(settings: Settings, catalog: Catalog) -> list[s
         errors.append(f"{MAINNET_CANARY_SERVICE_ID} must remain publicly executable")
     elif service.price_cents != 5:
         errors.append(f"{MAINNET_CANARY_SERVICE_ID} must remain priced at five cents")
+    return errors
+
+
+def mainnet_acceptance_safety_errors(settings: Settings, catalog: Catalog) -> list[str]:
+    """Return fail-closed setup errors for the named three-route acceptance."""
+    if not settings.mainnet_x402_acceptance_enabled:
+        return []
+    errors: list[str] = []
+    if not settings.x402_enabled:
+        errors.append("X402_ENABLED=true is required")
+    if settings.x402_network != "eip155:84532":
+        errors.append("the normal public x402 network must remain Base Sepolia")
+    if not re.fullmatch(r"0x[a-fA-F0-9]{40}", settings.mainnet_x402_acceptance_buyer):
+        errors.append("MAINNET_X402_ACCEPTANCE_BUYER must be an EVM address")
+    for service_id in MAINNET_ACCEPTANCE_PATHS:
+        service = catalog.by_id(service_id)
+        if service is None or not (service.enabled and service.public):
+            errors.append(f"{service_id} must remain publicly executable")
+        elif not service.cost_verified or service.estimated_upstream_cost_microusd <= 0:
+            errors.append(f"{service_id} needs a verified upstream cost")
+        else:
+            price_micros = service.price_cents * 10_000
+            margin_micros = price_micros - service.estimated_upstream_cost_microusd
+            if (
+                margin_micros < settings.minimum_public_margin_cents * 10_000
+                or margin_micros * 2 < price_micros
+            ):
+                errors.append(f"{service_id} does not meet the configured public margin")
     return errors
 
 
@@ -267,6 +306,83 @@ def reserve_mainnet_canary(context: Any, expected_payer: str) -> AbortResult | N
     return None
 
 
+def reserve_mainnet_acceptance(
+    context: Any, *, expected_payer: str, settings: Settings, catalog: Catalog
+) -> AbortResult | None:
+    """Reserve one exact mainnet payment per named route before settlement."""
+    payer = str(getattr(context.result, "payer", ""))
+    request = getattr(getattr(context, "transport_context", None), "request", None)
+    path = getattr(request, "path", "")
+    service_id = MAINNET_ACCEPTANCE_ROUTES.get(f"POST {path}")
+    service = catalog.by_id(service_id) if service_id else None
+    amount = str(getattr(context.requirements, "amount", ""))
+    network = str(getattr(context.requirements, "network", ""))
+    asset = str(getattr(context.requirements, "asset", ""))
+    if payer.lower() != expected_payer.lower():
+        return AbortResult("mainnet_acceptance_buyer_rejected", "This buyer is not approved for acceptance")
+    if (
+        service is None
+        or network != MAINNET_CANARY_NETWORK
+        or asset.lower() != MAINNET_CANARY_USDC_ASSET.lower()
+        or amount != str(service.price_cents * 10_000)
+    ):
+        return AbortResult("mainnet_acceptance_requirement_rejected", "The acceptance requirement is invalid")
+
+    payment_id = payment_id_from_payload(context.payment_payload)
+    acceptance_key = f"{MAINNET_ACCEPTANCE_KEY_PREFIX}:{service_id}"
+    with SessionLocal() as session:
+        if session.bind and session.bind.dialect.name == "sqlite" and not session.in_transaction():
+            session.connection().exec_driver_sql("BEGIN IMMEDIATE")
+        if session.scalar(select(PaymentReceipt).where(PaymentReceipt.payment_id == payment_id)):
+            return AbortResult("payment_replayed", "This payment has already been used")
+        if session.scalar(
+            select(MainnetCanaryAttempt).where(MainnetCanaryAttempt.canary_key == acceptance_key)
+        ):
+            return AbortResult(
+                "mainnet_acceptance_route_already_used",
+                "This acceptance route has already been used",
+            )
+        if service.provider.name == "scrapecreators" and not reserve_credit_reservation(
+            session,
+            payment_id=payment_id,
+            service=service,
+            settings=settings,
+            lock=False,
+        ):
+            return AbortResult(
+                "provider_credit_capacity_reached",
+                "Public provider credit capacity is currently reserved",
+            )
+        session.add(
+            PaymentReceipt(
+                payment_id=payment_id,
+                service_id=service_id,
+                amount_cents=service.price_cents,
+                network=network,
+                status="verified",
+                payer=payer,
+                details=_details(payer=payer, amount=amount, mainnet_acceptance=True),
+            )
+        )
+        session.add(
+            MainnetCanaryAttempt(
+                canary_key=acceptance_key,
+                payment_id=payment_id,
+                payer=payer,
+                status="verified",
+            )
+        )
+        try:
+            session.commit()
+        except IntegrityError:
+            session.rollback()
+            return AbortResult(
+                "mainnet_acceptance_route_already_used",
+                "This acceptance route has already been used",
+            )
+    return None
+
+
 def mark_payment_settled(context: Any) -> None:
     payment_id = payment_id_from_payload(context.payment_payload)
     with SessionLocal() as session:
@@ -340,6 +456,27 @@ def mark_mainnet_canary_settled(context: Any) -> None:
 def mark_mainnet_canary_canceled(context: Any) -> None:
     mark_payment_canceled(context)
     mark_mainnet_canary_status(context, "canceled")
+
+
+def mark_mainnet_acceptance_status(context: Any, status: str) -> None:
+    payment_id = payment_id_from_payload(context.payment_payload)
+    with SessionLocal() as session:
+        attempt = session.scalar(
+            select(MainnetCanaryAttempt).where(MainnetCanaryAttempt.payment_id == payment_id)
+        )
+        if attempt is not None and attempt.canary_key.startswith(MAINNET_ACCEPTANCE_KEY_PREFIX):
+            attempt.status = status
+            session.commit()
+
+
+def mark_mainnet_acceptance_settled(context: Any) -> None:
+    mark_payment_settled(context)
+    mark_mainnet_acceptance_status(context, "settled")
+
+
+def mark_mainnet_acceptance_canceled(context: Any) -> None:
+    mark_payment_canceled(context)
+    mark_mainnet_acceptance_status(context, "reconciliation_required")
 
 
 def price_for_public_execution(context: HTTPRequestContext, catalog: Catalog) -> str:
@@ -430,6 +567,47 @@ def create_mainnet_canary_payment_handler(settings: Settings, catalog: Catalog):
         mime_type="application/json",
     )
     return payment_middleware(routes={MAINNET_CANARY_ROUTE: route}, server=server)
+
+
+def create_mainnet_acceptance_payment_handler(settings: Settings, catalog: Catalog):
+    """Build the hidden three-route handler for a bounded independent-buyer test."""
+    if not x402_is_configured(settings):
+        raise ValueError("Mainnet acceptance requires the configured CDP x402 facilitator")
+    errors = mainnet_acceptance_safety_errors(settings, catalog)
+    if errors:
+        raise ValueError("Base mainnet acceptance is blocked: " + "; ".join(errors))
+    facilitator_config = create_facilitator_config(
+        api_key_id=settings.cdp_api_key_id,
+        api_key_secret=settings.cdp_api_key_secret,
+    )
+    server = x402ResourceServer(HTTPFacilitatorClient(facilitator_config))
+    server.register(MAINNET_CANARY_NETWORK, ExactEvmServerScheme())
+    server.on_after_verify(
+        lambda context: reserve_mainnet_acceptance(
+            context,
+            expected_payer=settings.mainnet_x402_acceptance_buyer,
+            settings=settings,
+            catalog=catalog,
+        )
+    )
+    server.on_after_settle(mark_mainnet_acceptance_settled)
+    server.on_settle_failure(mark_mainnet_acceptance_canceled)
+    server.on_verified_payment_canceled(mark_mainnet_acceptance_canceled)
+    routes = {}
+    for route, service_id in MAINNET_ACCEPTANCE_ROUTES.items():
+        service = catalog.by_id(service_id)
+        assert service is not None
+        routes[route] = RouteConfig(
+            accepts=PaymentOption(
+                scheme="exact",
+                pay_to=settings.x402_pay_to,
+                price=f"${service.price_cents / 100:.2f}",
+                network=MAINNET_CANARY_NETWORK,
+            ),
+            description="Bounded ReachSocial Base-mainnet acceptance",
+            mime_type="application/json",
+        )
+    return payment_middleware(routes=routes, server=server)
 
 
 class ReachSocialX402Middleware(BaseHTTPMiddleware):
@@ -534,6 +712,22 @@ class MainnetCanaryX402Middleware(BaseHTTPMiddleware):
 
     async def dispatch(self, request: Request, call_next) -> Response:  # type: ignore[no-untyped-def]
         if request.method != "POST" or request.url.path != MAINNET_CANARY_PATH:
+            return await call_next(request)
+        if is_b2b_request(request) or request.headers.get("x-service-credit"):
+            return Response(status_code=403)
+        return await self._payment_handler(request, call_next)
+
+
+class MainnetAcceptanceX402Middleware(BaseHTTPMiddleware):
+    """Expose only the named mainnet acceptance routes to the x402 handler."""
+
+    def __init__(self, app, *, settings: Settings, catalog: Catalog):  # type: ignore[no-untyped-def]
+        super().__init__(app)
+        self._payment_handler = create_mainnet_acceptance_payment_handler(settings, catalog)
+
+    async def dispatch(self, request: Request, call_next) -> Response:  # type: ignore[no-untyped-def]
+        route = f"{request.method} {request.url.path}"
+        if route not in MAINNET_ACCEPTANCE_ROUTES:
             return await call_next(request)
         if is_b2b_request(request) or request.headers.get("x-service-credit"):
             return Response(status_code=403)
