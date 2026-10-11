@@ -4,7 +4,12 @@ import pytest
 from fastapi import HTTPException
 from sqlalchemy import select
 
-from reachsocial.api import _recover_async_payment, _recover_sync_payment
+from reachsocial.api import (
+    ExecuteRequest,
+    _recover_async_payment,
+    _recover_sync_payment,
+    recover_paid_result,
+)
 from reachsocial.catalog import ProviderConfig
 from reachsocial.config import Settings
 from reachsocial.credit_budget import fetch_provider_balance, finalize, reserve, summary
@@ -16,7 +21,7 @@ from reachsocial.models import (
     ProviderCreditReservation,
 )
 from reachsocial.payments import PUBLIC_X402_CLIENT_NAME
-from reachsocial.services import utcnow_naive
+from reachsocial.services import ExecutionService, stable_hash, utcnow_naive
 
 
 def test_live_provider_balance_uses_the_account_wide_value(monkeypatch) -> None:
@@ -188,6 +193,45 @@ def test_paid_sync_recovery_returns_only_matching_input(session, client) -> None
             idempotency_key="retry-key",
             input_data={"url": "https://instagram.com/other"},
         )
+
+
+def test_paid_recovery_survives_a_service_becoming_private(session, client, catalog) -> None:
+    client = _public_client(session, client)
+    input_data = {"url": "https://instagram.com/p/ABC123/"}
+    ExecutionService.validate_input(catalog.by_id("instagram.post"), input_data)
+    response = {"request_id": "req_private", "service": "instagram.post", "status": "success"}
+    session.add(
+        IdempotencyRecord(
+            client_id=client.id,
+            service_id="instagram.post",
+            key="private-recovery-key",
+            input_hash=stable_hash(input_data),
+            response_json=response,
+            expires_at=utcnow_naive() + timedelta(hours=1),
+        )
+    )
+    session.add(
+        PaymentReceipt(
+            payment_id="payment-private",
+            service_id="instagram.post",
+            amount_cents=5,
+            network="eip155:8453",
+            status="settled",
+            request_id="req_private",
+        )
+    )
+    session.commit()
+
+    recovered = recover_paid_result(
+        "instagram.post",
+        ExecuteRequest(input=input_data),
+        "private-recovery-key",
+        session,
+        catalog,
+        ExecutionService,
+    )
+
+    assert recovered["result"] == response
 
 
 def test_paid_async_recovery_survives_a_lost_job_token(session, client) -> None:

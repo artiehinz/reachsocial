@@ -15,7 +15,17 @@
 	header_up -DO-Connecting-IP
 }
 
+(cloudflare_origin_pull) {
+	tls {
+		client_auth {
+			trust_pool file /etc/caddy/cloudflare-origin-pull-ca.pem
+			mode require_and_verify
+		}
+	}
+}
+
 {$REACHSOCIAL_ADDRESS} {
+	import cloudflare_origin_pull
 	encode zstd gzip
 
 	@owner path /v1/owner/*
@@ -29,6 +39,7 @@
 }
 
 {$LIBERATED_ADDRESS:liberated.site} {
+	import cloudflare_origin_pull
 	encode zstd gzip
 
 	reverse_proxy aeu:3000 {

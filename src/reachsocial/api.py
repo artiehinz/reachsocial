@@ -786,7 +786,9 @@ def recover_paid_result(
     """Return an already-paid result or job using the original idempotency key."""
     idempotency_key = _validate_idempotency_key(idempotency_key)
     service = catalog.by_id(service_id)
-    if service is None or not service.public or not idempotency_key:
+    # A valid original key and input are the recovery entitlement. A service can
+    # become private after payment without invalidating its retained result.
+    if service is None or not idempotency_key:
         raise HTTPException(status_code=404, detail={"code": "not_found", "message": "Not found"})
     executor.validate_input(service, body.input)
     if service.is_async:

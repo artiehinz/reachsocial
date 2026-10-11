@@ -1,26 +1,34 @@
 name: Deploy production
 
 on:
-  push:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
     branches: [main]
-  workflow_dispatch:
 
 permissions:
   contents: read
 
+concurrency:
+  group: reachsocial-production
+  cancel-in-progress: false
+
 jobs:
   deploy:
+    if: github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     environment: production
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
       - uses: digitalocean/action-doctl@v2
         with:
           token: ${{ secrets.REACHSOCIAL_DO_TOKEN }}
       - name: Build and publish immutable image
         env:
           DOCR_REGISTRY: ${{ secrets.REACHSOCIAL_DOCR_REGISTRY }}
-          IMAGE_TAG: ${{ github.sha }}
+          IMAGE_TAG: ${{ github.event.workflow_run.head_sha }}
         run: |
           doctl registry login --expiry-seconds 1200
           docker build -t "$DOCR_REGISTRY/reachsocial:$IMAGE_TAG" .
@@ -30,42 +38,53 @@ jobs:
           SSH_HOST: ${{ secrets.REACHSOCIAL_DEPLOY_HOST }}
           SSH_USER: ${{ secrets.REACHSOCIAL_DEPLOY_USER }}
           SSH_PRIVATE_KEY: ${{ secrets.REACHSOCIAL_DEPLOY_SSH_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.REACHSOCIAL_DEPLOY_KNOWN_HOSTS }}
           DEPLOY_PATH: ${{ vars.REACHSOCIAL_DEPLOY_PATH }}
           DOCR_REGISTRY: ${{ secrets.REACHSOCIAL_DOCR_REGISTRY }}
-          DOCR_USERNAME: artemhinz2@gmail.com
-          DO_TOKEN: ${{ secrets.REACHSOCIAL_DO_TOKEN }}
-          IMAGE_TAG: ${{ github.sha }}
+          IMAGE_TAG: ${{ github.event.workflow_run.head_sha }}
         run: |
           install -m 700 -d ~/.ssh
           printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/reachsocial_deploy
           chmod 600 ~/.ssh/reachsocial_deploy
-          ssh -i ~/.ssh/reachsocial_deploy -o StrictHostKeyChecking=accept-new "$SSH_USER@$SSH_HOST" \
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+          ssh -i ~/.ssh/reachsocial_deploy -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes "$SSH_USER@$SSH_HOST" \
             "cd '$DEPLOY_PATH' && docker compose exec -T app python -" < scripts/snapshot_sqlite.py
-          scp -i ~/.ssh/reachsocial_deploy -o StrictHostKeyChecking=accept-new \
+          scp -i ~/.ssh/reachsocial_deploy -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes \
             docker-compose.yml "$SSH_USER@$SSH_HOST:$DEPLOY_PATH/docker-compose.yml.next"
-          scp -i ~/.ssh/reachsocial_deploy -o StrictHostKeyChecking=accept-new \
+          scp -i ~/.ssh/reachsocial_deploy -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes \
             deploy/caddy/Caddyfile "$SSH_USER@$SSH_HOST:$DEPLOY_PATH/deploy/caddy/Caddyfile.next"
-          ssh -i ~/.ssh/reachsocial_deploy -o StrictHostKeyChecking=accept-new "$SSH_USER@$SSH_HOST" \
+          scp -i ~/.ssh/reachsocial_deploy -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes \
+            deploy/caddy/cloudflare-origin-pull-ca.pem "$SSH_USER@$SSH_HOST:$DEPLOY_PATH/deploy/caddy/cloudflare-origin-pull-ca.pem.next"
+          ssh -i ~/.ssh/reachsocial_deploy -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes "$SSH_USER@$SSH_HOST" \
             "cd '$DEPLOY_PATH' && mv docker-compose.yml.next docker-compose.yml && \
-            mv deploy/caddy/Caddyfile.next deploy/caddy/Caddyfile && docker compose config --quiet"
-          ssh -i ~/.ssh/reachsocial_deploy -o StrictHostKeyChecking=accept-new "$SSH_USER@$SSH_HOST" \
-            "docker login '$DOCR_REGISTRY' --username '$DOCR_USERNAME' --password-stdin" \
-            <<< "$DO_TOKEN"
-          ssh -i ~/.ssh/reachsocial_deploy -o StrictHostKeyChecking=accept-new "$SSH_USER@$SSH_HOST" \
+            mv deploy/caddy/Caddyfile.next deploy/caddy/Caddyfile && \
+            mv deploy/caddy/cloudflare-origin-pull-ca.pem.next deploy/caddy/cloudflare-origin-pull-ca.pem && \
+            docker compose config --quiet && \
+            docker compose run --rm --no-deps caddy caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile"
+          doctl registry docker-config --expiry-seconds 1200 | \
+            ssh -i ~/.ssh/reachsocial_deploy -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes "$SSH_USER@$SSH_HOST" \
+              "install -d -m 700 /root/.docker && umask 077 && cat > /root/.docker/config.json"
+          ssh -i ~/.ssh/reachsocial_deploy -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes "$SSH_USER@$SSH_HOST" \
             "DEPLOY_PATH='$DEPLOY_PATH' DOCR_REGISTRY='$DOCR_REGISTRY' IMAGE_TAG='$IMAGE_TAG' bash -s" \
             < scripts/deploy_droplet.sh
-          ssh -i ~/.ssh/reachsocial_deploy -o StrictHostKeyChecking=accept-new "$SSH_USER@$SSH_HOST" \
+          ssh -i ~/.ssh/reachsocial_deploy -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes "$SSH_USER@$SSH_HOST" \
             "REACHSOCIAL_IMAGE_REPOSITORY='$DOCR_REGISTRY/reachsocial' bash -s" < scripts/prune_deploy_images.sh
+      - name: Verify the Cloudflare-served release
+        run: curl --fail --retry 6 --retry-delay 2 --silent --show-error https://reachsocial.dev/healthz > /dev/null
       - name: Provision the scoped InstaGet Herald client
         env:
           SSH_HOST: ${{ secrets.REACHSOCIAL_DEPLOY_HOST }}
           SSH_USER: ${{ secrets.REACHSOCIAL_DEPLOY_USER }}
+          SSH_KNOWN_HOSTS: ${{ secrets.REACHSOCIAL_DEPLOY_KNOWN_HOSTS }}
           INSTAGET_HERALD_API_KEY: ${{ secrets.REACHSOCIAL_INSTAGET_HERALD_API_KEY }}
           DEPLOY_PATH: ${{ vars.REACHSOCIAL_DEPLOY_PATH }}
         run: |
           test -n "$INSTAGET_HERALD_API_KEY"
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
           printf '%s\n' "$INSTAGET_HERALD_API_KEY" | \
-            ssh -i ~/.ssh/reachsocial_deploy -o StrictHostKeyChecking=accept-new "$SSH_USER@$SSH_HOST" \
+            ssh -i ~/.ssh/reachsocial_deploy -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes "$SSH_USER@$SSH_HOST" \
               "cd '$DEPLOY_PATH' && docker compose exec -T app python scripts/provision_client.py \
                 InstaGet-Herald --api-key-stdin --service news.person \
                 --service instagram.profile --service instagram.feed --service instagram.post \

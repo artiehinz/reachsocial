@@ -54,11 +54,11 @@ The health endpoint is `/healthz`. Public discovery starts at `/agent.md`,
 
 ## Production and deployment
 
-- The canonical production branch is `main`. A push to `main` runs
-  `.github/workflows/deploy.yml`, builds an immutable image tagged with the full
-  commit SHA, snapshots the SQLite database, synchronizes and validates Compose
-  and Caddy configuration, deploys it, verifies health, and reprovisions the
-  scoped `InstaGet-Herald` client.
+- The canonical production branch is `main`. A successful CI run for a `main`
+  commit runs `.github/workflows/deploy.yml`, builds an immutable image tagged
+  with that exact commit SHA, snapshots the SQLite database, synchronizes and
+  validates Compose and Caddy configuration, deploys it, verifies health, and
+  reprovisions the scoped `InstaGet-Herald` client.
 - The local `host-migration` branch may mirror `main`; do not treat it as a
   separate product line.
 - Production files live on the attached DigitalOcean volume under
@@ -83,13 +83,12 @@ The health endpoint is `/healthz`. Public discovery starts at `/agent.md`,
 
 ## Payments and provider safety
 
-- Normal public x402 currently uses Base Sepolia. A five-cent Base-mainnet
-  canary and the separate three-route independent acceptance both settled on
-  2026-10-11, but the acceptance handler is now disarmed and neither result
-  authorizes general public sales.
-- Do not set `X402_NETWORK=eip155:8453` or `ALLOW_MAINNET_X402=true` until every
-  item in `docs/roadmap.md` is complete. The CDP credential identified there
-  must be rotated before mainnet use.
+- Normal public x402 uses Base mainnet for `instagram.profile` and
+  `instagram.post`. The canary and independent acceptance handlers are
+  disarmed. All other catalog services remain private until their individual
+  provider, paid-recovery, and observation gates in `docs/roadmap.md` pass.
+- The CDP credential was rotated before the two-service mainnet release. Do
+  not expose another public service merely because its adapter works.
 - The public Instagram routes use the documented 1,880 micro-USD
   replacement-cost basis plus observed one-credit endpoint use. It is not an
   invoice. Recheck the balance before mainnet, set
