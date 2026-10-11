@@ -24,7 +24,10 @@ item below is complete and recorded in the release notes.
    verification, with the exact USDC canary amount and the minimum Base ETH
    needed for its transaction fee.
 4. **Run one capped real purchase.** Use an independently funded Base-mainnet
-   buyer wallet for one small request. Confirm the exact x402 requirement,
+   buyer wallet for one small request. The implementation is the isolated
+   `x402_mainnet_canary.py` flow: it accepts one named buyer, one five-cent
+   native-USDC payment, and one `instagram.profile` provider attempt without
+   enabling general Base-mainnet x402. Confirm the exact x402 requirement,
    facilitator settlement, service result, receipt, and provider charge.
 5. **Reconcile and rehearse operations.** Match the buyer payment, ReachSocial
    receipt, provider cost, and accounting record. Exercise the payment pause,

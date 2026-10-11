@@ -34,6 +34,7 @@ from .models import (
 )
 from .normalizer import resolve_url
 from .payments import (
+    MAINNET_CANARY_SERVICE_ID,
     PUBLIC_X402_CLIENT_NAME,
     payment_id_from_payload,
     x402_is_configured,
@@ -476,6 +477,29 @@ async def execute_service(
     )
     _link_receipt(session, payment_id, request_id=response["request_id"])
     return response
+
+
+@router.post("/canary/mainnet/instagram.profile/execute", include_in_schema=False)
+async def execute_mainnet_canary(
+    body: ExecuteRequest,
+    request: Request,
+    idempotency_key: Annotated[str | None, Header(alias="Idempotency-Key")] = None,
+    session: Session = Depends(get_session),
+    catalog: Catalog = Depends(get_catalog),
+    executor: ExecutionService = Depends(get_executor),
+) -> dict[str, Any]:
+    """Execute the single canary through the normal provider and receipt path."""
+    return await execute_service(
+        service_id=MAINNET_CANARY_SERVICE_ID,
+        body=body,
+        request=request,
+        idempotency_key=idempotency_key,
+        service_credit=None,
+        client=None,
+        session=session,
+        catalog=catalog,
+        executor=executor,
+    )
 
 
 @router.post("/services/{service_id}/jobs", status_code=202)

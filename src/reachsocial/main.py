@@ -30,7 +30,13 @@ from .errors import ReachSocialError
 from .jobs import JobWorker
 from .maintenance import prune_operational_records
 from .observability import RequestLoggingMiddleware, configure_logging
-from .payments import ReachSocialX402Middleware, mainnet_x402_safety_errors, x402_is_configured
+from .payments import (
+    MainnetCanaryX402Middleware,
+    ReachSocialX402Middleware,
+    mainnet_canary_safety_errors,
+    mainnet_x402_safety_errors,
+    x402_is_configured,
+)
 from .runtime import RuntimeState
 from .services import ExecutionService, sync_service_records
 
@@ -151,6 +157,15 @@ def create_app() -> FastAPI:
             raise RuntimeError("Base mainnet x402 is blocked: " + "; ".join(mainnet_errors))
         app.add_middleware(
             ReachSocialX402Middleware,
+            settings=settings,
+            catalog=get_catalog(),
+        )
+    if settings.mainnet_x402_canary_enabled:
+        canary_errors = mainnet_canary_safety_errors(settings, get_catalog())
+        if canary_errors:
+            raise RuntimeError("Base mainnet canary is blocked: " + "; ".join(canary_errors))
+        app.add_middleware(
+            MainnetCanaryX402Middleware,
             settings=settings,
             catalog=get_catalog(),
         )

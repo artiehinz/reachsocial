@@ -38,6 +38,7 @@ def test_existing_database_upgrades_and_schema_downgrades(tmp_path, monkeypatch)
         "provider_attempts",
         "public_test_usage",
         "service_credits",
+        "mainnet_canary_attempts",
     }.issubset(set(inspector.get_table_names()))
     assert "key_id" in {column["name"] for column in inspector.get_columns("clients")}
     indexes = {item["name"]: item for item in inspector.get_indexes("idempotency_records")}
@@ -84,9 +85,7 @@ def test_partial_sqlite_migration_can_resume(tmp_path, monkeypatch) -> None:
         column["name"] for column in inspector.get_columns("payment_receipts")
     }
     with engine.connect() as connection:
-        assert connection.scalar(text("SELECT version_num FROM alembic_version")) == (
-            "20260809_0002"
-        )
+        assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "20261011_0003"
         assert connection.scalar(
             text("SELECT updated_at FROM payment_receipts WHERE payment_id='payment-partial'")
         ) is not None

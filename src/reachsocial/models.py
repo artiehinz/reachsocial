@@ -135,6 +135,20 @@ class PaymentReceipt(Base):
     )
 
 
+class MainnetCanaryAttempt(Base):
+    __tablename__ = "mainnet_canary_attempts"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    canary_key: Mapped[str] = mapped_column(String(120), unique=True, index=True)
+    payment_id: Mapped[str] = mapped_column(String(255), unique=True, index=True)
+    payer: Mapped[str] = mapped_column(String(120), index=True)
+    status: Mapped[str] = mapped_column(String(40), index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+
 class AsyncJob(Base):
     __tablename__ = "async_jobs"
     __table_args__ = (UniqueConstraint("client_id", "service_id", "idempotency_key"),)

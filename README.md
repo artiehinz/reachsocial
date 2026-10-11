@@ -151,6 +151,32 @@ uv run python scripts/create_mainnet_buyer_wallet.py verify \
 After the verification succeeds, fund that Base address only with the exact
 USDC canary amount and the minimum Base ETH required for its transaction fee.
 
+### One-time Base-mainnet canary
+
+The mainnet canary is a separate hidden route, not a public launch. It stays
+off by default. When it is armed in the protected production environment, it
+accepts exactly one five-cent native-USDC payment from the named buyer address,
+for `instagram.profile`; the database permanently rejects a second verified
+payment. Keep `X402_NETWORK=eip155:84532` and leave `ALLOW_MAINNET_X402=false`.
+
+```ini
+MAINNET_X402_CANARY_ENABLED=true
+MAINNET_X402_CANARY_BUYER=<verified-buyer-address>
+```
+
+The buyer runs the following locally after the production deployment is healthy.
+It reads the recovery phrase through hidden terminal input and makes one paid
+retry only after validating the Base-mainnet network, native-USDC asset,
+receiver, and five-cent amount.
+
+```bash
+uv run python scripts/x402_mainnet_canary.py \
+  --profile-url https://www.instagram.com/instagram/ \
+  --expected-buyer <verified-buyer-address> \
+  --expected-pay-to <production-receiving-address> \
+  --confirm-mainnet-canary
+```
+
 Do not switch to Base mainnet. Startup blocks `eip155:8453` unless every public
 service has verified positive margins, `ALLOW_MAINNET_X402=true`, and encrypted
 external recovery is enabled. Nightly encrypted Restic backups and weekly

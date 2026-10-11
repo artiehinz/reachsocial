@@ -12,14 +12,18 @@ from x402.http.types import HTTPRequestContext
 
 from reachsocial.catalog import Catalog, InputField, ProviderConfig, ServiceDefinition
 from reachsocial.config import Settings
-from reachsocial.models import PaymentReceipt
+from reachsocial.models import MainnetCanaryAttempt, PaymentReceipt
 from reachsocial.payments import (
+    MAINNET_CANARY_PATH,
+    MainnetCanaryX402Middleware,
     ReachSocialX402Middleware,
     create_x402_payment_handler,
     is_b2b_request,
+    mainnet_canary_safety_errors,
     mainnet_x402_safety_errors,
     payment_id_from_payload,
     price_for_public_execution,
+    reserve_mainnet_canary,
     reserve_payment_receipt,
     service_id_from_path,
     usdc_atomic_to_cents,
@@ -145,6 +149,22 @@ def test_mainnet_is_blocked_until_backup_and_costs_are_verified() -> None:
     assert "instagram.profile needs a verified upstream cost" in errors
 
 
+def test_mainnet_canary_requires_a_testnet_public_route_and_named_buyer(catalog) -> None:
+    settings = Settings(
+        x402_enabled=True,
+        x402_network="eip155:84532",
+        mainnet_x402_canary_enabled=True,
+        mainnet_x402_canary_buyer="0x93846388d538a82023B391ae0698851E2c43c9Af",
+    )
+
+    assert mainnet_canary_safety_errors(settings, catalog) == []
+
+    settings.x402_network = "eip155:8453"
+    assert "the normal public x402 network must remain Base Sepolia" in mainnet_canary_safety_errors(
+        settings, catalog
+    )
+
+
 def test_payment_receipt_reservation_rejects_a_replayed_payload(session, monkeypatch) -> None:
     @contextmanager
     def session_factory():
@@ -170,6 +190,39 @@ def test_payment_receipt_reservation_rejects_a_replayed_payload(session, monkeyp
     assert receipt.payment_id == payment_id_from_payload(payload)
     assert receipt.status == "verified"
     assert receipt.amount_cents == 5
+
+
+def test_mainnet_canary_reservation_allows_only_one_named_buyer(session, monkeypatch) -> None:
+    @contextmanager
+    def session_factory():
+        yield session
+
+    monkeypatch.setattr("reachsocial.payments.SessionLocal", session_factory)
+    expected_payer = "0x93846388d538a82023B391ae0698851E2c43c9Af"
+
+    def context(payload, payer=expected_payer):
+        return SimpleNamespace(
+            payment_payload=payload,
+            requirements=SimpleNamespace(
+                network="eip155:8453",
+                asset="0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+                amount="50000",
+            ),
+            result=SimpleNamespace(payer=payer),
+            transport_context=SimpleNamespace(request=SimpleNamespace(path=MAINNET_CANARY_PATH)),
+        )
+
+    assert reserve_mainnet_canary(context({"signature": "one"}), expected_payer) is None
+    rejected = reserve_mainnet_canary(context({"signature": "two"}), expected_payer)
+    wrong_buyer = reserve_mainnet_canary(
+        context({"signature": "three"}, payer="0x0000000000000000000000000000000000000000"),
+        expected_payer,
+    )
+
+    assert rejected is not None and rejected.reason == "mainnet_canary_already_used"
+    assert wrong_buyer is not None and wrong_buyer.reason == "mainnet_canary_buyer_rejected"
+    assert session.scalar(select(MainnetCanaryAttempt)) is not None
+    assert session.scalar(select(PaymentReceipt)).status == "verified"
 
 
 def test_usdc_atomic_amount_is_reported_as_cents() -> None:
@@ -224,4 +277,37 @@ async def test_disabled_service_bypasses_payment_challenge() -> None:
     response = await middleware.dispatch(request, route_handler)
 
     assert response.status_code == 404
+    assert payment_calls == []
+
+
+@pytest.mark.asyncio
+async def test_mainnet_canary_rejects_b2b_and_service_credit_bypasses() -> None:
+    middleware = object.__new__(MainnetCanaryX402Middleware)
+    payment_calls = []
+
+    async def payment_handler(request, call_next):
+        del request, call_next
+        payment_calls.append(True)
+        return JSONResponse({"payment": "required"}, status_code=402)
+
+    async def route_handler(request):
+        del request
+        return JSONResponse({"unexpected": True})
+
+    middleware._payment_handler = payment_handler
+    request = Request(
+        {
+            "type": "http",
+            "method": "POST",
+            "path": MAINNET_CANARY_PATH,
+            "headers": [(b"authorization", b"Bearer private-key")],
+            "query_string": b"",
+            "scheme": "https",
+            "server": ("reachsocial.test", 443),
+        }
+    )
+
+    response = await middleware.dispatch(request, route_handler)
+
+    assert response.status_code == 403
     assert payment_calls == []
