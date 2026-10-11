@@ -33,7 +33,9 @@ header {
   border-bottom: 1px solid rgba(80, 122, 108, .35);
 }
 .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 1.15rem; letter-spacing: -.035em; }
-.brand-mark { display: grid; place-items: center; width: 30px; height: 30px; border: 1px solid var(--accent-2); border-radius: 8px; color: var(--accent); font-size: .9rem; }
+.brand-logo { display: block; width: 30px; height: 30px; }
+.footer-brand { display: flex; align-items: center; gap: 16px; }
+.footer-logo { display: block; flex: 0 0 auto; width: 64px; height: 64px; }
 nav { display: flex; flex-wrap: wrap; gap: 20px; }
 nav a, footer { color: var(--muted); }
 nav a:hover, h2 a:hover, h3 a:hover, .section-heading a:hover, .machine-links a:hover { color: var(--accent); }

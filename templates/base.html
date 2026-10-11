@@ -8,13 +8,14 @@
     <link rel="alternate" type="text/plain" href="/llms.txt" title="ReachSocial LLM guide">
     <link rel="alternate" type="text/markdown" href="/agent.md" title="ReachSocial agent guide">
     <link rel="service-desc" type="application/openapi+json" href="/openapi.json">
+    <link rel="icon" href="/static/favicon.ico?v=20261011-1" sizes="128x128">
     <title>{% block title %}ReachSocial{% endblock %}</title>
     <link rel="stylesheet" href="/static/site.css?v=20261011-5">
     <script src="/static/site.js?v=20261011-1" defer></script>
   </head>
   <body>
-    <header><a class="brand" href="/"><span class="brand-mark">R</span>ReachSocial</a><nav><a href="/catalog">Catalog</a><a href="/pricing">Pricing</a><a href="/docs/api">Docs</a><a href="/agent.md">Agents</a><a href="/status">Status</a></nav></header>
+    <header><a class="brand" href="/"><img class="brand-logo" src="/static/reachsocial-logo.svg" alt="" width="30" height="30">ReachSocial</a><nav><a href="/catalog">Catalog</a><a href="/pricing">Pricing</a><a href="/docs/api">Docs</a><a href="/agent.md">Agents</a><a href="/status">Status</a></nav></header>
     <main>{% block content %}{% endblock %}</main>
-    <footer><div><strong>ReachSocial</strong><p>One API for public social media data. Pay per request with USDC.</p></div><nav aria-label="Footer"><a href="/openapi.json">OpenAPI</a><a href="/llms.txt">llms.txt</a><a href="/.well-known/api-catalog">API catalog</a><a href="/contact">Contact</a><a href="/legal/terms">Terms</a><a href="/legal/privacy">Privacy</a><a href="/legal/acceptable-use">Acceptable use</a><a href="/legal/refunds">Refunds</a></nav></footer>
+    <footer><div class="footer-brand"><img class="footer-logo" src="/static/reachsocial-logo.svg" alt="" width="64" height="64"><div><strong>ReachSocial</strong><p>One API for public social media data. Pay per request with USDC.</p></div></div><nav aria-label="Footer"><a href="/openapi.json">OpenAPI</a><a href="/llms.txt">llms.txt</a><a href="/.well-known/api-catalog">API catalog</a><a href="/contact">Contact</a><a href="/legal/terms">Terms</a><a href="/legal/privacy">Privacy</a><a href="/legal/acceptable-use">Acceptable use</a><a href="/legal/refunds">Refunds</a></nav></footer>
   </body>
 </html>

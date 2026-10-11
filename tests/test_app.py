@@ -75,6 +75,11 @@ def test_health_and_mcp_gate() -> None:
         copy_script = client.get("/static/site.js").text
         assert "navigator.clipboard.writeText" in copy_script
         assert "Select and copy the prompt manually." in copy_script
+        assert 'href="/static/favicon.ico?v=20261011-1"' in home
+        assert 'class="brand-logo"' in home
+        assert 'class="footer-logo"' in home
+        assert client.get("/static/reachsocial-logo.svg").status_code == 200
+        assert client.get("/static/favicon.ico").status_code == 200
         assert 'class="section-heading" id="x"' in catalog_page
         assert "X Public Posts" in catalog_page
         assert "Available" in client.get("/services/x.feed").text
