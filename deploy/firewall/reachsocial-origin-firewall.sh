@@ -13,6 +13,7 @@ cloudflare_ipv6=(
   2400:cb00::/32 2606:4700::/32 2803:f800::/32 2405:b500::/32
   2405:8100::/32 2a06:98c0::/29 2c0f:f248::/32
 )
+external_interface="${REACHSOCIAL_EXTERNAL_INTERFACE:-eth0}"
 
 apply_rules() {
   local firewall="$1"
@@ -23,9 +24,9 @@ apply_rules() {
   "$firewall" -F "$chain"
   for protocol in tcp udp; do
     for range in "$@"; do
-      "$firewall" -A "$chain" -p "$protocol" --dport 443 -s "$range" -j RETURN
+      "$firewall" -A "$chain" -i "$external_interface" -p "$protocol" --dport 443 -s "$range" -j RETURN
     done
-    "$firewall" -A "$chain" -p "$protocol" --dport 443 -j DROP
+    "$firewall" -A "$chain" -i "$external_interface" -p "$protocol" --dport 443 -j DROP
   done
   "$firewall" -A "$chain" -j RETURN
   "$firewall" -C DOCKER-USER -j "$chain" 2>/dev/null || \
