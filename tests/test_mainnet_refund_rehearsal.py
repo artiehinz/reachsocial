@@ -32,3 +32,25 @@ def test_exact_transfer_receipt_validation() -> None:
     assert not refund.has_exact_usdc_transfer(
         receipt, sender=sender, recipient=recipient, amount_atomic=50_001
     )
+
+
+def test_exact_transfer_receipt_accepts_web3_byte_values() -> None:
+    refund = load_script()
+    sender = "0x76bCc44696A4c67579A6aF2F25CF953BE0931E38"
+    recipient = "0xcf8fD9bd415C36326597E8079fCb3125FE2dB369"
+    receipt = {
+        "logs": [
+            {
+                "address": refund.BASE_USDC,
+                "topics": [
+                    bytes.fromhex(refund.TRANSFER_EVENT.removeprefix("0x")),
+                    bytes.fromhex(refund.padded_topic(sender).removeprefix("0x")),
+                    bytes.fromhex(refund.padded_topic(recipient).removeprefix("0x")),
+                ],
+                "data": (50_000).to_bytes(32, "big"),
+            }
+        ]
+    }
+    assert refund.has_exact_usdc_transfer(
+        receipt, sender=sender, recipient=recipient, amount_atomic=50_000
+    )

@@ -204,3 +204,11 @@ requires a hidden local recovery-phrase entry, confirms the Base chain and
 recipient, and verifies the resulting ERC-20 transfer. Without
 `--confirm-refund`, it is a dry run. It does not write wallet material, signed
 transactions, or payment signatures to disk.
+
+**Completed 2026-10-11:** the merchant returned 50,000 native Base-USDC atomic
+units to the independent buyer. The transaction and exact ERC-20 transfer log
+were reconciled in the protected operations record. The first local command
+reported a receipt-validation failure after the broadcast because Web3 returned
+the log fields as bytes; the transfer itself was successful. The verifier now
+normalizes those fields, has regression coverage, and must not be used to send
+a second refund for this rehearsal.

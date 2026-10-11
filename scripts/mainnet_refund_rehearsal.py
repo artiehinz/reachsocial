@@ -20,7 +20,7 @@ from web3 import Web3
 BASE_MAINNET_CHAIN_ID = 8453
 BASE_MAINNET_RPC = "https://mainnet.base.org"
 BASE_USDC = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
-TRANSFER_EVENT = Web3.keccak(text="Transfer(address,address,uint256)").hex()
+TRANSFER_EVENT = Web3.to_hex(Web3.keccak(text="Transfer(address,address,uint256)"))
 MIN_GAS_LIMIT = 70_000
 
 USDC_ABI = [
@@ -48,14 +48,26 @@ def padded_topic(address: str) -> str:
     return "0x" + "0" * 24 + address.lower().removeprefix("0x")
 
 
+def hex_value(value: object) -> str:
+    if isinstance(value, (bytes, bytearray)):
+        return "0x" + bytes(value).hex()
+    return str(value)
+
+
+def atomic_value(value: object) -> int:
+    if isinstance(value, (bytes, bytearray)):
+        return int.from_bytes(value, "big")
+    return int(str(value), 16)
+
+
 def has_exact_usdc_transfer(
     receipt: dict[str, Any], *, sender: str, recipient: str, amount_atomic: int
 ) -> bool:
     return any(
         str(log.get("address", "")).lower() == BASE_USDC.lower()
-        and [str(topic).lower() for topic in log.get("topics", [])]
+        and [hex_value(topic).lower() for topic in log.get("topics", [])]
         == [TRANSFER_EVENT.lower(), padded_topic(sender), padded_topic(recipient)]
-        and int(str(log.get("data", "0x0")), 16) == amount_atomic
+        and atomic_value(log.get("data", "0x0")) == amount_atomic
         for log in receipt.get("logs", [])
     )
 
@@ -150,6 +162,7 @@ def run(args: argparse.Namespace) -> None:
     if not has_exact_usdc_transfer(
         receipt, sender=merchant, recipient=buyer, amount_atomic=args.amount_atomic
     ):
+        print(f"Refund transaction broadcast; receipt requires manual reconciliation: {transaction_hash}")
         raise RuntimeError("confirmed transaction did not contain the expected native Base-USDC refund")
     print(f"Refund settled and verified: {transaction_hash}")
 
