@@ -65,6 +65,12 @@ The health endpoint is `/healthz`. Public discovery starts at `/agent.md`,
   `/mnt/reachsocial_data_tor1_01/apps/reachsocial`. Docker and containerd data
   on the Droplet also live under that volume. Root-disk paths are not the
   deployment source of truth.
+- Both domains are proxied by Cloudflare with authenticated origin pulls
+  enabled. Caddy requires Cloudflare's client certificate, and the host's
+  Docker `DOCKER-USER` chain permits only current Cloudflare ranges on TCP and
+  UDP 443. Keep `deploy/firewall/reachsocial-origin-firewall.sh` aligned with
+  Cloudflare's published IP ranges; port 80 remains public for certificate
+  renewal and only redirects to HTTPS.
 - Verify a release at `https://reachsocial.dev/healthz`, then confirm the
   running image tag contains the exact deployed SHA.
 
