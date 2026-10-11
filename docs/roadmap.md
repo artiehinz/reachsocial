@@ -2,10 +2,12 @@
 
 ## Paid MVP catalog completion — current state
 
-The catalog contains 18 reviewed services. Two Instagram services are available
-on Base mainnet; fifteen integrations remain private; and Instagram current
-stories is paused. Seventeen services are selected for the paid MVP: every
-entry except current stories.
+The catalog contains 18 reviewed services. The current Base-mainnet batch makes
+nine services available: Person News, Instagram profile and post, X profile,
+post, and public-post feed, and TikTok profile, video, and feed. Eight
+integrations remain private, LinkedIn remains held by its provider, and
+Instagram current stories is paused. Seventeen services are selected for the
+paid MVP: every entry except current stories.
 
 The shared release foundation is complete in code: maximum provider units are
 reserved before payment settlement, uncertain provider use remains held for
@@ -36,8 +38,9 @@ The current public-mainnet release dependencies are:
    five fresh profiles returned `not_found`, including the provider's
    documented example. Hold public release until a successful bounded sample,
    protected async flow, recovery, and fresh real-USDC acceptance pass.
-2. Each private service, including `news.person`, still needs its own paid
-   recovery acceptance and 24-hour reconciliation before public promotion.
+2. The current nine-service batch needs its owner-local paid recovery
+   acceptance and 24-hour reconciliation before the next stage. Each remaining
+   private service needs the same evidence before public promotion.
 
 After those dependencies clear, release one stage at a time. For each stage:
 recheck the live provider balance and 1,000-credit reserve, deploy the immutable

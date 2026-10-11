@@ -9,8 +9,8 @@ services:
       - {name: max_items, description: Maximum recent articles to return., required: false, format: integer, default: 50, minimum: 1, maximum: 100}
     provider: {name: gdelt, route: https://api.gdeltproject.org/api/v2/doc/doc, method: GET}
     enabled: true
-    public: false
-    catalog_status: private
+    public: true
+    catalog_status: available
     timeout_seconds: 20
     retries: 0
     cache_ttl_seconds: 21600
@@ -133,8 +133,8 @@ services:
       - {name: url, description: Canonical X profile URL., format: url}
     provider: {name: scrapecreators, route: https://api.scrapecreators.com/v1/twitter/profile, method: GET}
     enabled: true
-    public: false
-    catalog_status: private
+    public: true
+    catalog_status: available
     timeout_seconds: 25
     retries: 1
     cache_ttl_seconds: 21600
@@ -153,8 +153,8 @@ services:
       - {name: url, description: Canonical X status URL., format: url}
     provider: {name: scrapecreators, route: https://api.scrapecreators.com/v1/twitter/tweet, method: GET}
     enabled: true
-    public: false
-    catalog_status: private
+    public: true
+    catalog_status: available
     timeout_seconds: 25
     retries: 1
     cache_ttl_seconds: 3600
@@ -174,8 +174,8 @@ services:
       - {name: max_items, description: Maximum posts to return., required: false, format: integer, default: 12, minimum: 1, maximum: 30}
     provider: {name: scrapecreators, route: https://api.scrapecreators.com/v1/twitter/user-tweets, method: GET}
     enabled: true
-    public: false
-    catalog_status: private
+    public: true
+    catalog_status: available
     timeout_seconds: 30
     retries: 1
     cache_ttl_seconds: 600
@@ -194,8 +194,8 @@ services:
       - {name: url, description: Canonical TikTok profile URL., format: url}
     provider: {name: scrapecreators, route: https://api.scrapecreators.com/v1/tiktok/profile, method: GET}
     enabled: true
-    public: false
-    catalog_status: private
+    public: true
+    catalog_status: available
     timeout_seconds: 25
     retries: 1
     cache_ttl_seconds: 21600
@@ -216,8 +216,8 @@ services:
       - {name: cursor, description: Opaque provider-neutral pagination cursor., required: false, format: string}
     provider: {name: scrapecreators, route: https://api.scrapecreators.com/v3/tiktok/profile/videos, method: GET}
     enabled: true
-    public: false
-    catalog_status: private
+    public: true
+    catalog_status: available
     timeout_seconds: 30
     retries: 1
     cache_ttl_seconds: 600
@@ -236,8 +236,8 @@ services:
       - {name: url, description: Canonical TikTok video URL., format: url}
     provider: {name: scrapecreators, route: https://api.scrapecreators.com/v2/tiktok/video, method: GET}
     enabled: true
-    public: false
-    catalog_status: private
+    public: true
+    catalog_status: available
     timeout_seconds: 30
     retries: 1
     cache_ttl_seconds: 3600

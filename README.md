@@ -180,8 +180,9 @@ uv run python scripts/x402_mainnet_canary.py \
   --confirm-mainnet-canary
 ```
 
-Base mainnet is active for the two public Instagram services. Startup still
-blocks `eip155:8453` unless every public service has verified margins,
+Base mainnet is active for Person News, Instagram profile and post, and the X
+and TikTok profile, post, and feed services. Startup still blocks `eip155:8453`
+unless every public service has verified margins,
 `ALLOW_MAINNET_X402=true`, and encrypted external recovery is enabled. Nightly
 encrypted Restic backups and weekly DigitalOcean volume snapshots are configured.
 Private services remain outside public payment until each completes its own

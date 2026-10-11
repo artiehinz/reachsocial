@@ -6,8 +6,8 @@ Updated: 2026-10-11
 
 | State | Services |
 | --- | --- |
-| Available | `instagram.profile`, `instagram.post` |
-| Private | `news.person`, `instagram.feed`, `instagram.highlight`, `x.profile`, `x.feed`, `x.post`, `tiktok.profile`, `tiktok.feed`, `tiktok.video`, `youtube.channel`, `youtube.feed`, `youtube.video`, `linkedin.profile`, `facebook.profile`, `reddit.post` |
+| Available | `news.person`, `instagram.profile`, `instagram.post`, `x.profile`, `x.post`, `x.feed`, `tiktok.profile`, `tiktok.feed`, `tiktok.video` |
+| Private | `instagram.feed`, `instagram.highlight`, `youtube.channel`, `youtube.feed`, `youtube.video`, `linkedin.profile`, `facebook.profile`, `reddit.post` |
 | Paused | `instagram.stories` |
 
 `GET /v1/services` is intentionally the executable subset. `GET /v1/catalog`
@@ -36,9 +36,11 @@ paid acceptance pass. `news.person` is cost-classified as reviewed zero-fee
 GDELT work. Its first sample was rate-limited, and its bounded retry passed; it
 remains private while public release stages are held. Credential rotation,
 merchant-wallet custody, isolated restores, and the earlier independent-buyer
-acceptance passed. Base-mainnet payments are active for the two public
-Instagram services; private integrations remain subject to the staged gates in
-[the roadmap](roadmap.md).
+acceptance passed. The current Base-mainnet batch is Person News, the two
+Instagram services, and the X and TikTok routes. Its owner-local paid recovery
+acceptance and 24-hour observation remain the required evidence before another
+batch is promoted; the remaining private integrations are subject to the staged
+gates in [the roadmap](roadmap.md).
 
 ## URL resolution contract
 
@@ -67,8 +69,8 @@ REST is the current agent-ready surface:
   sitemap;
 - an honest MCP Server Card at `/.well-known/mcp.json` when MCP is enabled;
 - explicit available, private, planned, and paused catalog states;
-- B2B Bearer authentication and Base-mainnet x402 challenges for the two public
-  Instagram services;
+- B2B Bearer authentication and Base-mainnet x402 challenges for the current
+  nine-service batch;
 - durable async job submission/polling and replacement credits; and
 - idempotency, replay protection, entitlements, limits, cost accounting, and
   owner metrics.

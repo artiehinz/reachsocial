@@ -43,16 +43,23 @@ def test_health_and_mcp_gate() -> None:
         assert client.get("/mcp/server-card").status_code == 503
         assert client.get("/.well-known/mcp.json").status_code == 503
         assert [item["id"] for item in client.get("/v1/services").json()["services"]] == [
+            "news.person",
             "instagram.profile",
             "instagram.post",
+            "x.profile",
+            "x.post",
+            "x.feed",
+            "tiktok.profile",
+            "tiktok.feed",
+            "tiktok.video",
         ]
         services = client.get("/v1/services").json()["services"]
         assert all(item["schema_version"] == "1.0" for item in services)
-        assert [item["execution"] for item in services] == ["sync", "sync"]
+        assert [item["execution"] for item in services] == ["sync"] * 9
         roadmap = client.get("/v1/catalog").json()
         assert roadmap["summary"] == {
-            "available": 2,
-            "private": 15,
+            "available": 9,
+            "private": 8,
             "validation": 0,
             "planned": 0,
             "paused": 1,
@@ -65,7 +72,7 @@ def test_health_and_mcp_gate() -> None:
         assert 'href="/catalog#x"' in home
         assert 'class="section-heading" id="x"' in catalog_page
         assert "X Public Posts" in catalog_page
-        assert "Private" in client.get("/services/x.feed").text
+        assert "Available" in client.get("/services/x.feed").text
         assert "LinkedIn Public Profile" in catalog_page
         llms = client.get("/llms.txt")
         assert llms.headers["content-type"].startswith("text/plain")

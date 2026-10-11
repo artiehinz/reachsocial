@@ -25,22 +25,22 @@ def test_repository_catalog_passes_release_safety_validation() -> None:
     catalog = load_catalog()
     news = catalog.by_id("news.person")
     assert news.enabled is True
-    assert news.public is False
+    assert news.public is True
     assert news.provider.name == "gdelt"
     assert news.response_shape == "news"
-    assert news.status == "private"
+    assert news.status == "available"
     x_feed = catalog.by_id("x.feed")
     assert x_feed.enabled is True
-    assert x_feed.public is False
+    assert x_feed.public is True
     assert x_feed.provider.name == "scrapecreators"
-    assert x_feed.status == "private"
+    assert x_feed.status == "available"
     linkedin = catalog.by_id("linkedin.profile")
     assert linkedin.enabled is True
     assert linkedin.public is False
     assert linkedin.cost_verified is True
     assert linkedin.price_cents == 10
     assert linkedin.status == "private"
-    assert load_catalog().by_id("x.profile").status == "private"
+    assert load_catalog().by_id("x.profile").status == "available"
     assert load_catalog().by_id("instagram.stories").status == "paused"
 
 

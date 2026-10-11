@@ -1,11 +1,11 @@
 # Public payment operations
 
-This runbook covers staged Base-USDC release work. Instagram profile and post
-are the only currently available public services, at $0.05 each on Base
-mainnet. LinkedIn is a $0.10 private integration while its ScrapeCreators
-replacement returns `not_found`; it is not available for public payment. This
-runbook does not authorize another provider credit purchase, catalog expansion,
-or an AEU payment mode.
+This runbook covers staged Base-USDC release work. The current public batch is
+Person News, Instagram profile and post, X profile/post/feed, and TikTok
+profile/video/feed, each at $0.05 on Base mainnet. LinkedIn is a $0.10 private
+integration while its ScrapeCreators replacement returns `not_found`; it is not
+available for public payment. This runbook does not authorize another provider
+credit purchase, catalog expansion, or an AEU payment mode.
 
 For a fresh provider recheck, use `scripts/release_provider_acceptance.py` with
 `--recheck-passed`; it appends sanitized accounting evidence rather than
