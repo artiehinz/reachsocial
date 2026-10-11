@@ -112,6 +112,19 @@ wallet in a separate local wallet installation, confirm the configured
 material only in the owner-controlled password manager or hardware-wallet
 backup; do not place it on the Droplet, in CI, or in a support ticket.
 
+From the owner's local ReachSocial checkout, run the loopback-only verifier and
+open the printed address in that same wallet browser/profile:
+
+```bash
+uv run python scripts/merchant_wallet_custody_console.py \
+  --expected-address <X402_PAY_TO-address>
+```
+
+It expires after ten minutes, validates an EIP-191 message signature locally,
+and stores only the address, verification time, and challenge hash under the
+owner's local state directory. It never asks for, reads, or retains a recovery
+phrase or raw signature.
+
 Before setting `X402_NETWORK=eip155:8453` and `ALLOW_MAINNET_X402=true`, rotate
 the exposed CDP credential, run restore verification, check the credit balance,
 complete an independent-buyer acceptance for each route, and record the
