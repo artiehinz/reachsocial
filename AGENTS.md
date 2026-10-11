@@ -71,6 +71,8 @@ The health endpoint is `/healthz`. Public discovery starts at `/agent.md`,
   TCP and UDP 443. Keep `deploy/firewall/reachsocial-origin-firewall.sh`
   aligned with Cloudflare's published IP ranges; port 80 remains public for
   certificate renewal and only redirects to HTTPS.
+- GitHub deployments authenticate as the non-root `reachsocial` account. Root
+  SSH login is disabled; use the provider console for break-glass recovery.
 - Verify a release at `https://reachsocial.dev/healthz`, then confirm the
   running image tag contains the exact deployed SHA.
 
