@@ -54,6 +54,13 @@ The health endpoint is `/healthz`. Public discovery starts at `/agent.md`,
 
 ## Production and deployment
 
+- `artiehinz/reachsocial` is the private application/deployment repository.
+  `artiehinz/ReachSocial.dev` is a separate client-documentation repository;
+  never push this application tree or its history there. Its independent checkout
+  is `/mnt/instaget-nvme/herald-work/reachsocial-public-docs.xDAt7C`.
+  It is currently private pending cleanup of GitHub's retained historical
+  objects. See `docs/public-repository-cleanup.md` before changing visibility.
+
 - The canonical production branch is `main`. A successful CI run for a `main`
   commit runs `.github/workflows/deploy.yml`, builds an immutable image tagged
   with that exact commit SHA, snapshots the SQLite database, synchronizes and
