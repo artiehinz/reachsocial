@@ -169,7 +169,10 @@ def test_public_page_headers_and_live_mcp_status(monkeypatch) -> None:
         home = client.get("/")
         assert home.headers["x-content-type-options"] == "nosniff"
         assert "frame-ancestors 'none'" in home.headers["content-security-policy"]
-        assert "script-src 'none'" in home.headers["content-security-policy"]
+        policy = home.headers["content-security-policy"]
+        assert "script-src 'self';" in policy
+        assert "'unsafe-inline'" not in policy
+        assert "'unsafe-eval'" not in policy
         assert client.get("/healthz").headers["cache-control"] == "no-store"
         monkeypatch.setattr(app.state.settings, "mcp_enabled", True)
         assert "MCP is available to approved B2B clients" in client.get("/status").text
