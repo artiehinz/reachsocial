@@ -190,3 +190,17 @@ previous images. Same-volume snapshots do not satisfy the external-backup gate.
 
 InstaGet consumes the private Instagram, X, TikTok, and YouTube services through
 its separate server-only client; ReachSocial still never downloads media bytes.
+
+## Website wording and layout
+
+The public site leads with one API for social data, agent setup via `/agent.md`,
+and per-request USDC pricing. Keep public coverage and prices derived from the
+catalog; private integrations and services on hold must remain explicitly labeled.
+“No account or API key” applies to public paid REST calls, not private access or
+MCP. Agent setup requires a compatible wallet and an owner-approved spending limit.
+Do not imply that sharing a URL connects a wallet or that every social platform is
+publicly supported. Catalog availability is not a live provider-health measurement.
+
+Templates live in `templates/`, styling in `static/site.css`. Bump the CSS query
+version in `templates/base.html` after stylesheet changes. Check narrow and desktop
+viewports and keep the clickable platform links pointing to `/catalog#<platform>`.

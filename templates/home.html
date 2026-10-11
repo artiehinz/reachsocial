@@ -1,41 +1,53 @@
 {% extends "base.html" %}
-{% block title %}ReachSocial — Social data for apps and agents{% endblock %}
+{% block title %}ReachSocial — One API for social media data{% endblock %}
 {% block content %}
+{% set prices = catalog.public_services()|map(attribute='price_cents')|unique|list %}
 <section class="hero">
-  <p class="eyebrow">SOCIAL DATA FOR SOFTWARE AND AGENTS</p>
-  <h1>Social profiles and posts, through one API.</h1>
-  <p>Get public Instagram profile and post data through a consistent JSON contract. Approved API-key clients can also use the integrations we are still preparing for wider release.</p>
-  <p>{% if request.app.state.settings.x402_network == "eip155:84532" %}Public x402 payments currently use Base Sepolia testnet. General real-USDC sales are not open yet.{% else %}Public x402 payments use {{ payment_network }}.{% endif %} <a href="/pricing">See prices and payment details</a>.</p>
-  <div class="actions"><a class="button" href="/catalog">Explore the catalog</a><a class="button secondary" href="/agent.md">Open the agent guide</a></div>
-  <div class="machine-links"><a href="/llms.txt">llms.txt</a><a href="/openapi.json">OpenAPI</a><a href="/.well-known/api-catalog">API catalog</a></div>
+  <div>
+    <p class="eyebrow">SOCIAL DATA FOR YOUR APP OR AI AGENT</p>
+    <h1>One API for social media data.</h1>
+    <p>Get public profiles, posts, and feeds from Instagram, X, and TikTok through ReachSocial. Connect once and get JSON your app or agent can use.</p>
+    <p>Pay for each successful request in USDC. No subscription or prepaid credit pack.</p>
+    <div class="actions"><a class="button" href="#agent-setup">Set up with your agent</a><a class="button secondary" href="/catalog">View available APIs</a></div>
+    <p class="availability">{{ catalog.public_services()|length }} public APIs · <a href="/pricing">{% if prices|length == 1 %}${{ '%.2f'|format(prices[0] / 100) }} per request{% else %}See prices{% endif %}</a> · {{ payment_network }}</p>
+    {% if request.app.state.settings.x402_network == "eip155:84532" %}<p class="notice">Payments are currently on testnet. Real-USDC sales are not open.</p>{% endif %}
+  </div>
+  <aside class="request-preview" aria-label="How a request works">
+    <p class="eyebrow">ONE ENTRY POINT</p>
+    <p class="endpoint">reachsocial.dev</p>
+    <ul class="source-list"><li>Instagram <span>Profiles · Posts &amp; reels</span></li><li>X <span>Profiles · Posts · Feeds</span></li><li>TikTok <span>Profiles · Videos · Feeds</span></li></ul>
+    <p class="preview-label">Choose a service and send its public URL</p>
+    <pre><code>POST /v1/services/instagram.profile/execute
+
+{"input": {
+  "url": "https://www.instagram.com/artie_hinz/"
+}}</code></pre>
+    <p class="muted">Your x402 client handles the payment request and returns the JSON result. <a href="/docs/api#public-request">See the request flow →</a></p>
+  </aside>
 </section>
 
-<section class="metrics" aria-label="Catalog summary">
-  <div><strong>{{ catalog.public_services()|length }}</strong><span>available services</span></div>
-  <div><strong>{{ catalog.discoverable_services()|length }}</strong><span>reviewed services</span></div>
-  <div><strong>{{ catalog.platforms()|length }}</strong><span>platforms mapped</span></div>
-  <div><strong>1.0</strong><span>normalized schema</span></div>
+<section class="price-summary">
+  <div><p class="eyebrow">PAY AS YOU USE IT</p><h2>Buy the requests you need.</h2><p>No monthly commitment. No unused credits sitting in a balance.</p></div>
+  <div>{% if prices|length == 1 %}<p class="price-display">${{ '%.2f'|format(prices[0] / 100) }} <span>per successful request</span></p><p>Same price across all {{ catalog.public_services()|length }} public APIs.</p>{% else %}<p>Each service lists its price before you pay.</p>{% endif %}<a class="text-link" href="/pricing">Prices and payment details →</a></div>
+</section>
+
+<section id="agent-setup" class="split">
+  <div><p class="eyebrow">AGENT READY</p><h2>Give your agent the link.</h2><p>Copy the setup prompt into your AI agent. It can read our guide, choose an available API, and help configure payment per request.</p><ol class="steps"><li><span>1</span><div><strong>Share the guide and your task</strong><p>Tell your agent which public profile or post you need.</p></div></li><li><span>2</span><div><strong>Connect your payment wallet</strong><p>Use an x402-compatible client with USDC on {{ payment_network }}. Choose a spending limit before enabling payments.</p></div></li><li><span>3</span><div><strong>Request data when you need it</strong><p>The client checks the price, signs the payment authorization, and receives JSON.</p></div></li></ol></div>
+  <div class="agent-prompt"><label for="agent-prompt">Copy this into your agent</label><textarea id="agent-prompt" readonly rows="8">Read https://reachsocial.dev/agent.md and help me set up ReachSocial for public social media data. Check which services are available and explain their prices. Help me connect an x402-compatible wallet using USDC on {{ payment_network }}. Ask me for a spending limit before making paid requests. Keep wallet secrets out of chat.</textarea><p class="muted">The agent needs HTTP tools and a compatible wallet integration to make paid calls. Sharing the guide alone does not connect a wallet.</p><a class="text-link" href="/agent.md">Read the agent guide →</a></div>
 </section>
 
 <section>
-  <div class="section-heading"><div><p class="eyebrow">COVERAGE</p><h2>Available services and what we are checking next.</h2></div><a href="/catalog">Full catalog →</a></div>
-  <div class="legend"><span><i class="dot available"></i>Available</span><span><i class="dot private"></i>Private integration</span><span><i class="dot planned"></i>Planned</span><span><i class="dot paused"></i>On hold</span></div>
+  <div class="section-heading"><div><p class="eyebrow">COVERAGE</p><h2>Start with these platforms.</h2></div><a href="/catalog">Full catalog →</a></div>
   <div class="platform-grid">
-  {% for platform, services in catalog.discoverable_services()|groupby('platform') %}
-    <a class="platform-card" href="/catalog#{{ platform|lower|replace(' ', '-') }}" aria-label="View {{ platform }} services in the catalog"><article><h3>{{ platform }}</h3><p>{{ services|length }} reviewed service{{ '' if services|length == 1 else 's' }}</p><div class="mini-statuses">{% for service in services %}<span class="dot {{ service.status }}" title="{{ service.status }}"></span>{% endfor %}</div></article></a>
+  {% for platform, services in catalog.public_services()|groupby('platform') %}
+    <a class="platform-card" href="/catalog#{{ platform|lower|replace(' ', '-') }}"><article><h3>{{ platform }}</h3><p>{{ services|length }} available APIs</p><ul>{% for service in services %}<li>{{ service.title }}</li>{% endfor %}</ul><span class="text-link">View APIs →</span></article></a>
   {% endfor %}
   </div>
+  <p class="coverage-note">More integrations are available to approved API-key clients. LinkedIn, Person News, and current Instagram stories are on hold. <a href="/catalog">Check coverage and access</a>.</p>
 </section>
 
 <section class="split">
-  <div><p class="eyebrow">QUICKSTART</p><h2>Choose a service, send a URL, get JSON.</h2><ol class="steps"><li><span>1</span><div><strong>Inspect the live catalog</strong><p>Use <code>GET /v1/services</code>. Roadmap entries never appear as executable.</p></div></li><li><span>2</span><div><strong>Send one canonical URL</strong><p>Call the synchronous execute route or create a durable asynchronous job.</p></div></li><li><span>3</span><div><strong>Consume schema 1.0</strong><p>Receive provider-neutral profiles, content items, feeds, and stories.</p></div></li></ol></div>
-  <div class="terminal"><div class="terminal-bar"><i></i><i></i><i></i><span>agent</span></div><pre><code>GET https://reachsocial.dev/v1/services
-
-POST /v1/services/instagram.profile/execute
-Idempotency-Key: &lt;fresh-random-UUID&gt;
-
-{"input":{"url":"https://instagram.com/nasa"}}</code></pre></div>
+  <div><h2>Start without an account.</h2><p>Public paid requests need no ReachSocial signup or API key. Your client pays in USDC through x402, the HTTP payment protocol.</p><p>Private integrations and MCP access use approved API keys. <a href="/contact">Contact us</a> if you need that access.</p></div>
+  <div><h2>Keep the result you paid for.</h2><p>If a response is lost, use the original request key and input to recover it for 30 days without another payment or upstream request.</p><p>Responses include metadata and source media links. ReachSocial does not host the media files. <a href="/docs/api#recovery">Read about result recovery</a>.</p></div>
 </section>
-
-<section><p class="eyebrow">WHY REACHSOCIAL</p><h2>Built for the ordinary ways requests go wrong.</h2><div class="cards"><article><h3>One contract</h3><p>Stable service IDs and normalized response shapes keep provider-specific payload changes out of your application.</p></article><article><h3>Easy to inspect</h3><p>OpenAPI, llms.txt, agent.md, and the API catalog describe the same reviewed services.</p></article><article><h3>Limits that matter</h3><p>Idempotency, concurrency limits, upstream spend caps, durable jobs, and replay protection put a ceiling on expensive mistakes.</p></article><article><h3>No media warehouse</h3><p>ReachSocial returns source URLs and metadata. It does not download or keep the social-media bytes you request.</p></article></div></section>
 {% endblock %}
