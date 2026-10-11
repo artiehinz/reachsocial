@@ -3,8 +3,9 @@
 {% block content %}
 <section class="hero">
   <p class="eyebrow">SOCIAL DATA FOR SOFTWARE AND AGENTS</p>
-  <h1>Social data your app can depend on.</h1>
-  <p>ReachSocial returns public profiles and content in one consistent format, so an upstream provider change does not have to become your outage. Use a private B2B key, or pay per request with x402 on {{ payment_network }}.</p>
+  <h1>Social profiles and posts, through one API.</h1>
+  <p>Get Instagram profiles and posts, or submit a LinkedIn profile job. Responses use a consistent JSON format. Approved API-key clients can also access our private integrations.</p>
+  <p>{% if request.app.state.settings.x402_network == "eip155:84532" %}Public x402 payments currently use Base Sepolia testnet. General real-USDC sales are not open yet.{% else %}Public x402 payments use {{ payment_network }}.{% endif %} <a href="/pricing">See prices and payment details</a>.</p>
   <div class="actions"><a class="button" href="/catalog">Explore the catalog</a><a class="button secondary" href="/agent.md">Open the agent guide</a></div>
   <div class="machine-links"><a href="/llms.txt">llms.txt</a><a href="/openapi.json">OpenAPI</a><a href="/.well-known/api-catalog">API catalog</a></div>
 </section>
@@ -17,7 +18,7 @@
 </section>
 
 <section>
-  <div class="section-heading"><div><p class="eyebrow">COVERAGE</p><h2>What you can call today, and what is still under review.</h2></div><a href="/catalog">Full catalog →</a></div>
+  <div class="section-heading"><div><p class="eyebrow">COVERAGE</p><h2>Available services and planned coverage.</h2></div><a href="/catalog">Full catalog →</a></div>
   <div class="platform-grid">
   {% for platform, services in catalog.discoverable_services()|groupby('platform') %}
     <article><h3>{{ platform }}</h3><p>{{ services|length }} reviewed service{{ '' if services|length == 1 else 's' }}</p><div class="mini-statuses">{% for service in services %}<span class="dot {{ service.status }}" title="{{ service.status }}"></span>{% endfor %}</div></article>
@@ -26,11 +27,11 @@
 </section>
 
 <section class="split">
-  <div><p class="eyebrow">QUICKSTART</p><h2>Discover, call, normalize.</h2><ol class="steps"><li><span>1</span><div><strong>Inspect the live catalog</strong><p>Use <code>GET /v1/services</code>. Roadmap entries never appear as executable.</p></div></li><li><span>2</span><div><strong>Send one canonical URL</strong><p>Call the synchronous execute route or create a durable asynchronous job.</p></div></li><li><span>3</span><div><strong>Consume schema 1.0</strong><p>Receive provider-neutral profiles, content items, feeds, and stories.</p></div></li></ol></div>
+  <div><p class="eyebrow">QUICKSTART</p><h2>Choose a service, send a URL, get JSON.</h2><ol class="steps"><li><span>1</span><div><strong>Inspect the live catalog</strong><p>Use <code>GET /v1/services</code>. Roadmap entries never appear as executable.</p></div></li><li><span>2</span><div><strong>Send one canonical URL</strong><p>Call the synchronous execute route or create a durable asynchronous job.</p></div></li><li><span>3</span><div><strong>Consume schema 1.0</strong><p>Receive provider-neutral profiles, content items, feeds, and stories.</p></div></li></ol></div>
   <div class="terminal"><div class="terminal-bar"><i></i><i></i><i></i><span>agent</span></div><pre><code>GET https://reachsocial.dev/v1/services
 
 POST /v1/services/instagram.profile/execute
-Idempotency-Key: lookup-001
+Idempotency-Key: &lt;fresh-random-UUID&gt;
 
 {"input":{"url":"https://instagram.com/nasa"}}</code></pre></div>
 </section>

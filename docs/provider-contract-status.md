@@ -34,7 +34,8 @@ mainnet application configuration reserves 1,000 credits for InstaGet before
 new public work can be accepted, and holds the maximum retry units before a
 payment reaches the provider. No automatic top-up exists. The existing Instagram
 endpoints remain on Base Sepolia until the independent public-launch holds are
-complete. The X and TikTok endpoints remain `enabled: false` and `public: false`.
+complete. The reviewed X and TikTok endpoints are enabled privately for explicitly entitled
+clients; they remain `public: false`. See the runtime catalog and prelaunch audit.
 
 ### Bounded product-discovery batch — 2026-08-25
 

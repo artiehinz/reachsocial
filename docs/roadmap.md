@@ -8,6 +8,10 @@ Base-mainnet USDC canary and a separate independent three-route acceptance
 settled and recovered their results. The acceptance handler is disarmed;
 general Base-mainnet sales remain intentionally blocked.
 
+**Audit hold:** [the prelaunch audit](prelaunch-audit-2026-10-11.md) found shared-credit
+accounting, SDK edge access, recovery-key strength, and monitoring gaps. Resolve
+these before the release decision; prior payment acceptance alone is insufficient.
+
 Do not set `X402_NETWORK=eip155:8453` or `ALLOW_MAINNET_X402=true` until every
 item below is complete and recorded in the release notes.
 

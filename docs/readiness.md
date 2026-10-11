@@ -20,7 +20,8 @@ credential-gated live coverage. They are executable only for explicitly
 entitled internal clients. The three available services have a documented
 margin-safe replacement-cost basis. Credential rotation, merchant-wallet
 custody, isolated restores, and independent-buyer acceptance have passed.
-General public Base-mainnet sale now awaits an explicit release decision; that
+General public Base-mainnet sale awaits the fixes in
+[the prelaunch audit](prelaunch-audit-2026-10-11.md) and a release decision; that
 hold does not block InstaGet's funded internal MVP use.
 
 ## URL resolution contract
@@ -56,9 +57,9 @@ REST is the current agent-ready surface:
 
 The MCP implementation now generates exact per-service tools, sends
 long-running services through durable jobs, and authorizes job polling by the
-calling B2B client. It remains disabled in production. Enabling it requires a
-scoped MCP client, live protocol smoke test, rate/concurrency acceptance, and
-operational monitoring. Public unpaid MCP is not planned.
+calling B2B client. Production enables authenticated MCP and its server card was reachable on
+2026-10-11. The website reads that live setting. A fresh authenticated protocol
+and limit acceptance was not rerun in the prelaunch audit. Public unpaid MCP is not planned.
 
 ## InstaGet readiness
 
@@ -96,8 +97,8 @@ flow makes two parallel requests (profile plus posts), so its upstream cost is
 $0.00376 or $0.001988 at those respective plans. ScrapeCreators documents cache
 hits as zero credits, and ReachSocial also retains its own bounded service
 caches. Existing account credits are sufficient for the internal MVP. Public
-ReachSocial sale and reconciliation against the actual purchased pack remain a
-separate later approval.
+ReachSocial sale uses documented replacement pricing; actual acquisition expense
+is recorded separately. No purchase is required for existing-credit tests.
 
 ## Ordered next release work
 

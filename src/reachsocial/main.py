@@ -141,6 +141,16 @@ def create_app() -> FastAPI:
             else None
         )
         response.headers.setdefault("Cache-Control", header_value or "no-store")
+        response.headers.setdefault("X-Content-Type-Options", "nosniff")
+        response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+        response.headers.setdefault("X-Frame-Options", "DENY")
+        if response.headers.get("content-type", "").startswith("text/html") and request.url.path != "/docs" and request.url.path != "/redoc":
+            response.headers.setdefault(
+                "Content-Security-Policy",
+                "default-src 'self'; script-src 'none'; style-src 'self'; "
+                "img-src 'self' data:; base-uri 'none'; object-src 'none'; "
+                "frame-ancestors 'none'; form-action 'self'",
+            )
         return response
 
     if settings.x402_enabled:
