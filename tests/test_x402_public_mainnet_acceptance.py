@@ -37,7 +37,10 @@ def test_select_requirement_requires_the_exact_base_usdc_quote() -> None:
         ]
     )
 
-    assert acceptance.select_requirement(required, expected_pay_to="0xMERCHANT", amount=50_000).amount == "50000"
+    assert (
+        acceptance.select_requirement(required, expected_pay_to="0xMERCHANT", amount=50_000).amount
+        == "50000"
+    )
     with pytest.raises(ValueError, match="exact native Base-USDC"):
         acceptance.select_requirement(required, expected_pay_to="0xmerchant", amount=100_000)
 
@@ -50,3 +53,17 @@ def test_public_endpoint_and_price_follow_the_service_contract() -> None:
         "https://reachsocial.dev/v1/services/instagram.profile/execute"
     )
     assert acceptance.amount_atomic(service) == 50_000
+
+
+@pytest.mark.asyncio
+async def test_payment_rate_window_waits_a_full_minute(monkeypatch) -> None:
+    waits: list[int] = []
+
+    async def sleep(seconds: int) -> None:
+        waits.append(seconds)
+
+    monkeypatch.setattr(acceptance.asyncio, "sleep", sleep)
+
+    await acceptance.wait_for_payment_rate_window()
+
+    assert waits == [30, 30, 1]

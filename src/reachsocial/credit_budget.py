@@ -166,6 +166,19 @@ def finalize(session: Session, payment_id: str) -> None:
     session.commit()
 
 
+def release(session: Session, payment_id: str) -> None:
+    """Release a hold for a payment canceled before provider dispatch."""
+    reservation = session.scalar(
+        select(ProviderCreditReservation).where(ProviderCreditReservation.payment_id == payment_id)
+    )
+    if reservation is None or reservation.status != "reserved":
+        return
+    reservation.status = "released"
+    reservation.reserved_units = 0
+    reservation.consumed_units = 0
+    session.commit()
+
+
 def reconcile_pending(session: Session) -> int:
     """Finalize reservations whose provider attempt is already durable."""
     payment_ids = list(

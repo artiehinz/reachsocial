@@ -224,7 +224,9 @@ rearming a historical acceptance handler. Its `--dry-run` validates the live
 Base-USDC quote without signing. Paid mode requires both
 `--confirm-mainnet-payments` and `--max-total-atomic`; it caps the batch,
 validates each exact quote, then recovers each paid result using its original
-idempotency key. Run it only from the owner-controlled local checkout:
+idempotency key. It also pauses after every five payments by default to stay
+inside the public rate limit. Run it only from the owner-controlled local
+checkout:
 
 ```bash
 uv run python scripts/x402_public_mainnet_acceptance.py \

@@ -4,10 +4,11 @@ import hashlib
 import json
 import logging
 import re
+from datetime import UTC, datetime
 from typing import Any
 
 from cdp.x402 import create_facilitator_config
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.exc import IntegrityError
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
@@ -25,12 +26,14 @@ from .credit_budget import ProviderBalanceUnavailable, fetch_provider_balance
 from .credit_budget import finalize as finalize_credit_reservation
 from .credit_budget import reserve as reserve_credit_reservation
 from .db import SessionLocal
+from .errors import ReachSocialError
 from .models import (
     AsyncJob,
     Client,
     IdempotencyRecord,
     MainnetCanaryAttempt,
     PaymentReceipt,
+    PublicTestUsage,
 )
 
 PUBLIC_EXECUTE_ROUTE = "POST /v1/services/*/execute"
@@ -177,6 +180,51 @@ def _details(**values: Any) -> str:
     return json.dumps(values, sort_keys=True, separators=(",", ":"), default=str)
 
 
+def _payer_identity_hash(settings: Settings, payer: str) -> str:
+    salt = settings.admin_api_token or "reachsocial-public-test"
+    return hashlib.sha256(f"payer:{payer.lower()}:{salt}".encode()).hexdigest()
+
+
+def _reserve_verified_payer_daily_limit(session: Any, *, settings: Settings, payer: str) -> bool:
+    """Reserve a verified payer's daily quota before x402 can settle.
+
+    An after-verify hook runs before the x402 middleware invokes its settlement
+    endpoint.  Keeping this durable check here ensures capacity rejections
+    never arrive after a transfer.
+    """
+    identity = _payer_identity_hash(settings, payer)
+    day = datetime.now(UTC).date().isoformat()
+    result = session.execute(
+        update(PublicTestUsage)
+        .where(
+            PublicTestUsage.usage_day == day,
+            PublicTestUsage.identity_kind == "payer",
+            PublicTestUsage.identity_hash == identity,
+            PublicTestUsage.request_count < settings.public_test_daily_requests_per_identity,
+        )
+        .values(request_count=PublicTestUsage.request_count + 1)
+    )
+    if result.rowcount:
+        return True
+    if session.scalar(
+        select(PublicTestUsage.id).where(
+            PublicTestUsage.usage_day == day,
+            PublicTestUsage.identity_kind == "payer",
+            PublicTestUsage.identity_hash == identity,
+        )
+    ):
+        return False
+    session.add(
+        PublicTestUsage(
+            usage_day=day,
+            identity_kind="payer",
+            identity_hash=identity,
+            request_count=1,
+        )
+    )
+    return True
+
+
 def usdc_atomic_to_cents(amount: object) -> int:
     """Convert Base USDC's six-decimal atomic amount to whole cents."""
     try:
@@ -215,7 +263,7 @@ def reserve_payment_receipt(
                 "Public provider capacity could not be verified",
             )
     with SessionLocal() as session:
-        if reserves_scrapecreators and session.bind and session.bind.dialect.name == "sqlite":
+        if session.bind and session.bind.dialect.name == "sqlite":
             session.connection().exec_driver_sql("BEGIN IMMEDIATE")
         existing = session.scalar(
             select(PaymentReceipt).where(PaymentReceipt.payment_id == payment_id)
@@ -225,6 +273,18 @@ def reserve_payment_receipt(
                 "operational_alert kind=payment_replay service=%s", existing.service_id
             )
             return AbortResult("payment_replayed", "This payment has already been used")
+        payer = str(getattr(context.result, "payer", "")).strip()
+        if not payer or not _reserve_verified_payer_daily_limit(
+            session, settings=settings, payer=payer
+        ):
+            session.rollback()
+            logging.getLogger("reachsocial").warning(
+                "operational_alert kind=public_payment_daily_limit service=%s", service_id
+            )
+            return AbortResult(
+                "public_payment_daily_limit_reached",
+                "The public payment request limit has been reached for today",
+            )
         if reserves_scrapecreators and not reserve_credit_reservation(
             session,
             payment_id=payment_id,
@@ -256,9 +316,9 @@ def reserve_payment_receipt(
                 amount_cents=usdc_atomic_to_cents(getattr(context.requirements, "amount", None)),
                 network=str(context.requirements.network),
                 status="verified",
-                payer=getattr(context.result, "payer", None),
+                payer=payer,
                 details=_details(
-                    payer=getattr(context.result, "payer", None),
+                    payer=payer,
                     amount=getattr(context.requirements, "amount", None),
                 ),
             )
@@ -475,6 +535,31 @@ def mark_payment_canceled(context: Any) -> None:
     )
 
 
+def mark_verified_payment_canceled(context: Any) -> None:
+    """Record a handler rejection that occurred before settlement was attempted."""
+    payment_id = payment_id_from_payload(context.payment_payload)
+    with SessionLocal() as session:
+        receipt = session.scalar(
+            select(PaymentReceipt).where(PaymentReceipt.payment_id == payment_id)
+        )
+        if receipt is not None:
+            receipt.status = "canceled_before_settlement"
+            receipt.details = _details(
+                payer=receipt.payer,
+                transaction=None,
+                outcome="verified_canceled_before_settlement",
+                reason=getattr(context, "reason", "handler_failed"),
+            )
+            session.commit()
+    from .credit_budget import release as release_credit_reservation
+
+    with SessionLocal() as session:
+        release_credit_reservation(session, payment_id)
+    logging.getLogger("reachsocial").info(
+        "payment_canceled_before_settlement service=%s", _context_service_id(context)
+    )
+
+
 def mark_mainnet_canary_status(context: Any, status: str) -> None:
     payment_id = payment_id_from_payload(context.payment_payload)
     with SessionLocal() as session:
@@ -557,7 +642,7 @@ def create_x402_payment_handler(settings: Settings, catalog: Catalog):
     )
     server.on_after_settle(mark_payment_settled)
     server.on_settle_failure(mark_payment_canceled)
-    server.on_verified_payment_canceled(mark_payment_canceled)
+    server.on_verified_payment_canceled(mark_verified_payment_canceled)
     route = RouteConfig(
         accepts=PaymentOption(
             scheme="exact",
@@ -712,7 +797,34 @@ class ReachSocialX402Middleware(BaseHTTPMiddleware):
                 },
                 status_code=400,
             )
+        if service and _has_payment_signature(request):
+            try:
+                await reserve_pre_settlement_public_limit(request)
+            except ReachSocialError as error:
+                return JSONResponse(
+                    {
+                        "error": {
+                            "code": error.code,
+                            "message": error.message,
+                            "retryable": error.retryable,
+                        }
+                    },
+                    status_code=error.status_code,
+                )
         return await self._payment_handler(request, call_next)
+
+
+def _has_payment_signature(request: Request) -> bool:
+    return bool(request.headers.get("payment-signature") or request.headers.get("x-payment"))
+
+
+async def reserve_pre_settlement_public_limit(request: Request) -> None:
+    """Apply the IP rate and daily limits before a signed payment is verified."""
+    # Import lazily to avoid the api -> payments import cycle during app startup.
+    from .api import enforce_public_test_limits
+
+    with SessionLocal() as session:
+        await enforce_public_test_limits(request, session, None)
 
 
 def _has_paid_idempotency_recovery(service_id: str, idempotency_key: str) -> bool:

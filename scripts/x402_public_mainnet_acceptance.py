@@ -71,9 +71,7 @@ def select_requirement(payment_required: Any, *, expected_pay_to: str, amount: i
         and str(item.amount) == str(amount)
     ]
     if len(matches) != 1:
-        raise ValueError(
-            "payment challenge did not contain one exact native Base-USDC requirement"
-        )
+        raise ValueError("payment challenge did not contain one exact native Base-USDC requirement")
     return matches[0]
 
 
@@ -99,7 +97,9 @@ async def quote(
         json=body,
     )
     if response.status_code != 402:
-        raise RuntimeError(f"{service.id} expected an unpaid 402 challenge, received HTTP {response.status_code}")
+        raise RuntimeError(
+            f"{service.id} expected an unpaid 402 challenge, received HTTP {response.status_code}"
+        )
     payment_required = x402HTTPClient(x402Client()).get_payment_required_response(
         response.headers.get, response.json() if response.content else None
     )
@@ -163,7 +163,9 @@ async def pay_and_recover(
         json=body,
     )
     if recovery.status_code != 200:
-        raise RuntimeError(f"{service.id} paid-result recovery failed with HTTP {recovery.status_code}")
+        raise RuntimeError(
+            f"{service.id} paid-result recovery failed with HTTP {recovery.status_code}"
+        )
     result: dict[str, Any] = {
         "amount_atomic": amount_atomic(service),
         "network": settlement.network,
@@ -197,6 +199,13 @@ async def poll_job(http: httpx.AsyncClient, response: dict[str, Any]) -> str:
     raise RuntimeError("async acceptance polling timed out")
 
 
+async def wait_for_payment_rate_window() -> None:
+    """Wait one full limiter window without a single long blocking sleep."""
+    print("Waiting one minute for the public-payment rate window...", flush=True)
+    for seconds in (30, 30, 1):
+        await asyncio.sleep(seconds)
+
+
 async def run(args: argparse.Namespace) -> list[dict[str, Any]]:
     targets = args.target
     if len({target.service_id for target in targets}) != len(targets):
@@ -207,7 +216,9 @@ async def run(args: argparse.Namespace) -> list[dict[str, Any]]:
         service = catalog.by_id(target.service_id)
         if service is None or not (service.enabled and service.public):
             raise ValueError(f"{target.service_id} is not an available public service")
-        planned.append((service, {"input": input_for(service, target)}, idempotency_key(service.id)))
+        planned.append(
+            (service, {"input": input_for(service, target)}, idempotency_key(service.id))
+        )
     total = sum(amount_atomic(service) for service, _body, _key in planned)
     if total > args.max_total_atomic:
         raise ValueError("planned payments exceed --max-total-atomic")
@@ -240,19 +251,25 @@ async def run(args: argparse.Namespace) -> list[dict[str, Any]]:
         signer = recover_buyer_account(mnemonic)
         if signer.address.lower() != args.expected_buyer.lower():
             raise ValueError("recovery phrase does not produce the approved buyer address")
-        return [
-            await pay_and_recover(
-                http,
-                signer=signer,
-                endpoint=endpoint_for(service, args.base_url),
-                service=service,
-                body=body,
-                key=key,
-                payment_required=payment_required,
-                base_url=args.base_url,
+        results: list[dict[str, Any]] = []
+        for index, ((service, body, key), payment_required) in enumerate(
+            zip(planned, quotes, strict=True)
+        ):
+            if index and index % args.max_payments_per_minute == 0:
+                await wait_for_payment_rate_window()
+            results.append(
+                await pay_and_recover(
+                    http,
+                    signer=signer,
+                    endpoint=endpoint_for(service, args.base_url),
+                    service=service,
+                    body=body,
+                    key=key,
+                    payment_required=payment_required,
+                    base_url=args.base_url,
+                )
             )
-            for (service, body, key), payment_required in zip(planned, quotes, strict=True)
-        ]
+        return results
 
 
 def main() -> None:
@@ -262,11 +279,14 @@ def main() -> None:
     parser.add_argument("--expected-buyer")
     parser.add_argument("--target", action="append", type=parse_target, required=True)
     parser.add_argument("--max-total-atomic", type=int, required=True)
+    parser.add_argument("--max-payments-per-minute", type=int, default=5)
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--confirm-mainnet-payments", action="store_true")
     args = parser.parse_args()
     if args.max_total_atomic < 1:
         parser.error("--max-total-atomic must be positive")
+    if args.max_payments_per_minute < 1:
+        parser.error("--max-payments-per-minute must be positive")
     if not args.dry_run and not args.confirm_mainnet_payments:
         parser.error("--confirm-mainnet-payments is required to send real USDC")
     if not args.dry_run and not args.expected_buyer:

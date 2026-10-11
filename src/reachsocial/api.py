@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import hmac
+import ipaddress
 import uuid
 from datetime import UTC, datetime, timedelta
 from typing import Annotated, Any
@@ -229,11 +230,34 @@ def _identity_hash(request: Request, kind: str, value: str) -> str:
     return hashlib.sha256(f"{kind}:{value}:{salt}".encode()).hexdigest()
 
 
+def public_client_ip(request: Request) -> str:
+    """Return Caddy's forwarded visitor IP when the immediate peer is private.
+
+    The application port is only reachable on the Docker network, while Caddy
+    clears and reconstructs ``X-Forwarded-For`` from Cloudflare's trusted client
+    address.  Do not accept a caller-supplied forwarded address when the app is
+    reached directly from a public peer.
+    """
+    peer = request.client.host if request.client else "unknown"
+    try:
+        is_private_peer = ipaddress.ip_address(peer).is_private
+    except ValueError:
+        is_private_peer = False
+    headers = getattr(request, "headers", {})
+    forwarded = (headers.get("x-forwarded-for") or "").split(",", 1)[0].strip()
+    if is_private_peer and forwarded:
+        try:
+            return str(ipaddress.ip_address(forwarded))
+        except ValueError:
+            pass
+    return peer
+
+
 async def enforce_public_test_limits(
     request: Request, session: Session, payment_id: str | None
 ) -> None:
     settings = request.app.state.settings
-    ip = request.client.host if request.client else "unknown"
+    ip = public_client_ip(request)
     identities = [("ip", _identity_hash(request, "ip", ip))]
     if payment_id:
         receipt = session.scalar(
@@ -587,9 +611,10 @@ async def execute_service(
                 )
             _ensure_public_payment(request)
         client = get_x402_public_client(session, request)
-        await _enforce_and_record_public_limits(
-            request, session, executor, client, service, body.input, payment_id
-        )
+        if service_credit:
+            await _enforce_and_record_public_limits(
+                request, session, executor, client, service, body.input, payment_id
+            )
         if service_credit:
             credit_used = consume_credit(session, service_credit, service)
             if not credit_used:
@@ -712,9 +737,10 @@ async def create_job(
                 )
             _ensure_public_payment(request)
         client = get_x402_public_client(session, request)
-        await _enforce_and_record_public_limits(
-            request, session, executor, client, service, body.input, payment_id
-        )
+        if service_credit:
+            await _enforce_and_record_public_limits(
+                request, session, executor, client, service, body.input, payment_id
+            )
         if service_credit and not consume_credit(session, service_credit, service):
             raise CreditUnavailable("The service credit was already consumed")
     job, token = submit_job(

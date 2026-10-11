@@ -13,7 +13,8 @@ from x402.http.types import HTTPRequestContext
 from reachsocial.catalog import Catalog, InputField, ProviderConfig, ServiceDefinition
 from reachsocial.config import Settings
 from reachsocial.credit_budget import ProviderBalanceUnavailable
-from reachsocial.models import MainnetCanaryAttempt, PaymentReceipt
+from reachsocial.errors import RateLimitExceeded
+from reachsocial.models import MainnetCanaryAttempt, PaymentReceipt, ProviderCreditReservation
 from reachsocial.payments import (
     MAINNET_ACCEPTANCE_PATHS,
     MAINNET_CANARY_PATH,
@@ -25,6 +26,7 @@ from reachsocial.payments import (
     mainnet_acceptance_safety_errors,
     mainnet_canary_safety_errors,
     mainnet_x402_safety_errors,
+    mark_verified_payment_canceled,
     payment_id_from_payload,
     price_for_public_execution,
     reserve_mainnet_acceptance,
@@ -315,6 +317,80 @@ def test_mainnet_payment_fails_before_settlement_when_balance_is_unavailable(
     assert session.scalar(select(PaymentReceipt)) is None
 
 
+def test_verified_payer_daily_limit_blocks_before_settlement(session, monkeypatch, catalog) -> None:
+    @contextmanager
+    def session_factory():
+        yield session
+
+    monkeypatch.setattr("reachsocial.payments.SessionLocal", session_factory)
+    settings = Settings(public_test_daily_requests_per_identity=1)
+
+    def context(signature: str):
+        return SimpleNamespace(
+            payment_payload={"signature": signature},
+            requirements=SimpleNamespace(network="eip155:84532", amount="50000"),
+            result=SimpleNamespace(payer="0xbuyer"),
+            transport_context=SimpleNamespace(
+                request=SimpleNamespace(path="/v1/services/instagram.profile/execute")
+            ),
+        )
+
+    assert reserve_payment_receipt(context("first"), settings=settings, catalog=catalog) is None
+    rejected = reserve_payment_receipt(context("second"), settings=settings, catalog=catalog)
+
+    assert rejected is not None
+    assert rejected.reason == "public_payment_daily_limit_reached"
+    assert len(list(session.scalars(select(PaymentReceipt)))) == 1
+
+
+def test_verified_payment_cancellation_releases_unused_credit_hold(session, monkeypatch) -> None:
+    @contextmanager
+    def session_factory():
+        yield session
+
+    monkeypatch.setattr("reachsocial.payments.SessionLocal", session_factory)
+    payload = {"signature": "cancel-before-settlement"}
+    payment_id = payment_id_from_payload(payload)
+    session.add(
+        PaymentReceipt(
+            payment_id=payment_id,
+            service_id="instagram.profile",
+            amount_cents=5,
+            network="eip155:8453",
+            status="verified",
+            payer="0xbuyer",
+        )
+    )
+    session.add(
+        ProviderCreditReservation(
+            payment_id=payment_id,
+            provider="scrapecreators",
+            service_id="instagram.profile",
+            status="reserved",
+            reserved_units=1,
+        )
+    )
+    session.commit()
+
+    mark_verified_payment_canceled(
+        SimpleNamespace(
+            payment_payload=payload,
+            reason="handler_failed",
+            transport_context=SimpleNamespace(
+                request=SimpleNamespace(path="/v1/services/instagram.profile/execute")
+            ),
+        )
+    )
+
+    receipt = session.scalar(select(PaymentReceipt).where(PaymentReceipt.payment_id == payment_id))
+    reservation = session.scalar(
+        select(ProviderCreditReservation).where(ProviderCreditReservation.payment_id == payment_id)
+    )
+    assert receipt.status == "canceled_before_settlement"
+    assert reservation.status == "released"
+    assert reservation.reserved_units == 0
+
+
 def test_mainnet_canary_reservation_allows_only_one_named_buyer(session, monkeypatch) -> None:
     @contextmanager
     def session_factory():
@@ -531,6 +607,47 @@ async def test_runtime_alert_pause_blocks_new_payment_challenges(catalog) -> Non
     response = await middleware.dispatch(request, lambda _request: None)
 
     assert response.status_code == 503
+    assert payment_calls == []
+
+
+@pytest.mark.asyncio
+async def test_signed_payment_is_rate_limited_before_x402_handler(catalog, monkeypatch) -> None:
+    middleware = object.__new__(ReachSocialX402Middleware)
+    middleware._catalog = catalog
+    payment_calls = []
+
+    async def payment_handler(request, call_next):
+        del request, call_next
+        payment_calls.append(True)
+        return JSONResponse({"unexpected": True})
+
+    async def reject_limit(request):
+        del request
+        raise RateLimitExceeded("Public test request rate limit exceeded")
+
+    monkeypatch.setattr("reachsocial.payments.reserve_pre_settlement_public_limit", reject_limit)
+    middleware._payment_handler = payment_handler
+    request = Request(
+        {
+            "type": "http",
+            "method": "POST",
+            "path": "/v1/services/instagram.profile/execute",
+            "headers": [
+                (b"idempotency-key", b"a" * 32),
+                (b"payment-signature", b"signed-payment"),
+            ],
+            "query_string": b"",
+            "scheme": "https",
+            "server": ("reachsocial.test", 443),
+            "app": SimpleNamespace(
+                state=SimpleNamespace(settings=Settings(), runtime=RuntimeState())
+            ),
+        }
+    )
+
+    response = await middleware.dispatch(request, lambda _request: None)
+
+    assert response.status_code == 429
     assert payment_calls == []
 
 
