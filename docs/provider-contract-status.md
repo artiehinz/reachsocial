@@ -44,6 +44,25 @@ reservation. No automatic top-up exists. The two accepted public Instagram
 routes now use Base mainnet; all other routes remain private or paused. See the
 runtime catalog and [roadmap](roadmap.md).
 
+### Fresh private-service recheck — 2026-10-11
+
+A second bounded pass rechecked the private catalog with no retries in the
+ScrapeCreators tool. It passed `news.person`; `instagram.feed` and
+`instagram.highlight`; all three X, TikTok, and YouTube services; and
+`facebook.profile` and `reddit.post`. The supplied highlight was no longer
+available, while the provider's documented saved-highlight sample passed.
+GDELT briefly rate-limited Person News, then passed on its bounded retry under
+the reviewed zero-cost classification.
+
+`linkedin.profile` returned `not_found` for both the supplied profile and the
+provider's own documented sample. It is therefore not eligible for public
+payment, asynchronous paid acceptance, or promotion. The release ledger now
+accounts for 33 conservative ScrapeCreators units against the 100-credit cap;
+the account balance after these checks was 6,799 credits, preserving the
+1,000-credit InstaGet reserve and 5,799 available credits. The fourteen passing
+services still need their own real-USDC recovery acceptance and 24-hour
+reconciliation before their catalog state can become `available`.
+
 ### Historical internal-consumer validation
 
 Earlier credentialed live samples passed for:

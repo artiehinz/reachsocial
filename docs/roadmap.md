@@ -20,10 +20,20 @@ profile/video/feed, Instagram feed/highlight, YouTube channel/video/feed,
 Facebook profile, and Reddit post. It used a 100-credit ledger and left 6,812
 provider credits, including the protected 1,000-credit InstaGet reserve.
 
+A fresh bounded recheck later that day passed fourteen private services:
+`news.person`; Instagram feed and saved highlight; X profile, post, and feed;
+TikTok profile, video, and feed; YouTube channel, video, and feed; Facebook
+profile; and Reddit post. The live balance was 6,799 credits afterward, or
+5,799 after the protected InstaGet reserve. The local ledger records 33
+conservative ScrapeCreators units against its 100-credit release cap. LinkedIn
+returned `not_found` again for both the supplied public profile and
+ScrapeCreators' documented sample, so it remains a provider dependency rather
+than a releasable service.
+
 The current public-mainnet release dependencies are:
 
 1. `linkedin.profile` now uses ScrapeCreators as a private integration, but
-   three fresh profiles returned `not_found`, including the provider's
+   five fresh profiles returned `not_found`, including the provider's
    documented example. Hold public release until a successful bounded sample,
    protected async flow, recovery, and fresh real-USDC acceptance pass.
 2. Each private service, including `news.person`, still needs its own paid

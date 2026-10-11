@@ -22,6 +22,13 @@ adapters added in this release. Their one-credit replacement-cost basis is
 recorded as 1,880 micro-USD per attempt. This is documented replacement pricing,
 not a purchased invoice.
 
+A fresh 2026-10-11 recheck passed all fourteen non-LinkedIn private services,
+including Person News under its reviewed zero-cost classification. The supplied
+saved highlight was unavailable, but the provider's documented saved-highlight
+sample passed. The protected ledger now records 33 conservative ScrapeCreators
+units out of its 100-credit allowance; the live balance was 6,799 credits, with
+the 1,000-credit InstaGet reserve intact.
+
 `linkedin.profile` is a private integration while ScrapeCreators returns
 `not_found` for both the supplied profile and the provider's own documented
 sample. Its public release remains held until a successful bounded sample and

@@ -75,6 +75,12 @@ def _already_passed(ledger: dict[str, Any], service_id: str) -> bool:
     )
 
 
+def _should_skip_service(
+    ledger: dict[str, Any], service_id: str, *, recheck_passed: bool
+) -> bool:
+    return _already_passed(ledger, service_id) and not recheck_passed
+
+
 def _write_ledger(path: Path, ledger: dict[str, Any]) -> None:
     path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
     temporary = path.with_suffix(f"{path.suffix}.tmp")
@@ -121,11 +127,20 @@ def _event(
 
 
 async def run(args: argparse.Namespace) -> list[dict[str, Any]]:
-    expected = STAGES[args.stage]
+    stage_services = STAGES[args.stage]
+    selected_services = tuple(args.only_service) or stage_services
+    if len(selected_services) != len(set(selected_services)):
+        raise ValueError("each selected service may appear only once")
+    unexpected_services = sorted(set(selected_services) - set(stage_services))
+    if unexpected_services:
+        raise ValueError(
+            f"selected services do not belong to stage {args.stage}: "
+            f"{', '.join(unexpected_services)}"
+        )
     targets = dict(args.target)
-    if set(targets) != set(expected):
-        missing = sorted(set(expected) - set(targets))
-        unexpected = sorted(set(targets) - set(expected))
+    if set(targets) != set(selected_services):
+        missing = sorted(set(selected_services) - set(targets))
+        unexpected = sorted(set(targets) - set(selected_services))
         details = []
         if missing:
             details.append(f"missing targets for {', '.join(missing)}")
@@ -136,8 +151,8 @@ async def run(args: argparse.Namespace) -> list[dict[str, Any]]:
     ledger = _read_ledger(args.ledger, args.credit_budget)
     catalog = load_catalog()
     new_events: list[dict[str, Any]] = []
-    for service_id in expected:
-        if _already_passed(ledger, service_id):
+    for service_id in selected_services:
+        if _should_skip_service(ledger, service_id, recheck_passed=args.recheck_passed):
             continue
         service = catalog.by_id(service_id)
         if service is None:
@@ -197,6 +212,12 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--stage", type=int, choices=sorted(STAGES), required=True)
     parser.add_argument(
+        "--only-service",
+        action="append",
+        default=[],
+        help="Run only this service from the selected stage.",
+    )
+    parser.add_argument(
         "--target",
         action="append",
         default=[],
@@ -205,6 +226,14 @@ def main() -> None:
     )
     parser.add_argument("--max-items", type=int, default=5, choices=range(1, 51))
     parser.add_argument("--credit-budget", type=int, default=100, choices=range(1, 101))
+    parser.add_argument(
+        "--recheck-passed",
+        action="store_true",
+        help=(
+            "Run a fresh bounded verification even when this service already has a "
+            "passed ledger event. This can spend additional provider credits."
+        ),
+    )
     parser.add_argument(
         "--ledger",
         type=Path,

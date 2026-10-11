@@ -7,6 +7,13 @@ replacement returns `not_found`; it is not available for public payment. This
 runbook does not authorize another provider credit purchase, catalog expansion,
 or an AEU payment mode.
 
+For a fresh provider recheck, use `scripts/release_provider_acceptance.py` with
+`--recheck-passed`; it appends sanitized accounting evidence rather than
+silently relying on an older passing result. Use `--only-service` with a service
+from the selected stage to recheck one unstable provider route without spending
+credits on every other route in that stage. Both options still require
+`--confirm-paid-provider-calls` and enforce the ledger's 100-credit cap.
+
 ## Capacity and cost policy
 
 ScrapeCreators has a documented replacement-price basis of 1,880 micro-USD per

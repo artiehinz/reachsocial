@@ -42,3 +42,30 @@ def test_target_parser_and_stage_coverage_are_explicit() -> None:
         "reddit.post",
         "instagram.highlight",
     )
+
+
+def test_recheck_mode_does_not_treat_an_existing_pass_as_a_skip() -> None:
+    service = ServiceDefinition(
+        id="x.profile",
+        title="X Profile",
+        platform="X",
+        description="Profile",
+        input_fields=[InputField(name="url", description="URL", format="url")],
+        provider=ProviderConfig(name="scrapecreators"),
+    )
+    ledger = {
+        "events": [
+            acceptance._event(
+                stage=2,
+                service=service,
+                input_data={"url": "https://x.com/example"},
+                outcome="passed",
+                provider_units=1,
+                upstream_cost_microusd=1_880,
+                provider_reference=None,
+            )
+        ]
+    }
+
+    assert acceptance._should_skip_service(ledger, "x.profile", recheck_passed=False)
+    assert not acceptance._should_skip_service(ledger, "x.profile", recheck_passed=True)
