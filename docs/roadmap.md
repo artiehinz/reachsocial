@@ -16,10 +16,13 @@ item below is complete and recorded in the release notes.
 2. **Rotate the CDP credential.** The current credential was exposed during an
    earlier operational review. Replace it in CDP and in the runtime environment
    before any mainnet use.
-3. **Establish wallet recovery.** Create or recover the dedicated receiving
-   wallet, record the wallet secret in the owner's password manager, and verify
-   that recovery works without relying on the server. Do not store the secret in
-   the repository or publish it in deployment output.
+3. **Establish buyer-wallet recovery.** Create the dedicated self-custody buyer
+   wallet with `scripts/create_mainnet_buyer_wallet.py` from the owner's local
+   terminal. Save its recovery phrase in the owner's password manager, then run
+   the script's `verify` command. The buyer wallet secret must never reach the
+   Droplet, repository, CI, or deployment output. Fund it only after recovery
+   verification, with the exact USDC canary amount and the minimum Base ETH
+   needed for its transaction fee.
 4. **Run one capped real purchase.** Use an independently funded Base-mainnet
    buyer wallet for one small request. Confirm the exact x402 requirement,
    facilitator settlement, service result, receipt, and provider charge.

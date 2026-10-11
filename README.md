@@ -136,6 +136,21 @@ It prints a sanitized settlement summary and transaction reference. It does
 not read a repository `.env`, print a secret, perform automatic payment
 recovery, or make a second paid attempt.
 
+For the later Base-mainnet canary, create the buyer wallet locally before it is
+funded. This command has no network access and writes no wallet material to
+disk; it displays a recovery phrase once, which must be saved in the owner's
+password manager. Never run it on the Droplet, in CI, or through a remote shell.
+
+```bash
+uv run python scripts/create_mainnet_buyer_wallet.py create \
+  --confirm-create-mainnet-buyer-wallet
+uv run python scripts/create_mainnet_buyer_wallet.py verify \
+  --expected-address <address-printed-by-create>
+```
+
+After the verification succeeds, fund that Base address only with the exact
+USDC canary amount and the minimum Base ETH required for its transaction fee.
+
 Do not switch to Base mainnet. Startup blocks `eip155:8453` unless every public
 service has verified positive margins, `ALLOW_MAINNET_X402=true`, and encrypted
 external recovery is enabled. Nightly encrypted Restic backups and weekly
