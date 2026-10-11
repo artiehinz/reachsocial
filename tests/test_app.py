@@ -1,6 +1,7 @@
 from fastapi.testclient import TestClient
 
 from reachsocial.api import ExecuteRequest, resolve
+from reachsocial.config import x402_network_label
 from reachsocial.main import app
 
 
@@ -17,6 +18,7 @@ def test_health_and_mcp_gate() -> None:
         assert client.get("/legal/acceptable-use").status_code == 200
         assert client.get("/legal/refunds").status_code == 200
         assert client.get("/docs/api").status_code == 200
+        assert "Base Sepolia" in client.get("/pricing").text
         openapi = client.get("/openapi.json").json()
         assert openapi["servers"] == [
             {"url": "http://localhost:8000", "description": "Public ReachSocial API"}
@@ -31,9 +33,9 @@ def test_health_and_mcp_gate() -> None:
             {"bearerAuth": []},
             {"jobToken": []},
         ]
-        assert openapi["paths"]["/v1/services/{service_id}/execute"]["post"][
-            "responses"
-        ]["402"]["headers"]["PAYMENT-REQUIRED"]
+        assert openapi["paths"]["/v1/services/{service_id}/execute"]["post"]["responses"]["402"][
+            "headers"
+        ]["PAYMENT-REQUIRED"]
         assert len(openapi["x-reachsocial-services"]) == 17
         assert client.get("/healthz").json() == {"status": "ok"}
         assert client.get("/readyz").json()["status"] == "ready"
@@ -67,11 +69,18 @@ def test_health_and_mcp_gate() -> None:
         assert llms.text.startswith("# ReachSocial")
         assert "linkedin.profile" in llms.text
         assert client.get("/agent.md").headers["content-type"].startswith("text/markdown")
-        assert client.get("/.well-known/api-catalog").headers["content-type"].startswith(
-            "application/linkset+json"
+        assert (
+            client.get("/.well-known/api-catalog")
+            .headers["content-type"]
+            .startswith("application/linkset+json")
         )
         assert client.get("/robots.txt").status_code == 200
         assert client.get("/sitemap.xml").status_code == 200
+
+
+def test_x402_network_label_tracks_the_selected_network() -> None:
+    assert x402_network_label("eip155:8453") == "Base mainnet"
+    assert x402_network_label("eip155:84532") == "Base Sepolia"
 
 
 def test_cache_headers_only_allow_public_get_routes() -> None:
@@ -83,9 +92,7 @@ def test_cache_headers_only_allow_public_get_routes() -> None:
             "public, max-age=60, s-maxage=120, stale-while-revalidate=300"
         )
         assert client.get("/healthz").headers["cache-control"] == "no-store"
-        assert client.post("/v1/resolve", json={"input": {}}).headers[
-            "cache-control"
-        ] == "no-store"
+        assert client.post("/v1/resolve", json={"input": {}}).headers["cache-control"] == "no-store"
 
 
 def test_resolve_requires_authentication() -> None:
@@ -97,9 +104,7 @@ def test_resolve_requires_authentication() -> None:
     assert response.status_code == 401
 
 
-def test_resolve_reports_catalog_state_without_provider_details(
-    session, client, catalog
-) -> None:
+def test_resolve_reports_catalog_state_without_provider_details(session, client, catalog) -> None:
     result = resolve(
         ExecuteRequest(input={"url": "https://www.instagram.com/openai/"}),
         client,

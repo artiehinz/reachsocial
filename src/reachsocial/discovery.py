@@ -7,7 +7,7 @@ from fastapi import FastAPI
 from fastapi.openapi.utils import get_openapi
 
 from .catalog import Catalog, InputField, ServiceDefinition
-from .config import Settings
+from .config import Settings, x402_network_label
 
 
 def _schema_name(service: ServiceDefinition) -> str:
@@ -145,12 +145,8 @@ def _base_schemas() -> dict[str, Any]:
             "type": "object",
             "additionalProperties": False,
             "properties": {
-                "profile": {
-                    "anyOf": [{"$ref": "#/components/schemas/Profile"}, {"type": "null"}]
-                },
-                "item": {
-                    "anyOf": [{"$ref": "#/components/schemas/ContentItem"}, {"type": "null"}]
-                },
+                "profile": {"anyOf": [{"$ref": "#/components/schemas/Profile"}, {"type": "null"}]},
+                "item": {"anyOf": [{"$ref": "#/components/schemas/ContentItem"}, {"type": "null"}]},
                 "items": {
                     "type": "array",
                     "items": {"$ref": "#/components/schemas/ContentItem"},
@@ -339,18 +335,16 @@ def build_openapi_schema(app: FastAPI, catalog: Catalog) -> dict[str, Any]:
                 "application/json": {"schema": {"$ref": "#/components/schemas/JobAccepted"}}
             },
         }
-        create_job["responses"]["402"] = execute["responses"]["402"] if execute else {
-            "description": "x402 payment is required."
-        }
+        create_job["responses"]["402"] = (
+            execute["responses"]["402"] if execute else {"description": "x402 payment is required."}
+        )
 
     get_job = paths.get("/v1/jobs/{job_id}", {}).get("get")
     if get_job:
         get_job["security"] = [{"bearerAuth": []}, {"jobToken": []}]
         get_job["responses"]["200"] = {
             "description": "Current durable job state.",
-            "content": {
-                "application/json": {"schema": {"$ref": "#/components/schemas/JobStatus"}}
-            },
+            "content": {"application/json": {"schema": {"$ref": "#/components/schemas/JobStatus"}}},
         }
 
     claim_credit = paths.get("/v1/jobs/{job_id}/credit", {}).get("post")
@@ -417,7 +411,8 @@ def llms_text(catalog: Catalog, settings: Settings) -> str:
             "## Authentication and payment",
             "",
             "- B2B clients send `Authorization: Bearer <ReachSocial API key>` and a stable `Idempotency-Key`.",
-            "- Anonymous public calls require a high-entropy `Idempotency-Key`, then receive an x402 v2 `402 Payment Required` challenge on Base Sepolia. Sign the exact requirement and retry once with `PAYMENT-SIGNATURE`.",
+            "- Anonymous public calls require a high-entropy `Idempotency-Key`, then receive an x402 v2 `402 Payment Required` challenge on "
+            f"{x402_network_label(settings.x402_network)}. Sign the exact requirement and retry once with `PAYMENT-SIGNATURE`.",
             "- Never submit a wallet private key, provider token, or B2B API key as service input.",
             "",
             "## Execution rule",
@@ -473,9 +468,7 @@ def api_catalog(settings: Settings) -> dict[str, Any]:
         {"anchor": f"{base}/.well-known/api-catalog", "item": items},
         {
             "anchor": f"{base}/v1/catalog",
-            "service-desc": [
-                {"href": f"{base}/openapi.json", "type": "application/openapi+json"}
-            ],
+            "service-desc": [{"href": f"{base}/openapi.json", "type": "application/openapi+json"}],
             "service-doc": [{"href": f"{base}/docs/api", "type": "text/html"}],
             "status": [{"href": f"{base}/status.json", "type": "application/json"}],
         },

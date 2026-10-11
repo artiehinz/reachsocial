@@ -15,7 +15,7 @@ from fastapi.templating import Jinja2Templates
 from .alerts import alert_loop
 from .api import router as api_router
 from .catalog import get_catalog
-from .config import get_settings
+from .config import get_settings, x402_network_label
 from .db import init_db
 from .discovery import (
     agent_text,
@@ -70,11 +70,7 @@ def public_cache_control(path: str) -> str | None:
         return "public, max-age=60, s-maxage=300, stale-while-revalidate=600"
     if path.startswith("/v1/services/"):
         return "public, max-age=60, s-maxage=300, stale-while-revalidate=600"
-    if (
-        path in PUBLIC_PAGE_PATHS
-        or path.startswith("/services/")
-        or path.startswith("/legal/")
-    ):
+    if path in PUBLIC_PAGE_PATHS or path.startswith("/services/") or path.startswith("/legal/"):
         return "public, max-age=60, s-maxage=120, stale-while-revalidate=300"
     return None
 
@@ -95,13 +91,12 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     app.state.runtime = RuntimeState()
     app.state.executor = ExecutionService(catalog, app.state.runtime)
     app.state.job_worker = JobWorker(catalog, app.state.executor)
+
     async def maintenance_loop() -> None:
         while True:
             try:
                 deleted = prune_operational_records()
-                logging.getLogger("reachsocial").info(
-                    "maintenance_pruned counts=%s", deleted
-                )
+                logging.getLogger("reachsocial").info("maintenance_pruned counts=%s", deleted)
             except Exception:
                 logging.getLogger("reachsocial").exception("maintenance_prune_failed")
             await asyncio.sleep(settings.maintenance_interval_hours * 60 * 60)
@@ -174,7 +169,9 @@ def create_app() -> FastAPI:
     if settings.mainnet_x402_acceptance_enabled:
         acceptance_errors = mainnet_acceptance_safety_errors(settings, get_catalog())
         if acceptance_errors:
-            raise RuntimeError("Base mainnet acceptance is blocked: " + "; ".join(acceptance_errors))
+            raise RuntimeError(
+                "Base mainnet acceptance is blocked: " + "; ".join(acceptance_errors)
+            )
         app.add_middleware(
             MainnetAcceptanceX402Middleware,
             settings=settings,
@@ -321,7 +318,10 @@ def create_app() -> FastAPI:
         return templates.TemplateResponse(
             request=request,
             name="home.html",
-            context={"catalog": request.app.state.catalog},
+            context={
+                "catalog": request.app.state.catalog,
+                "payment_network": x402_network_label(request.app.state.settings.x402_network),
+            },
             headers={
                 "Link": (
                     '</.well-known/api-catalog>; rel="api-catalog"; '
@@ -352,19 +352,31 @@ def create_app() -> FastAPI:
         return templates.TemplateResponse(
             request=request,
             name="service.html",
-            context={"service": service},
+            context={
+                "service": service,
+                "payment_network": x402_network_label(request.app.state.settings.x402_network),
+            },
         )
 
     @app.get("/docs/api", include_in_schema=False)
     async def docs_page(request: Request):
-        return templates.TemplateResponse(request=request, name="docs.html", context={})
+        return templates.TemplateResponse(
+            request=request,
+            name="docs.html",
+            context={
+                "payment_network": x402_network_label(request.app.state.settings.x402_network),
+            },
+        )
 
     @app.get("/pricing", include_in_schema=False)
     async def pricing_page(request: Request):
         return templates.TemplateResponse(
             request=request,
             name="pricing.html",
-            context={"catalog": request.app.state.catalog},
+            context={
+                "catalog": request.app.state.catalog,
+                "payment_network": x402_network_label(request.app.state.settings.x402_network),
+            },
         )
 
     @app.get("/status", include_in_schema=False)
@@ -372,7 +384,10 @@ def create_app() -> FastAPI:
         return templates.TemplateResponse(
             request=request,
             name="status.html",
-            context={"catalog": request.app.state.catalog},
+            context={
+                "catalog": request.app.state.catalog,
+                "payment_network": x402_network_label(request.app.state.settings.x402_network),
+            },
         )
 
     @app.get("/contact", include_in_schema=False)

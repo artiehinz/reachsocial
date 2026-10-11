@@ -7,6 +7,14 @@ from pydantic import Field, HttpUrl
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
+def x402_network_label(network: str) -> str:
+    """Return the human-facing name for a supported x402 network."""
+    return {
+        "eip155:8453": "Base mainnet",
+        "eip155:84532": "Base Sepolia",
+    }.get(network, network)
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 

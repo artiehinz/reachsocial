@@ -153,6 +153,36 @@ def test_mainnet_is_blocked_until_backup_and_costs_are_verified() -> None:
     assert "instagram.profile needs a verified upstream cost" in errors
 
 
+def test_mainnet_is_allowed_when_all_launch_checks_pass() -> None:
+    settings = Settings(
+        x402_enabled=True,
+        x402_network="eip155:8453",
+        allow_mainnet_x402=True,
+        external_backup_enabled=True,
+        scrapecreators_credit_balance=6825,
+        scrapecreators_credit_reserve=1000,
+    )
+    catalog = Catalog(
+        services=[
+            ServiceDefinition(
+                id="instagram.profile",
+                title="Instagram Profile",
+                platform="Instagram",
+                description="Test service",
+                input_fields=[InputField(name="url", description="URL", format="url")],
+                provider=ProviderConfig(name="mock"),
+                enabled=True,
+                public=True,
+                price_cents=5,
+                cost_verified=True,
+                estimated_upstream_cost_microusd=1_880,
+            )
+        ]
+    )
+
+    assert mainnet_x402_safety_errors(settings, catalog) == []
+
+
 def test_mainnet_canary_requires_a_testnet_public_route_and_named_buyer(catalog) -> None:
     settings = Settings(
         x402_enabled=True,
@@ -164,8 +194,9 @@ def test_mainnet_canary_requires_a_testnet_public_route_and_named_buyer(catalog)
     assert mainnet_canary_safety_errors(settings, catalog) == []
 
     settings.x402_network = "eip155:8453"
-    assert "the normal public x402 network must remain Base Sepolia" in mainnet_canary_safety_errors(
-        settings, catalog
+    assert (
+        "the normal public x402 network must remain Base Sepolia"
+        in mainnet_canary_safety_errors(settings, catalog)
     )
 
 
@@ -182,8 +213,9 @@ def test_mainnet_acceptance_requires_testnet_public_routes_and_named_buyer(catal
     )
 
     settings.x402_network = "eip155:8453"
-    assert "the normal public x402 network must remain Base Sepolia" in mainnet_acceptance_safety_errors(
-        settings, catalog
+    assert (
+        "the normal public x402 network must remain Base Sepolia"
+        in mainnet_acceptance_safety_errors(settings, catalog)
     )
 
 
@@ -247,7 +279,9 @@ def test_mainnet_canary_reservation_allows_only_one_named_buyer(session, monkeyp
     assert session.scalar(select(PaymentReceipt)).status == "verified"
 
 
-def test_mainnet_acceptance_reserves_each_route_once_for_the_named_buyer(session, monkeypatch, catalog) -> None:
+def test_mainnet_acceptance_reserves_each_route_once_for_the_named_buyer(
+    session, monkeypatch, catalog
+) -> None:
     @contextmanager
     def session_factory():
         yield session
@@ -303,7 +337,9 @@ def test_mainnet_acceptance_reserves_each_route_once_for_the_named_buyer(session
     )
 
     assert repeated is not None and repeated.reason == "payment_replayed"
-    assert route_reused is not None and route_reused.reason == "mainnet_acceptance_route_already_used"
+    assert (
+        route_reused is not None and route_reused.reason == "mainnet_acceptance_route_already_used"
+    )
     assert wrong_buyer is not None and wrong_buyer.reason == "mainnet_acceptance_buyer_rejected"
     assert session.scalar(select(MainnetCanaryAttempt)).canary_key.endswith("instagram.post")
 

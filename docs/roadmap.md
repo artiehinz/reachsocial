@@ -15,7 +15,8 @@ item below is complete and recorded in the release notes.
    release.** Instagram profile and post use a documented replacement-price
    cost of 1,880 micro-USD per credited attempt, verified with live endpoint
    consumption. This is explicitly not called a purchased invoice. The checked
-   balance was 6,827 credits on 2026-10-11; reserve 1,000 for InstaGet and set
+   balance was 6,825 credits on 2026-10-11 after the three-route acceptance;
+   reserve 1,000 for InstaGet and set
    the protected balance configuration immediately before release. Public
    capacity is reserved durably before a mainnet provider call. See
    [provider contract status](provider-contract-status.md) and
@@ -84,8 +85,8 @@ started successfully against it. The temporary containers and database were
 removed after the drill; the protected restore copy remains on NVMe for the
 retention window.
 
-Nightly Restic backup completed on 2026-10-10. The deployment documentation
-expects weekly DigitalOcean volume snapshots, but this host currently has no
-read-only `doctl` credential to list and verify them. Provide a least-privilege
-read-only DigitalOcean token or an owner-side snapshot listing before claiming
-off-host snapshot recovery is verified.
+Nightly Restic backup completed on 2026-10-10. DigitalOcean volume snapshots
+are also scheduled weekly with four retained copies. On 2026-10-11, the newest
+`tor1` production snapshot was restored into a temporary volume through the
+DigitalOcean API, checked, and deleted without attaching it or touching
+production.
