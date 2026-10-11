@@ -65,7 +65,9 @@ concurrency, and in-flight spend state assumes the current single-process runtim
 do not add workers/replicas without shared enforcement. Runtime cache and lock
 maps are not globally bounded; expire/evict unused entries before sustained load.
 The ingress container now receives only its address and Basic Auth settings,
-rather than the application provider and payment credentials.
+rather than the application provider and payment credentials. The deployment
+workflow synchronizes and validates Compose and Caddy configuration before
+starting the immutable image, so host configuration cannot silently lag source.
 
 Added nosniff, referrer policy, frame denial, and a restrictive CSP for the public
 HTML pages. Swagger/ReDoc keep their interactive scripts. No claim of complete

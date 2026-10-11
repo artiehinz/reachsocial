@@ -41,6 +41,13 @@ jobs:
           chmod 600 ~/.ssh/reachsocial_deploy
           ssh -i ~/.ssh/reachsocial_deploy -o StrictHostKeyChecking=accept-new "$SSH_USER@$SSH_HOST" \
             "cd '$DEPLOY_PATH' && docker compose exec -T app python -" < scripts/snapshot_sqlite.py
+          scp -i ~/.ssh/reachsocial_deploy -o StrictHostKeyChecking=accept-new \
+            docker-compose.yml "$SSH_USER@$SSH_HOST:$DEPLOY_PATH/docker-compose.yml.next"
+          scp -i ~/.ssh/reachsocial_deploy -o StrictHostKeyChecking=accept-new \
+            deploy/caddy/Caddyfile "$SSH_USER@$SSH_HOST:$DEPLOY_PATH/deploy/caddy/Caddyfile.next"
+          ssh -i ~/.ssh/reachsocial_deploy -o StrictHostKeyChecking=accept-new "$SSH_USER@$SSH_HOST" \
+            "cd '$DEPLOY_PATH' && mv docker-compose.yml.next docker-compose.yml && \
+            mv deploy/caddy/Caddyfile.next deploy/caddy/Caddyfile && docker compose config --quiet"
           ssh -i ~/.ssh/reachsocial_deploy -o StrictHostKeyChecking=accept-new "$SSH_USER@$SSH_HOST" \
             "docker login '$DOCR_REGISTRY' --username '$DOCR_USERNAME' --password-stdin" \
             <<< "$DO_TOKEN"

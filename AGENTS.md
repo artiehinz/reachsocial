@@ -56,8 +56,9 @@ The health endpoint is `/healthz`. Public discovery starts at `/agent.md`,
 
 - The canonical production branch is `main`. A push to `main` runs
   `.github/workflows/deploy.yml`, builds an immutable image tagged with the full
-  commit SHA, snapshots the SQLite database, deploys it, verifies health, and
-  reprovisions the scoped `InstaGet-Herald` client.
+  commit SHA, snapshots the SQLite database, synchronizes and validates Compose
+  and Caddy configuration, deploys it, verifies health, and reprovisions the
+  scoped `InstaGet-Herald` client.
 - The local `host-migration` branch may mirror `main`; do not treat it as a
   separate product line.
 - Production files live on the attached DigitalOcean volume under
