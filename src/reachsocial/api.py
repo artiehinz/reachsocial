@@ -14,6 +14,7 @@ from sqlalchemy.orm import Session
 
 from .catalog import Catalog, ServiceDefinition
 from .config import get_settings
+from .credit_budget import finalize as finalize_credit_reservation
 from .credit_budget import summary as credit_budget_summary
 from .db import get_session
 from .errors import CreditUnavailable, ReachSocialError, TestCapacityReached
@@ -72,9 +73,7 @@ def service_summary(
         "inputs": [field.model_dump() for field in service.input_fields],
         "status": service.status,
         "available": service.enabled and service.public,
-        "price_cents": (
-            service.price_cents if service.enabled and service.public else None
-        ),
+        "price_cents": (service.price_cents if service.enabled and service.public else None),
         "docs": service.docs,
     }
     if include_unavailable:
@@ -325,9 +324,7 @@ def _link_receipt(
 ) -> None:
     if not payment_id:
         return
-    receipt = session.scalar(
-        select(PaymentReceipt).where(PaymentReceipt.payment_id == payment_id)
-    )
+    receipt = session.scalar(select(PaymentReceipt).where(PaymentReceipt.payment_id == payment_id))
     if receipt:
         receipt.request_id = request_id or receipt.request_id
         receipt.job_id = job_id or receipt.job_id
@@ -348,6 +345,7 @@ def _link_receipt(
                         hours=get_settings().paid_result_retention_hours
                     )
         session.commit()
+        finalize_credit_reservation(session, payment_id)
 
 
 def _public_client_for_recovery(session: Session) -> Client | None:
@@ -799,7 +797,9 @@ def recover_paid_result(
             input_data=body.input,
         )
         if recovered_job is None:
-            raise HTTPException(status_code=404, detail={"code": "not_found", "message": "Not found"})
+            raise HTTPException(
+                status_code=404, detail={"code": "not_found", "message": "Not found"}
+            )
         job, receipt = recovered_job
         payload = job_payload(job)
         session.commit()
@@ -825,7 +825,9 @@ def get_job(
 ) -> dict[str, Any]:
     job = session.scalar(select(AsyncJob).where(AsyncJob.job_id == job_id))
     if job is None:
-        raise HTTPException(status_code=404, detail={"code": "job_not_found", "message": "Job not found"})
+        raise HTTPException(
+            status_code=404, detail={"code": "job_not_found", "message": "Job not found"}
+        )
     authorize_job(job, client=client, job_token=job_token)
     payload = job_payload(job)
     session.commit()
@@ -841,7 +843,9 @@ def claim_job_credit(
 ) -> dict[str, Any]:
     job = session.scalar(select(AsyncJob).where(AsyncJob.job_id == job_id))
     if job is None:
-        raise HTTPException(status_code=404, detail={"code": "job_not_found", "message": "Job not found"})
+        raise HTTPException(
+            status_code=404, detail={"code": "job_not_found", "message": "Job not found"}
+        )
     authorize_job(job, client=client, job_token=job_token)
     token = claim_credit(session, job)
     return {
@@ -880,9 +884,7 @@ def owner_overview(
         for row in request_rows
         if row.client is None or row.client.name != PUBLIC_X402_CLIENT_NAME
     )
-    revenue_cents = b2b_revenue_cents + sum(
-        row.amount_cents for row in settled
-    )
+    revenue_cents = b2b_revenue_cents + sum(row.amount_cents for row in settled)
     cost_micros = sum(row.upstream_cost_microusd for row in attempts)
     now = utcnow_naive()
     queued = [job for job in jobs if job.status == "queued"]
@@ -890,9 +892,7 @@ def owner_overview(
     for definition in catalog.services:
         rows = [row for row in request_rows if row.service_id == definition.id]
         service_attempts = [row for row in attempts if row.service_id == definition.id]
-        service_payments = [
-            row for row in settled if row.service_id == definition.id
-        ]
+        service_payments = [row for row in settled if row.service_id == definition.id]
         service_latencies = [row.latency_ms for row in rows if row.latency_ms is not None]
         per_service[definition.id] = {
             "requests": len(rows),
@@ -902,9 +902,7 @@ def owner_overview(
             "p95_latency_ms": _percentile(service_latencies, 0.95),
             "cache_hits": sum(row.cache_hit for row in rows),
             "provider_units": sum(row.provider_units for row in service_attempts),
-            "upstream_cost_microusd": sum(
-                row.upstream_cost_microusd for row in service_attempts
-            ),
+            "upstream_cost_microusd": sum(row.upstream_cost_microusd for row in service_attempts),
             "revenue_cents": sum(
                 row.charged_cents
                 for row in rows
@@ -952,7 +950,9 @@ def owner_overview(
             "active": sum(row.status == "active" for row in credits),
             "consumed": sum(row.status == "consumed" for row in credits),
             "liability_cents": sum(
-                row.amount_cents for row in credits if row.status == "active" and row.expires_at > now
+                row.amount_cents
+                for row in credits
+                if row.status == "active" and row.expires_at > now
             ),
         },
         "rate_limit_events": sum(

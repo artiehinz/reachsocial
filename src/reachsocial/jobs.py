@@ -14,6 +14,7 @@ from sqlalchemy.orm import Session
 from .catalog import Catalog, ServiceDefinition
 from .config import get_settings
 from .consumer_contract import response_meta
+from .credit_budget import finalize as finalize_credit_reservation
 from .db import SessionLocal
 from .errors import (
     CreditUnavailable,
@@ -88,9 +89,7 @@ def submit_job(
         )
         if prior is not None:
             if prior.input_hash != input_hash:
-                raise IdempotencyConflict(
-                    "Idempotency key was already used with different input"
-                )
+                raise IdempotencyConflict("Idempotency key was already used with different input")
             return prior, None
     executor._enforce_daily_spend(session, client, service)
     if client.billing_mode != "internal":
@@ -341,6 +340,7 @@ class JobWorker:
                 session.commit()
                 return
             try:
+
                 def persist_provider_reference(reference: str) -> None:
                     job.provider_reference = reference
                     job.lease_expires_at = utcnow_naive() + timedelta(
@@ -406,15 +406,15 @@ class JobWorker:
                 job.provider_unit_cost_microusd = int(
                     getattr(error, "provider_unit_cost_microusd", 0) or 0
                 )
-                job.upstream_cost_microusd = int(
-                    getattr(error, "upstream_cost_microusd", 0) or 0
-                )
+                job.upstream_cost_microusd = int(getattr(error, "upstream_cost_microusd", 0) or 0)
                 job.completed_at = utcnow_naive()
                 job.lease_expires_at = None
                 job.reserved_upstream_cost_microusd = 0
                 session.commit()
             except Exception:
-                self.logger.exception("async_job_failed job_id=%s service=%s", job.job_id, job.service_id)
+                self.logger.exception(
+                    "async_job_failed job_id=%s service=%s", job.job_id, job.service_id
+                )
                 job.status = "failed"
                 job.error_code = "internal_error"
                 job.error_message = "The job failed unexpectedly"
@@ -423,6 +423,9 @@ class JobWorker:
                 job.lease_expires_at = None
                 job.reserved_upstream_cost_microusd = 0
                 session.commit()
+            finally:
+                if job.payment_id:
+                    finalize_credit_reservation(session, job.payment_id)
 
     async def run(self) -> None:
         recovered = self.recover_abandoned()

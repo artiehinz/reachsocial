@@ -83,6 +83,18 @@ def test_x402_network_label_tracks_the_selected_network() -> None:
     assert x402_network_label("eip155:84532") == "Base Sepolia"
 
 
+def test_readiness_reports_an_automatic_payment_pause() -> None:
+    with TestClient(app) as client:
+        app.state.runtime.pause_public_payments("provider_failures")
+        response = client.get("/readyz")
+        assert response.status_code == 503
+        assert response.json() == {
+            "status": "payments_paused",
+            "reason": "provider_failures",
+        }
+        app.state.runtime.public_payments_paused_reason = None
+
+
 def test_cache_headers_only_allow_public_get_routes() -> None:
     with TestClient(app) as client:
         assert client.get("/v1/catalog").headers["cache-control"] == (

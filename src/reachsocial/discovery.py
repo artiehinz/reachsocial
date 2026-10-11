@@ -411,7 +411,7 @@ def llms_text(catalog: Catalog, settings: Settings) -> str:
             "## Authentication and payment",
             "",
             "- B2B clients send `Authorization: Bearer <ReachSocial API key>` and a stable `Idempotency-Key`.",
-            "- Anonymous public calls require a high-entropy `Idempotency-Key`, then receive an x402 v2 `402 Payment Required` challenge on "
+            "- Anonymous public calls require a random 32–255 character `Idempotency-Key`, then receive an x402 v2 `402 Payment Required` challenge on "
             f"{x402_network_label(settings.x402_network)}. Sign the exact requirement and retry once with `PAYMENT-SIGNATURE`.",
             "- Never submit a wallet private key, provider token, or B2B API key as service input.",
             "",

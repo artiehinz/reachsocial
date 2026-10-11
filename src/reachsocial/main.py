@@ -16,6 +16,7 @@ from .alerts import alert_loop
 from .api import router as api_router
 from .catalog import get_catalog
 from .config import get_settings, x402_network_label
+from .credit_budget import reconcile_pending as reconcile_credit_reservations
 from .db import init_db
 from .discovery import (
     agent_text,
@@ -86,6 +87,11 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
     with SessionLocal() as session:
         sync_service_records(session, catalog)
+        reconciled = reconcile_credit_reservations(session)
+        if reconciled:
+            logging.getLogger("reachsocial").info(
+                "provider_credit_reservations_reconciled count=%s", reconciled
+            )
     app.state.settings = settings
     app.state.catalog = catalog
     app.state.runtime = RuntimeState()
@@ -103,7 +109,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
     maintenance_task = asyncio.create_task(maintenance_loop())
     job_task = asyncio.create_task(app.state.job_worker.run())
-    alert_task = asyncio.create_task(alert_loop())
+    alert_task = asyncio.create_task(alert_loop(app.state.runtime))
     logging.getLogger("reachsocial").info(
         "ReachSocial started with %s services", len(catalog.services)
     )
@@ -144,7 +150,11 @@ def create_app() -> FastAPI:
         response.headers.setdefault("X-Content-Type-Options", "nosniff")
         response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
         response.headers.setdefault("X-Frame-Options", "DENY")
-        if response.headers.get("content-type", "").startswith("text/html") and request.url.path != "/docs" and request.url.path != "/redoc":
+        if (
+            response.headers.get("content-type", "").startswith("text/html")
+            and request.url.path != "/docs"
+            and request.url.path != "/redoc"
+        ):
             response.headers.setdefault(
                 "Content-Security-Policy",
                 "default-src 'self'; script-src 'none'; style-src 'self'; "
@@ -268,14 +278,27 @@ def create_app() -> FastAPI:
         return {"status": "ok"}
 
     @app.get("/readyz", tags=["Operations"])
-    async def readyz(request: Request) -> dict[str, object]:
+    async def readyz(request: Request) -> Response:
         from sqlalchemy import text
 
         from .db import SessionLocal
 
         with SessionLocal() as session:
             session.execute(text("SELECT 1"))
-        return {"status": "ready", "services": len(request.app.state.catalog.services)}
+        settings = request.app.state.settings
+        pause_reason = (
+            "operator_pause"
+            if settings.public_payments_paused
+            else request.app.state.runtime.public_payments_paused_reason
+        )
+        if pause_reason:
+            return JSONResponse(
+                status_code=503,
+                content={"status": "payments_paused", "reason": pause_reason},
+            )
+        return JSONResponse(
+            {"status": "ready", "services": len(request.app.state.catalog.services)}
+        )
 
     @app.get("/status.json", include_in_schema=False)
     async def status_json(request: Request) -> dict[str, object]:

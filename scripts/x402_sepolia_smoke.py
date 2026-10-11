@@ -42,7 +42,7 @@ async def run(args: argparse.Namespace) -> dict[str, Any]:
     body = {"input": {"url": args.profile_url}}
     headers = {
         "Accept": "application/json",
-        "Idempotency-Key": "sepolia-smoke-" + secrets.token_hex(12),
+        "Idempotency-Key": "sepolia-smoke-" + secrets.token_hex(16),
     }
     timeout = httpx.Timeout(45.0)
     async with httpx.AsyncClient(timeout=timeout, follow_redirects=False) as http:

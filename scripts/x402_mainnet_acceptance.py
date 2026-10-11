@@ -33,7 +33,9 @@ def select_requirement(payment_required: Any, *, expected_pay_to: str, amount: i
         and str(item.amount) == str(amount)
     ]
     if len(matches) != 1:
-        raise ValueError("payment challenge did not contain one exact Base-mainnet USDC requirement")
+        raise ValueError(
+            "payment challenge did not contain one exact Base-mainnet USDC requirement"
+        )
     return matches[0]
 
 
@@ -53,11 +55,13 @@ async def paid_request(
     from x402.mechanisms.evm.exact import ExactEvmScheme
 
     endpoint = f"{base_url.rstrip('/')}{ACCEPTANCE_PATHS[service_id]}"
-    idempotency_key = f"mainnet-acceptance-{service_id}-{secrets.token_hex(12)}"
+    idempotency_key = f"mainnet-acceptance-{service_id}-{secrets.token_hex(16)}"
     headers = {"Accept": "application/json", "Idempotency-Key": idempotency_key}
     challenge = await http.post(endpoint, headers=headers, json=body)
     if challenge.status_code != 402:
-        raise RuntimeError(f"{service_id} expected an unpaid 402 challenge, received HTTP {challenge.status_code}")
+        raise RuntimeError(
+            f"{service_id} expected an unpaid 402 challenge, received HTTP {challenge.status_code}"
+        )
     parser = x402HTTPClient(x402Client())
     payment_required = parser.get_payment_required_response(
         challenge.headers.get, challenge.json() if challenge.content else None
@@ -91,7 +95,9 @@ async def paid_request(
         json=body,
     )
     if recovery.status_code != 200:
-        raise RuntimeError(f"{service_id} paid-result recovery failed with HTTP {recovery.status_code}")
+        raise RuntimeError(
+            f"{service_id} paid-result recovery failed with HTTP {recovery.status_code}"
+        )
     return paid_body, idempotency_key, str(settlement.transaction)
 
 
@@ -167,7 +173,9 @@ def main() -> None:
     parser.add_argument("--expected-pay-to", required=True)
     parser.add_argument("--instagram-profile-url", default="https://www.instagram.com/instagram/")
     parser.add_argument("--instagram-post-url", required=True)
-    parser.add_argument("--linkedin-profile-url", default="https://www.linkedin.com/in/satyanadella/")
+    parser.add_argument(
+        "--linkedin-profile-url", default="https://www.linkedin.com/in/satyanadella/"
+    )
     parser.add_argument("--linkedin-timeout-seconds", type=int, default=180)
     parser.add_argument("--confirm-mainnet-acceptance", action="store_true")
     args = parser.parse_args()

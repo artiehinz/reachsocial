@@ -95,6 +95,10 @@ The health endpoint is `/healthz`. Public discovery starts at `/agent.md`,
   `SCRAPECREATORS_CREDIT_BALANCE` and the protected
   `SCRAPECREATORS_CREDIT_RESERVE`, and retain the $5 daily upstream cap. No
   code path may top up credits automatically.
+- Every public-mainnet ScrapeCreators settlement must pass the live,
+  account-wide balance check before funds settle. Subtract the 1,000-credit
+  internal reserve plus active public holds; fail closed when the check is
+  unavailable.
 - Anonymous paid calls require `Idempotency-Key`. Same-key/same-input retries
   recover the stored result; `POST /v1/payments/recover/{service}` is the
   explicit recovery route. Do not retain payment signatures or recovery
@@ -103,5 +107,9 @@ The health endpoint is `/healthz`. Public discovery starts at `/agent.md`,
   result retrieval and accepted jobs. Facilitator uncertainty is
   `reconciliation_required`, never an automatic retry or assumed cancellation.
   See `docs/public-payment-operations.md`.
+- New anonymous paid calls require a random 32–255 character idempotency key.
+  Critical operational alerts latch new payments off and surface through
+  `/readyz` to the DigitalOcean uptime alert; recovery and accepted jobs remain
+  available.
 - Never log raw provider payloads, provider credentials, wallet secrets, B2B
   API keys, or unredacted environment files.

@@ -21,6 +21,7 @@ from x402.server import x402ResourceServer
 
 from .catalog import Catalog
 from .config import Settings, get_settings
+from .credit_budget import ProviderBalanceUnavailable, fetch_provider_balance
 from .credit_budget import finalize as finalize_credit_reservation
 from .credit_budget import reserve as reserve_credit_reservation
 from .db import SessionLocal
@@ -86,6 +87,11 @@ def mainnet_x402_safety_errors(settings: Settings, catalog: Catalog) -> list[str
         errors.append("EXTERNAL_BACKUP_ENABLED=true is required")
     if settings.scrapecreators_credit_balance <= settings.scrapecreators_credit_reserve:
         errors.append("a checked ScrapeCreators balance above the internal reserve is required")
+    if (
+        any(service.provider.name == "scrapecreators" for service in catalog.public_services())
+        and not settings.scrapecreators_api_key
+    ):
+        errors.append("SCRAPECREATORS_API_KEY is required for live balance checks")
     for service in catalog.public_services():
         if not service.cost_verified or service.estimated_upstream_cost_microusd <= 0:
             errors.append(f"{service.id} needs a verified upstream cost")
@@ -185,12 +191,25 @@ def reserve_payment_receipt(
     settings = settings or get_settings()
     service_id = _context_service_id(context)
     service = catalog.by_id(service_id) if catalog else None
+    reserves_scrapecreators = (
+        settings.x402_network == MAINNET_CANARY_NETWORK
+        and service is not None
+        and service.provider.name == "scrapecreators"
+    )
+    observed_balance: int | None = None
+    if reserves_scrapecreators:
+        try:
+            observed_balance = fetch_provider_balance(settings)
+        except ProviderBalanceUnavailable:
+            logging.getLogger("reachsocial").warning(
+                "operational_alert kind=provider_credit_balance_unavailable service=%s",
+                service_id,
+            )
+            return AbortResult(
+                "provider_credit_balance_unavailable",
+                "Public provider capacity could not be verified",
+            )
     with SessionLocal() as session:
-        reserves_scrapecreators = (
-            settings.x402_network == MAINNET_CANARY_NETWORK
-            and service is not None
-            and service.provider.name == "scrapecreators"
-        )
         if reserves_scrapecreators and session.bind and session.bind.dialect.name == "sqlite":
             session.connection().exec_driver_sql("BEGIN IMMEDIATE")
         existing = session.scalar(
@@ -201,15 +220,13 @@ def reserve_payment_receipt(
                 "operational_alert kind=payment_replay service=%s", existing.service_id
             )
             return AbortResult("payment_replayed", "This payment has already been used")
-        if (
-            reserves_scrapecreators
-            and not reserve_credit_reservation(
-                session,
-                payment_id=payment_id,
-                service=service,
-                settings=settings,
-                lock=False,
-            )
+        if reserves_scrapecreators and not reserve_credit_reservation(
+            session,
+            payment_id=payment_id,
+            service=service,
+            settings=settings,
+            observed_balance=observed_balance,
+            lock=False,
         ):
             from .models import ProviderCreditReservation
 
@@ -262,23 +279,31 @@ def reserve_mainnet_canary(context: Any, expected_payer: str) -> AbortResult | N
     request = getattr(getattr(context, "transport_context", None), "request", None)
     path = getattr(request, "path", "")
     if payer.lower() != expected_payer.lower():
-        return AbortResult("mainnet_canary_buyer_rejected", "This buyer is not approved for the canary")
+        return AbortResult(
+            "mainnet_canary_buyer_rejected", "This buyer is not approved for the canary"
+        )
     if (
         path != MAINNET_CANARY_PATH
         or network != MAINNET_CANARY_NETWORK
         or asset.lower() != MAINNET_CANARY_USDC_ASSET.lower()
         or amount != str(MAINNET_CANARY_AMOUNT_ATOMIC)
     ):
-        return AbortResult("mainnet_canary_requirement_rejected", "The canary requirement is invalid")
+        return AbortResult(
+            "mainnet_canary_requirement_rejected", "The canary requirement is invalid"
+        )
 
     payment_id = payment_id_from_payload(context.payment_payload)
     with SessionLocal() as session:
         if session.scalar(select(PaymentReceipt).where(PaymentReceipt.payment_id == payment_id)):
             return AbortResult("payment_replayed", "This payment has already been used")
         if session.scalar(
-            select(MainnetCanaryAttempt).where(MainnetCanaryAttempt.canary_key == MAINNET_CANARY_KEY)
+            select(MainnetCanaryAttempt).where(
+                MainnetCanaryAttempt.canary_key == MAINNET_CANARY_KEY
+            )
         ):
-            return AbortResult("mainnet_canary_already_used", "The mainnet canary has already been used")
+            return AbortResult(
+                "mainnet_canary_already_used", "The mainnet canary has already been used"
+            )
         session.add(
             PaymentReceipt(
                 payment_id=payment_id,
@@ -302,7 +327,9 @@ def reserve_mainnet_canary(context: Any, expected_payer: str) -> AbortResult | N
             session.commit()
         except IntegrityError:
             session.rollback()
-            return AbortResult("mainnet_canary_already_used", "The mainnet canary has already been used")
+            return AbortResult(
+                "mainnet_canary_already_used", "The mainnet canary has already been used"
+            )
     return None
 
 
@@ -319,14 +346,18 @@ def reserve_mainnet_acceptance(
     network = str(getattr(context.requirements, "network", ""))
     asset = str(getattr(context.requirements, "asset", ""))
     if payer.lower() != expected_payer.lower():
-        return AbortResult("mainnet_acceptance_buyer_rejected", "This buyer is not approved for acceptance")
+        return AbortResult(
+            "mainnet_acceptance_buyer_rejected", "This buyer is not approved for acceptance"
+        )
     if (
         service is None
         or network != MAINNET_CANARY_NETWORK
         or asset.lower() != MAINNET_CANARY_USDC_ASSET.lower()
         or amount != str(service.price_cents * 10_000)
     ):
-        return AbortResult("mainnet_acceptance_requirement_rejected", "The acceptance requirement is invalid")
+        return AbortResult(
+            "mainnet_acceptance_requirement_rejected", "The acceptance requirement is invalid"
+        )
 
     payment_id = payment_id_from_payload(context.payment_payload)
     acceptance_key = f"{MAINNET_ACCEPTANCE_KEY_PREFIX}:{service_id}"
@@ -404,7 +435,9 @@ def mark_payment_settled(context: Any) -> None:
     with SessionLocal() as session:
         finalize_credit_reservation(session, payment_id)
     logging.getLogger("reachsocial").info(
-        "payment_settled service=%s network=%s", _context_service_id(context), context.result.network
+        "payment_settled service=%s network=%s",
+        _context_service_id(context),
+        context.result.network,
     )
 
 
@@ -627,7 +660,10 @@ class ReachSocialX402Middleware(BaseHTTPMiddleware):
             definition = self._catalog.by_id(service)
             if definition is None or not (definition.enabled and definition.public):
                 return await call_next(request)
-            if request.app.state.settings.public_payments_paused:
+            if (
+                request.app.state.settings.public_payments_paused
+                or request.app.state.runtime.public_payments_paused_reason
+            ):
                 return JSONResponse(
                     {
                         "error": {
@@ -652,6 +688,20 @@ class ReachSocialX402Middleware(BaseHTTPMiddleware):
                     "error": {
                         "code": "idempotency_key_required",
                         "message": "Anonymous paid calls require an Idempotency-Key for result recovery",
+                        "retryable": False,
+                    }
+                },
+                status_code=400,
+            )
+        if service and (len(idempotency_key) < 32 or len(idempotency_key) > 255):
+            return JSONResponse(
+                {
+                    "error": {
+                        "code": "idempotency_key_too_weak",
+                        "message": (
+                            "New anonymous paid calls require a random Idempotency-Key "
+                            "of 32 to 255 characters"
+                        ),
                         "retryable": False,
                     }
                 },
@@ -698,8 +748,7 @@ def _has_paid_idempotency_recovery(service_id: str, idempotency_key: str) -> boo
             )
         )
         return bool(
-            receipt
-            and receipt.status in {"verified", "settled", "reconciliation_required"}
+            receipt and receipt.status in {"verified", "settled", "reconciliation_required"}
         )
 
 

@@ -26,14 +26,17 @@ runtime environment:
 uv run python scripts/check_scrapecreators_credit_balance.py --internal-reserve 1000
 ```
 
-Set `SCRAPECREATORS_CREDIT_BALANCE` to the returned balance and retain
-`SCRAPECREATORS_CREDIT_RESERVE=1000` for InstaGet. The application treats the
-difference as public capacity, reserves the maximum retry cost before provider
-execution, records actual charged units, and never tops up automatically. It
-also retains the existing $5 daily upstream-cost cap, public request limits,
-and provider concurrency limit.
+Set `SCRAPECREATORS_CREDIT_BALANCE` to the returned balance as the startup
+baseline and retain `SCRAPECREATORS_CREDIT_RESERVE=1000` for InstaGet. Before
+each public-mainnet ScrapeCreators settlement, the application reads the live,
+account-wide provider balance, subtracts that reserve and active public holds,
+and aborts before settlement when the check fails or capacity is exhausted.
+Completed public and private calls are already reflected in the live balance
+and are not subtracted twice. No code path tops up automatically. The existing
+$5 daily upstream-cost cap, public request limits, and provider concurrency
+limit remain in force.
 
-The 2026-10-11 balance check returned 6,827 credits. This was a balance
+The final 2026-10-11 balance check returned 6,825 credits. This was a balance
 observation, not an invoice or an authorization to buy credits. Recheck it
 immediately before enabling mainnet so later InstaGet use is accounted for.
 
@@ -47,8 +50,9 @@ credit claimable by the job holder.
 
 ## Paid-result recovery
 
-Anonymous paid calls must include a high-entropy `Idempotency-Key`. Reuse it
-only with the same service and input. If the client loses the response, it may
+New anonymous paid calls must include a random 32–255 character
+`Idempotency-Key`; a UUIDv4 is acceptable. Reuse it only with the same service
+and input. If the client loses the response, it may
 repeat the original paid request with that key; the gateway lets the stored
 result or existing job through without another transfer or provider call.
 
@@ -102,6 +106,12 @@ worker health are confirmed. The first 24-hour release window must watch
 settlement states, stuck jobs, provider units, available public credits, and
 receipt/provider reconciliation differences. Pause new payments on any
 unexplained difference while preserving retrieval and accepted-job completion.
+
+Critical payment, provider, capacity, job, memory, or disk alerts also latch a
+runtime payment pause and make `/readyz` return 503. DigitalOcean checks that
+endpoint from three regions and emails the verified account after a two-minute
+global outage; a separate policy warns 14 days before TLS expiry. Fix the cause
+and recreate only the app container with the current image to clear the latch.
 
 ## Wallet custody and launch release
 

@@ -9,9 +9,16 @@ from pathlib import Path
 from sqlalchemy import func, select
 
 from .config import get_settings
-from .credit_budget import summary as credit_budget_summary
+from .credit_budget import (
+    ProviderBalanceUnavailable,
+    fetch_provider_balance,
+)
+from .credit_budget import (
+    summary as credit_budget_summary,
+)
 from .db import SessionLocal
 from .models import AsyncJob, PaymentReceipt, ProviderAttempt
+from .runtime import RuntimeState
 from .services import utcnow_naive
 
 
@@ -67,29 +74,42 @@ def collect_alerts() -> list[tuple[str, str]]:
             alerts.append(("provider_failures", f"count_10m={recent_failures}"))
         payment_failures = session.scalar(
             select(func.count(PaymentReceipt.id)).where(
-                PaymentReceipt.status.in_(["canceled", "settlement_failed", "reconciliation_required"]),
+                PaymentReceipt.status.in_(
+                    ["canceled", "settlement_failed", "reconciliation_required"]
+                ),
                 PaymentReceipt.updated_at >= now - timedelta(minutes=10),
             )
         )
         if payment_failures:
             alerts.append(("payment_failures", f"count_10m={payment_failures}"))
-        credits = credit_budget_summary(session, settings)
-        if settings.scrapecreators_credit_balance and credits["public_available"] <= 10:
-            alerts.append(
-                (
-                    "provider_credit_capacity",
-                    f"public_available={credits['public_available']}",
+        if settings.x402_network == "eip155:8453" and settings.allow_mainnet_x402:
+            try:
+                observed_balance = fetch_provider_balance(settings)
+            except ProviderBalanceUnavailable:
+                alerts.append(("provider_credit_balance_unavailable", "live_check_failed"))
+            else:
+                credits = credit_budget_summary(
+                    session, settings, observed_balance=observed_balance
                 )
-            )
+                if credits["public_available"] <= 10:
+                    alerts.append(
+                        (
+                            "provider_credit_capacity",
+                            f"public_available={credits['public_available']}",
+                        )
+                    )
     return alerts
 
 
-async def alert_loop() -> None:
+async def alert_loop(runtime: RuntimeState) -> None:
     logger = logging.getLogger("reachsocial")
     settings = get_settings()
     while True:
         try:
-            for kind, detail in collect_alerts():
+            alerts = collect_alerts()
+            if alerts:
+                runtime.pause_public_payments(alerts[0][0])
+            for kind, detail in alerts:
                 logger.warning(
                     "operational_alert kind=%s detail=%s contact=%s",
                     kind,

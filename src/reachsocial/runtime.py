@@ -26,7 +26,11 @@ class RuntimeState:
         self.public_request_times: dict[str, deque[float]] = defaultdict(deque)
         self.public_upstream_reserved_microusd = 0
         self.idempotency_locks: dict[str, asyncio.Lock] = {}
+        self.public_payments_paused_reason: str | None = None
         self._lock = asyncio.Lock()
+
+    def pause_public_payments(self, reason: str) -> None:
+        self.public_payments_paused_reason = reason
 
     async def acquire(
         self,
@@ -74,9 +78,7 @@ class RuntimeState:
     ) -> None:
         async with self._lock:
             if (
-                committed_microusd
-                + self.public_upstream_reserved_microusd
-                + estimate_microusd
+                committed_microusd + self.public_upstream_reserved_microusd + estimate_microusd
                 > cap_microusd
             ):
                 from .errors import TestCapacityReached

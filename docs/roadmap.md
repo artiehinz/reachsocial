@@ -8,9 +8,10 @@ Base-mainnet USDC canary and a separate independent three-route acceptance
 settled and recovered their results. The acceptance handler is disarmed;
 general Base-mainnet sales remain intentionally blocked.
 
-**Audit hold:** [the prelaunch audit](prelaunch-audit-2026-10-11.md) found shared-credit
-accounting, SDK edge access, recovery-key strength, and monitoring gaps. Resolve
-these before the release decision; prior payment acceptance alone is insufficient.
+**Audit follow-up completed:** [the prelaunch audit](prelaunch-audit-2026-10-11.md)
+found and resolved shared-credit accounting, SDK edge access, recovery-key
+strength, and external monitoring gaps. General mainnet sales remain disabled
+until the final release decision.
 
 Do not set `X402_NETWORK=eip155:8453` or `ALLOW_MAINNET_X402=true` until every
 item below is complete and recorded in the release notes.
@@ -22,7 +23,9 @@ item below is complete and recorded in the release notes.
    balance was 6,825 credits on 2026-10-11 after the three-route acceptance;
    reserve 1,000 for InstaGet and set
    the protected balance configuration immediately before release. Public
-   capacity is reserved durably before a mainnet provider call. See
+   capacity is reserved durably before a mainnet provider call. A live,
+   account-wide balance check now runs before each public ScrapeCreators
+   settlement and fails closed if provider capacity cannot be verified. See
    [provider contract status](provider-contract-status.md) and
    [public payment operations](public-payment-operations.md).
 2. **Rotate the CDP credential — completed 2026-10-11.** The exposed CDP API

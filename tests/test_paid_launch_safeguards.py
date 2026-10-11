@@ -7,7 +7,7 @@ from sqlalchemy import select
 from reachsocial.api import _recover_async_payment, _recover_sync_payment
 from reachsocial.catalog import ProviderConfig
 from reachsocial.config import Settings
-from reachsocial.credit_budget import finalize, reserve, summary
+from reachsocial.credit_budget import fetch_provider_balance, finalize, reserve, summary
 from reachsocial.models import (
     AsyncJob,
     IdempotencyRecord,
@@ -17,6 +17,25 @@ from reachsocial.models import (
 )
 from reachsocial.payments import PUBLIC_X402_CLIENT_NAME
 from reachsocial.services import utcnow_naive
+
+
+def test_live_provider_balance_uses_the_account_wide_value(monkeypatch) -> None:
+    class Response:
+        def raise_for_status(self) -> None:
+            return None
+
+        def json(self) -> dict[str, int]:
+            return {"credits_remaining": 6825}
+
+    def fake_get(url, *, headers, timeout):  # type: ignore[no-untyped-def]
+        assert url.endswith("/account/credit-balance")
+        assert headers == {"x-api-key": "protected-key"}
+        assert timeout == 5
+        return Response()
+
+    monkeypatch.setattr("reachsocial.credit_budget.httpx.get", fake_get)
+
+    assert fetch_provider_balance(Settings(scrapecreators_api_key="protected-key")) == 6825
 
 
 def test_credit_reservation_holds_retries_then_records_actual_use(session, client, catalog) -> None:
@@ -61,6 +80,9 @@ def test_credit_reservation_holds_retries_then_records_actual_use(session, clien
     assert reservation.reserved_units == 0
     assert reservation.consumed_units == 1
     assert summary(session, settings)["public_available"] == 3
+    # A fresh provider balance already includes this completed call, so only
+    # active reservations are subtracted from it.
+    assert summary(session, settings, observed_balance=5)["public_available"] == 4
 
 
 def test_credit_reservation_refuses_capacity_below_internal_reserve(session, catalog) -> None:

@@ -38,12 +38,14 @@ async def run(args: argparse.Namespace) -> dict[str, Any]:
     body = {"input": {"url": args.profile_url}}
     headers = {
         "Accept": "application/json",
-        "Idempotency-Key": "mainnet-canary-" + secrets.token_hex(12),
+        "Idempotency-Key": "mainnet-canary-" + secrets.token_hex(16),
     }
     async with httpx.AsyncClient(timeout=httpx.Timeout(45.0), follow_redirects=False) as http:
         challenge = await http.post(endpoint, headers=headers, json=body)
         if challenge.status_code != 402:
-            raise RuntimeError(f"expected unpaid 402 challenge, received HTTP {challenge.status_code}")
+            raise RuntimeError(
+                f"expected unpaid 402 challenge, received HTTP {challenge.status_code}"
+            )
         parser = x402HTTPClient(x402Client())
         payment_required = parser.get_payment_required_response(
             challenge.headers.get,

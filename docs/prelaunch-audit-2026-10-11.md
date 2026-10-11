@@ -2,10 +2,10 @@
 
 ## Decision
 
-Keep general Base-mainnet sales disabled. Earlier acceptance and refund evidence
-remains valid, but “all preflight gates complete” overstated the scope of those
-checks. This source review and read-only hosted audit found the release holds
-below. No new paid provider requests or transfers were made.
+Keep general Base-mainnet sales disabled until the owner makes the final release
+decision. Earlier acceptance and refund evidence remains valid. The four holds
+found by this audit were resolved on 2026-10-11 without a new paid provider
+request or transfer.
 
 ## Implemented API coverage
 
@@ -24,31 +24,29 @@ uses GDELT. Facebook profile and Reddit post are planned; Instagram stories
 is paused. The broader generated endpoint inventory is not an implemented API
 catalog. This audit adds no new wrappers and does not run fresh live coverage.
 
-## Release holds
+## Resolved launch holds
 
-1. **Shared credit budget — high.** `credit_budget._committed_units` counts public
-   payment reservations only. InstaGet/private usage or other users of the same
-   provider key can drain the shared account without reducing public capacity.
-   There is no freshness deadline for the operator-observed balance. Add a
-   timestamped balance baseline and account-wide consumption reconciliation,
-   with fail-closed behavior when stale, before claiming reserve protection.
-   Replacing the balance also subtracts historical public consumption again:
-   conservative, but inaccurate. A balance reset must have an accounting epoch.
-2. **Agent access at Cloudflare — high for launch usability.** GET /status.json
-   with curl returned 200; Python urllib and curl with Python-urllib/3.12 both
-   returned 403 (Cloudflare 1010). Review the relevant edge rule and validate
-   ordinary SDK clients on discovery and API paths. Do not disable unrelated
-   protections globally. This audit did not modify Cloudflare rules.
-3. **Recovery key strength — medium.** Paid recovery is a bearer capability:
-   the original idempotency key plus matching input recovers the result/job.
-   `_validate_idempotency_key` currently accepts 1–255 characters; randomness
-   is documented, not enforced. New anonymous payments need a strong-key
-   requirement and abuse limits, preserving retrieval of existing paid records.
-   The website now tells callers to keep the key private and use a fresh UUID.
-4. **Monitoring — medium.** `alerts.py` emits warnings to application logs every
-   minute. It does not deliver alerts externally or automatically pause new
-   payments. Arrange a monitored release window and alert delivery/reconciliation
-   procedure before calling the first 24 hours covered.
+1. **Shared credit budget — resolved.** Every new public-mainnet Instagram
+   settlement now reads the account-wide ScrapeCreators balance before funds
+   settle. The live value already includes InstaGet and other private usage;
+   ReachSocial subtracts the 1,000-credit internal reserve and active public
+   reservations. An unavailable or invalid balance aborts before settlement.
+   Completed historical reservations are reconciled at startup and are not
+   subtracted again from a fresh provider balance.
+2. **Agent access at Cloudflare — resolved.** A zone custom rule skips Browser
+   Integrity Check only for ReachSocial API, MCP, health, and machine-readable
+   discovery paths. Python urllib, curl, and the browser can reach those paths;
+   Browser Integrity Check remains enabled for ordinary website pages.
+3. **Recovery key strength — resolved.** New anonymous paid calls are rejected
+   before their payment challenge unless the idempotency key is 32–255
+   characters. Existing paid records remain recoverable with their original
+   key and matching input. Bundled buyer scripts now generate 128 random bits.
+4. **Monitoring — resolved.** Critical application alerts latch an in-process
+   pause for new payment challenges and make `/readyz` return 503. Paid recovery
+   and accepted background jobs remain available. A three-region DigitalOcean
+   uptime check watches `/readyz`; global failure and TLS-expiry policies notify
+   the verified DigitalOcean account email. Resume after investigation by
+   recreating the app with healthy conditions and the existing image.
 
 ## Security review scope and observations
 
@@ -66,8 +64,8 @@ provider failure modes are not certified by this review. Process-local rate,
 concurrency, and in-flight spend state assumes the current single-process runtime;
 do not add workers/replicas without shared enforcement. Runtime cache and lock
 maps are not globally bounded; expire/evict unused entries before sustained load.
-The ingress container currently receives the shared runtime env_file; reducing it
-to ingress-only settings is worthwhile hardening.
+The ingress container now receives only its address and Basic Auth settings,
+rather than the application provider and payment credentials.
 
 Added nosniff, referrer policy, frame denial, and a restrictive CSP for the public
 HTML pages. Swagger/ReDoc keep their interactive scripts. No claim of complete
@@ -98,7 +96,10 @@ availability, not a guarantee that each upstream provider is healthy.
 
 ## Validation
 
-Ruff passed; 150 tests passed, 10 credentialed live tests skipped. Read-only
+Ruff passed; 155 tests passed, 10 credentialed live tests skipped. Read-only
 production checks confirmed Base Sepolia, ALLOW_MAINNET_X402=false, MCP enabled,
-three public services, and stylesheet edge caching. No AEU runtime changes or
-new AEU acceptance tests were part of this ReachSocial audit.
+three public services, stylesheet edge caching, scoped Python-client access,
+and external readiness monitoring. Herald's legacy local development database
+was preserved twice on NVMe and replaced with a clean database at migration
+`20261011_0004`. No AEU runtime changes or new AEU acceptance tests were part
+of this ReachSocial audit.

@@ -12,6 +12,7 @@ from x402.http.types import HTTPRequestContext
 
 from reachsocial.catalog import Catalog, InputField, ProviderConfig, ServiceDefinition
 from reachsocial.config import Settings
+from reachsocial.credit_budget import ProviderBalanceUnavailable
 from reachsocial.models import MainnetCanaryAttempt, PaymentReceipt
 from reachsocial.payments import (
     MAINNET_ACCEPTANCE_PATHS,
@@ -32,6 +33,7 @@ from reachsocial.payments import (
     service_id_from_path,
     usdc_atomic_to_cents,
 )
+from reachsocial.runtime import RuntimeState
 
 
 def test_x402_uses_the_official_cdp_facilitator_helper(monkeypatch) -> None:
@@ -246,6 +248,45 @@ def test_payment_receipt_reservation_rejects_a_replayed_payload(session, monkeyp
     assert receipt.amount_cents == 5
 
 
+def test_mainnet_payment_fails_before_settlement_when_balance_is_unavailable(
+    session, monkeypatch, catalog
+) -> None:
+    @contextmanager
+    def session_factory():
+        yield session
+
+    def unavailable(_settings):
+        raise ProviderBalanceUnavailable("unavailable")
+
+    monkeypatch.setattr("reachsocial.payments.SessionLocal", session_factory)
+    monkeypatch.setattr("reachsocial.payments.fetch_provider_balance", unavailable)
+    service = catalog.by_id("instagram.profile").model_copy(
+        update={"provider": ProviderConfig(name="scrapecreators")}
+    )
+    context = SimpleNamespace(
+        payment_payload={"signature": "new-mainnet-payment"},
+        requirements=SimpleNamespace(network="eip155:8453", amount="50000"),
+        result=SimpleNamespace(payer="0xbuyer"),
+        transport_context=SimpleNamespace(
+            request=SimpleNamespace(path="/v1/services/instagram.profile/execute")
+        ),
+    )
+    result = reserve_payment_receipt(
+        context,
+        settings=Settings(
+            x402_network="eip155:8453",
+            scrapecreators_api_key="protected-key",
+            scrapecreators_credit_balance=6825,
+            scrapecreators_credit_reserve=1000,
+        ),
+        catalog=Catalog(services=[service]),
+    )
+
+    assert result is not None
+    assert result.reason == "provider_credit_balance_unavailable"
+    assert session.scalar(select(PaymentReceipt)) is None
+
+
 def test_mainnet_canary_reservation_allows_only_one_named_buyer(session, monkeypatch) -> None:
     @contextmanager
     def session_factory():
@@ -396,6 +437,72 @@ async def test_disabled_service_bypasses_payment_challenge() -> None:
     response = await middleware.dispatch(request, route_handler)
 
     assert response.status_code == 404
+    assert payment_calls == []
+
+
+@pytest.mark.asyncio
+async def test_new_public_payment_requires_a_strong_recovery_key(catalog) -> None:
+    middleware = object.__new__(ReachSocialX402Middleware)
+    middleware._catalog = catalog
+    payment_calls = []
+
+    async def payment_handler(request, call_next):
+        del request, call_next
+        payment_calls.append(True)
+        return JSONResponse({"payment": "required"}, status_code=402)
+
+    middleware._payment_handler = payment_handler
+    request = Request(
+        {
+            "type": "http",
+            "method": "POST",
+            "path": "/v1/services/instagram.profile/execute",
+            "headers": [(b"idempotency-key", b"guessable")],
+            "query_string": b"",
+            "scheme": "https",
+            "server": ("reachsocial.test", 443),
+            "app": SimpleNamespace(
+                state=SimpleNamespace(settings=Settings(), runtime=RuntimeState())
+            ),
+        }
+    )
+
+    response = await middleware.dispatch(request, lambda _request: None)
+
+    assert response.status_code == 400
+    assert payment_calls == []
+
+
+@pytest.mark.asyncio
+async def test_runtime_alert_pause_blocks_new_payment_challenges(catalog) -> None:
+    middleware = object.__new__(ReachSocialX402Middleware)
+    middleware._catalog = catalog
+    payment_calls = []
+
+    async def payment_handler(request, call_next):
+        del request, call_next
+        payment_calls.append(True)
+        return JSONResponse({"payment": "required"}, status_code=402)
+
+    middleware._payment_handler = payment_handler
+    runtime = RuntimeState()
+    runtime.pause_public_payments("provider_failures")
+    request = Request(
+        {
+            "type": "http",
+            "method": "POST",
+            "path": "/v1/services/instagram.profile/execute",
+            "headers": [(b"idempotency-key", b"a" * 32)],
+            "query_string": b"",
+            "scheme": "https",
+            "server": ("reachsocial.test", 443),
+            "app": SimpleNamespace(state=SimpleNamespace(settings=Settings(), runtime=runtime)),
+        }
+    )
+
+    response = await middleware.dispatch(request, lambda _request: None)
+
+    assert response.status_code == 503
     assert payment_calls == []
 
 
