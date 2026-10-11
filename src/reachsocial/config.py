@@ -23,7 +23,6 @@ class Settings(BaseSettings):
     database_url: str = "sqlite:///./data/reachsocial.db"
     catalog_path: Path = Path("config/services.yaml")
     scrapecreators_api_key: str = ""
-    apify_api_token: str = ""
     mcp_enabled: bool = False
     admin_api_token: str = ""
     x402_enabled: bool = False

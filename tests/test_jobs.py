@@ -330,7 +330,7 @@ async def test_worker_never_replays_a_job_after_its_provider_changes(
         input_data={"url": "https://linkedin.com/in/example"},
         anonymous=False,
     )
-    job.provider = "apify"
+    job.provider = "retired_provider"
     session.commit()
 
     worker = JobWorker(catalog, executor)

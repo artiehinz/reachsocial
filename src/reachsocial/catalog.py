@@ -22,7 +22,7 @@ class InputField(BaseModel):
 
 
 class ProviderConfig(BaseModel):
-    name: Literal["scrapecreators", "apify", "gdelt", "mock"]
+    name: Literal["scrapecreators", "gdelt", "mock"]
     route: str = ""
     method: Literal["GET", "POST"] = "POST"
     actor_id: str = ""
@@ -63,13 +63,6 @@ class ServiceDefinition(BaseModel):
             raise ValueError("A private catalog service must be enabled and non-public")
         if self.enabled and self.public and self.catalog_status not in {None, "available"}:
             raise ValueError("An enabled public service must have available catalog status")
-        if self.provider.name == "apify" and self.enabled:
-            if not self.provider.actor_id:
-                raise ValueError("An enabled Apify service requires an actor ID")
-            if self.provider.max_total_charge_microusd <= 0:
-                raise ValueError("An enabled Apify service requires a positive charge cap")
-            if self.retries:
-                raise ValueError("Apify services cannot automatically create replacement runs")
         if self.verified_zero_upstream_cost and (
             not self.cost_verified
             or self.estimated_upstream_cost_microusd

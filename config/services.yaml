@@ -91,7 +91,7 @@ services:
     input_fields:
       - {name: url, description: Canonical Instagram profile URL., format: url}
       - {name: max_items, description: Maximum stories to return., required: false, format: integer, default: 20, minimum: 1, maximum: 50}
-    provider: {name: apify}
+    provider: {name: scrapecreators}
     enabled: false
     public: false
     catalog_status: paused

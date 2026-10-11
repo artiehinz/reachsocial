@@ -4,52 +4,19 @@ from pydantic import ValidationError
 from reachsocial.catalog import InputField, ProviderConfig, ServiceDefinition, load_catalog
 
 
-def apify_definition(**updates) -> ServiceDefinition:
-    values = {
-        "id": "x.feed",
-        "title": "X Feed",
-        "platform": "X",
-        "description": "Latest feed",
-        "input_fields": [InputField(name="url", description="URL", format="url")],
-        "provider": ProviderConfig(name="apify", actor_id="test~actor"),
-        "execution": "async",
-        "response_shape": "feed",
-        "enabled": True,
-        "public": False,
-        "retries": 0,
-    }
-    values.update(updates)
-    return ServiceDefinition(**values)
-
-
-def test_enabled_apify_service_requires_a_charge_cap() -> None:
-    with pytest.raises(ValidationError, match="positive charge cap"):
-        apify_definition()
-
-
-def test_enabled_apify_service_rejects_automatic_run_retries() -> None:
-    with pytest.raises(ValidationError, match="replacement runs"):
-        apify_definition(
-            provider=ProviderConfig(
-                name="apify",
-                actor_id="test~actor",
-                max_total_charge_microusd=10_000,
-            ),
-            retries=1,
-        )
-
-
-def test_public_price_is_checked_against_the_hard_cost_cap() -> None:
+def test_public_price_is_checked_against_the_maximum_attempt_cost() -> None:
     with pytest.raises(ValidationError, match="50% gross margin"):
-        apify_definition(
-            provider=ProviderConfig(
-                name="apify",
-                actor_id="test~actor",
-                max_total_charge_microusd=40_000,
-            ),
-            estimated_upstream_cost_microusd=40_000,
+        ServiceDefinition(
+            id="x.feed",
+            title="X Feed",
+            platform="X",
+            description="Feed",
+            input_fields=[InputField(name="url", description="URL", format="url")],
+            provider=ProviderConfig(name="scrapecreators"),
             enabled=True,
             public=True,
+            estimated_upstream_cost_microusd=40_000,
+            provider_unit_cost_microusd=40_000,
             price_cents=5,
         )
 

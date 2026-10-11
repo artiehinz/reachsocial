@@ -178,7 +178,7 @@ so `cost_verified` remains false.
 No active catalog service uses Apify. The LinkedIn migration now uses
 ScrapeCreators and `instagram.stories` is paused rather than substituted with
 an Actor. A production query found zero queued or running Apify jobs on
-2026-10-11. The production Apify token can be removed with the deployment that
+2026-10-11. The production Apify token was removed after the deployment that
 ships this catalog; historical completed jobs keep their stored results and
 paid-result recovery without needing an Apify credential.
 

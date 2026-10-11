@@ -1,4 +1,9 @@
-# ReachSocial MVP implementation plan
+# Archived ReachSocial implementation plan
+
+This pre-release design note is retained only for historical context. It
+predates the ScrapeCreators-only social catalog and describes retired Apify
+options; use [the roadmap](roadmap.md), [readiness notes](readiness.md), and
+[provider contract status](provider-contract-status.md) for current work.
 
 ## Product boundary
 
