@@ -55,6 +55,7 @@ DISCOVERY_CACHE_PATHS = {
     "/openapi.json",
     "/llms.txt",
     "/agent.md",
+    "/agent.txt",
     "/.well-known/api-catalog",
     "/robots.txt",
     "/sitemap.xml",
@@ -350,10 +351,15 @@ def create_app() -> FastAPI:
         )
 
     @app.get("/agent.md", include_in_schema=False)
+    @app.get("/agent.txt", include_in_schema=False)
     async def agent_guide(request: Request) -> PlainTextResponse:
         return PlainTextResponse(
             agent_text(request.app.state.catalog, request.app.state.settings),
-            media_type="text/markdown; charset=utf-8",
+            media_type=(
+                "text/plain; charset=utf-8"
+                if request.url.path == "/agent.txt"
+                else "text/markdown; charset=utf-8"
+            ),
         )
 
     @app.get("/.well-known/api-catalog", include_in_schema=False)

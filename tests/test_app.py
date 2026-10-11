@@ -91,6 +91,12 @@ def test_health_and_mcp_gate() -> None:
         assert llms.text.startswith("# ReachSocial")
         assert "instagram.profile" in llms.text
         assert client.get("/agent.md").headers["content-type"].startswith("text/markdown")
+        plain_guide = client.get("/agent.txt")
+        assert plain_guide.headers["content-type"].startswith("text/plain")
+        assert plain_guide.text == client.get("/agent.md").text
+        assert "eip155:84532" in plain_guide.text
+        assert "instagram.profile: $0.05 per request" in plain_guide.text
+        assert "linkedin.profile" not in plain_guide.text
         assert (
             client.get("/.well-known/api-catalog")
             .headers["content-type"]

@@ -3,7 +3,7 @@
 {% block content %}
 <section class="page-intro"><p class="eyebrow">DEVELOPER DOCUMENTATION</p><h1>Call the API.</h1><p>Choose an available API and send a public URL. For public paid calls, use an x402-compatible client with USDC on the stated network. No ReachSocial signup or API key is required. Generated machine documentation is available in <a href="/openapi.json">OpenAPI</a>, <a href="/llms.txt">llms.txt</a>, and the <a href="/agent.md">agent guide</a>.</p></section>
 
-<section><h2>Check the available APIs</h2><pre><code>curl https://reachsocial.dev/v1/services</code></pre><p>This discovery request is free. To set up an agent, share <a href="/agent.md">https://reachsocial.dev/agent.md</a> and ask it to configure a compatible wallet and a spending limit before paying.</p></section>
+<section><h2>Check the available APIs</h2><pre><code>curl https://reachsocial.dev/v1/services</code></pre><p>This discovery request is free. To set up an agent, share <a href="/agent.txt">https://reachsocial.dev/agent.txt</a> and ask it to check live availability, prices, and the payment network before configuring a wallet and spending limit. A <a href="/agent.md">Markdown version</a> is also available.</p></section>
 <section><h2>Get a payment quote</h2><pre><code>REQUEST_KEY="$(python3 -c 'import uuid; print(uuid.uuid4())')"
 curl -i https://reachsocial.dev/v1/services/instagram.profile/execute \
   -H 'Content-Type: application/json' \
