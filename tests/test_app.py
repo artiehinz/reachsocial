@@ -60,9 +60,13 @@ def test_health_and_mcp_gate() -> None:
         }
         assert client.get("/services/x.feed").status_code == 200
         assert client.get("/services/linkedin.profile").status_code == 200
-        assert "X Public Posts" in client.get("/catalog").text
+        home = client.get("/").text
+        catalog_page = client.get("/catalog").text
+        assert 'href="/catalog#x"' in home
+        assert 'class="section-heading" id="x"' in catalog_page
+        assert "X Public Posts" in catalog_page
         assert "Private" in client.get("/services/x.feed").text
-        assert "LinkedIn Public Profile" in client.get("/catalog").text
+        assert "LinkedIn Public Profile" in catalog_page
         llms = client.get("/llms.txt")
         assert llms.headers["content-type"].startswith("text/plain")
         assert llms.text.startswith("# ReachSocial")

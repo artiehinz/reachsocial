@@ -3,7 +3,7 @@
 ## Paid MVP catalog completion — current state
 
 The catalog contains 18 reviewed services. Two Instagram services are available
-on Base Sepolia; fifteen integrations remain private; and Instagram current
+on Base mainnet; fifteen integrations remain private; and Instagram current
 stories is paused. Seventeen services are selected for the paid MVP: every
 entry except current stories.
 
@@ -39,18 +39,20 @@ paid-result recovery and accepted-job completion available.
 ## Base mainnet USDC launch gate
 
 **Status (2026-10-11):** ReachSocial is live with authenticated B2B access,
-MCP discovery, and anonymous x402 challenges on Base Sepolia. The earlier
-Base-mainnet canary and three-route acceptance settled and recovered their
-results, but the LinkedIn acceptance covered the retired Apify path. The handler
-is disarmed and general Base-mainnet sales remain intentionally blocked.
+MCP discovery, and anonymous x402 payment acceptance on Base mainnet for
+`instagram.profile` and `instagram.post`. A fresh unpaid challenge confirmed
+native Base USDC, the $0.05 amount, and the active receiving configuration
+without sending a transfer or provider request. The historical three-route
+acceptance handler remains disarmed; its LinkedIn evidence covered the retired
+Apify path and does not release the ScrapeCreators replacement.
 
 **Audit follow-up completed:** [the prelaunch audit](prelaunch-audit-2026-10-11.md)
 found and resolved shared-credit accounting, SDK edge access, recovery-key
-strength, and external monitoring gaps. General mainnet sales remain disabled
-until the final release decision.
+strength, and external monitoring gaps. The owner approved the two-service
+mainnet release; all other services remain private pending their own evidence.
 
-Do not set `X402_NETWORK=eip155:8453` or `ALLOW_MAINNET_X402=true` until every
-item below is complete and recorded in the release notes.
+The two-service release set `X402_NETWORK=eip155:8453` and
+`ALLOW_MAINNET_X402=true` after the items below were completed and recorded.
 
 1. **Provider credits and cost policy — completed in code, recheck before
    release.** Instagram profile and post use a documented replacement-price
@@ -98,11 +100,11 @@ item below is complete and recorded in the release notes.
    network/token/amount rejection and restart recovery. The protected
    reconciliation record retains the transaction evidence without payment
    signatures, job tokens, source URLs, or recovery material.
-6. **Make the release decision.** Review the evidence, set the mainnet network
-   and explicit allow flag, deploy, and verify all public discovery and payment
-   information. Keep the $5 daily upstream-cost ceiling, current rate and
-   concurrency limits, and the stricter verified credit budget for the first
-   24 hours.
+6. **Release decision — completed 2026-10-11.** The owner approved the two
+   public Instagram services for Base mainnet. The deployment retained the $5
+   daily upstream-cost ceiling, current rate and concurrency limits, and the
+   stricter verified credit budget. Observe and reconcile this stage for its
+   first 24 hours before considering another promotion.
 
 The application refuses a Base-mainnet configuration unless the allow flag is
 set and every public service has a positive verified upstream cost. That guard
@@ -113,8 +115,8 @@ is necessary but does not replace the operational checks above.
 **2026-10-11:** The isolated Base-mainnet canary settled one five-cent native
 USDC payment from its named buyer for `instagram.profile`. The durable receipt,
 successful normalized service result, and exactly one successful provider
-attempt were reconciled. The regular public x402 routes remain on Base Sepolia;
-this evidence does not authorize general Base-mainnet sales. The durable
+attempt were reconciled. The regular public x402 routes now use Base mainnet
+only for the two accepted Instagram services. The durable
 payment receipt and canary reservation are retained; the linked provider and
 request evidence must be exported into the protected reconciliation record
 before ordinary operational retention removes their rows.

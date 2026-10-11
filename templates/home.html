@@ -22,7 +22,7 @@
   <div class="legend"><span><i class="dot available"></i>Available</span><span><i class="dot private"></i>Private integration</span><span><i class="dot planned"></i>Planned</span><span><i class="dot paused"></i>Paused</span></div>
   <div class="platform-grid">
   {% for platform, services in catalog.discoverable_services()|groupby('platform') %}
-    <article><h3>{{ platform }}</h3><p>{{ services|length }} reviewed service{{ '' if services|length == 1 else 's' }}</p><div class="mini-statuses">{% for service in services %}<span class="dot {{ service.status }}" title="{{ service.status }}"></span>{% endfor %}</div></article>
+    <a class="platform-card" href="/catalog#{{ platform|lower|replace(' ', '-') }}" aria-label="View {{ platform }} services in the catalog"><article><h3>{{ platform }}</h3><p>{{ services|length }} reviewed service{{ '' if services|length == 1 else 's' }}</p><div class="mini-statuses">{% for service in services %}<span class="dot {{ service.status }}" title="{{ service.status }}"></span>{% endfor %}</div></article></a>
   {% endfor %}
   </div>
 </section>

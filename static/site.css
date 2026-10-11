@@ -71,7 +71,11 @@ h3 { margin: 0 0 .55rem; letter-spacing: -.025em; }
 .section-heading { display: flex; justify-content: space-between; align-items: end; gap: 24px; margin-bottom: 24px; }
 .section-heading > span, .section-heading > a { color: var(--muted); font-size: .86rem; }
 .platform-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; }
+.platform-card { display: block; border-radius: var(--radius); }
 .platform-grid article, article { padding: 22px; background: linear-gradient(145deg, rgba(18, 35, 29, .95), rgba(10, 21, 17, .95)); border: 1px solid var(--line); border-radius: var(--radius); }
+.platform-card article { height: 100%; transition: border-color .15s ease, transform .15s ease, box-shadow .15s ease; }
+.platform-card:hover article, .platform-card:focus-visible article { border-color: var(--accent-2); transform: translateY(-2px); box-shadow: 0 12px 26px rgba(0, 0, 0, .2); }
+.platform-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 article p { color: var(--muted); }
 .mini-statuses { display: flex; gap: 6px; margin-top: 17px; }
 .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #66726e; }
@@ -96,6 +100,7 @@ article p { color: var(--muted); }
 
 .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(235px, 1fr)); gap: 14px; margin-top: 24px; }
 .catalog-group { margin-top: 72px; }
+.catalog-group .section-heading { scroll-margin-top: 24px; }
 .service-cards article { min-height: 225px; display: flex; flex-direction: column; }
 .service-cards .price, .service-cards .muted { margin-top: auto; padding-top: 12px; }
 .card-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; }

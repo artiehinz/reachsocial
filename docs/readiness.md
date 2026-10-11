@@ -29,7 +29,8 @@ paid acceptance pass. `news.person` is cost-classified as reviewed zero-fee
 GDELT work. Its first sample was rate-limited, and its bounded retry passed; it
 remains private while public release stages are held. Credential rotation,
 merchant-wallet custody, isolated restores, and the earlier independent-buyer
-acceptance passed. General Base-mainnet sale remains blocked by the current stage gates in
+acceptance passed. Base-mainnet payments are active for the two public
+Instagram services; private integrations remain subject to the staged gates in
 [the roadmap](roadmap.md).
 
 ## URL resolution contract
@@ -59,7 +60,8 @@ REST is the current agent-ready surface:
   sitemap;
 - an honest MCP Server Card at `/.well-known/mcp.json` when MCP is enabled;
 - explicit available, private, planned, and paused catalog states;
-- B2B Bearer authentication and Base Sepolia x402 challenges;
+- B2B Bearer authentication and Base-mainnet x402 challenges for the two public
+  Instagram services;
 - durable async job submission/polling and replacement credits; and
 - idempotency, replay protection, entitlements, limits, cost accounting, and
   owner metrics.
@@ -125,4 +127,5 @@ is recorded separately. No purchase is required for existing-credit tests.
    observe and reconcile each stage for 24 hours.
 
 Public x402 MCP, prepaid balances, and broad directory submissions remain later
-gates. Mainnet still requires the release decision.
+gates. The two-service Base-mainnet release is active; later promotions still
+need their own release decision and evidence.

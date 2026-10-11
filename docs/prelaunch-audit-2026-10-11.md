@@ -2,19 +2,20 @@
 
 ## Decision
 
-Keep general Base-mainnet sales disabled until the owner makes the final release
-decision. Earlier acceptance and refund evidence remains valid for the routes
-and providers that produced it. The four original holds were resolved on
-2026-10-11. This catalog-completion update made bounded provider calls but no
-new buyer transfer; its evidence and unresolved dependencies are in
-[the roadmap](roadmap.md).
+The owner approved Base-mainnet release on 2026-10-11 for the two accepted
+public Instagram services. The protected runtime now uses `eip155:8453` with a
+fresh 6,812-credit baseline and a verified unpaid native-USDC $0.05 challenge.
+No transfer or provider call was made by that release check. Earlier acceptance
+and refund evidence remains valid for the routes and providers that produced it.
+All private integrations remain outside public payment; their unresolved
+dependencies are in [the roadmap](roadmap.md).
 
 ## Implemented API coverage
 
 The runtime catalog has 18 services: 2 available, 15 private, and 1 paused.
 Thirteen release-contract samples passed on ScrapeCreators, but
-the public catalog remains intentionally small until the staged mainnet gates
-pass:
+the public catalog remains intentionally limited to the two services that
+completed its released stage:
 
 | Platform | Public | Private / explicitly entitled B2B |
 | --- | --- | --- |
@@ -100,7 +101,7 @@ Observed through Cloudflare using GET requests:
 
 ## Website corrections
 
-Made testnet status explicit on home and pricing, named the public services,
+Made network status explicit on home and pricing, named the public services,
 clarified private integrations and public-release holds, replaced vague headings,
 and documented the 30-day paid-result recovery window. Corrected MCP status to
 read the runtime setting:
@@ -111,11 +112,11 @@ availability, not a guarantee that each upstream provider is healthy.
 
 The original audit passed its code suite; the catalog-completion update adds
 bounded cache, body-limit, provider-dispatch, and new-adapter coverage. Its
-final local result was 171 passed and 17 credential-gated live tests skipped;
-the production dependency audit found no known vulnerabilities. Read-only
-production checks confirmed Base Sepolia, ALLOW_MAINNET_X402=false, MCP enabled,
-stylesheet edge caching, scoped Python-client access, and external readiness
-monitoring.
+final local result was 164 passed and 17 credential-gated live tests skipped;
+the production dependency audit found no known vulnerabilities. Release checks
+confirmed Base mainnet, `ALLOW_MAINNET_X402=true`, MCP enabled, an exact unpaid
+native-USDC challenge, stylesheet edge caching, scoped Python-client access,
+and external readiness monitoring.
 Herald's legacy local development database was preserved twice on NVMe and
 replaced with a clean database at migration `20261011_0004`. No AEU runtime
 changes or new AEU acceptance tests were part of this ReachSocial audit.

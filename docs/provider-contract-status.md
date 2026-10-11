@@ -40,9 +40,9 @@ integration pending its public paid-acceptance stage.
 
 The balance was 6,825 before this run and 6,812 after it. The 1,000-credit
 InstaGet reserve remains intact, leaving 5,812 credits before any active public
-reservation. No automatic top-up exists. The public routes remain on Base
-Sepolia while the staged public-release gates are incomplete. See the runtime
-catalog and [roadmap](roadmap.md).
+reservation. No automatic top-up exists. The two accepted public Instagram
+routes now use Base mainnet; all other routes remain private or paused. See the
+runtime catalog and [roadmap](roadmap.md).
 
 ### Historical internal-consumer validation
 
@@ -67,10 +67,10 @@ The protected account balance check recorded here returned 6,827 credits before
 the current release run. The current baseline is 6,812 credits. The
 mainnet application configuration reserves 1,000 credits for InstaGet before
 new public work can be accepted, and holds the maximum retry units before a
-payment reaches the provider. No automatic top-up exists. The existing Instagram
-endpoints remain on Base Sepolia until the independent public-launch holds are
-complete. The reviewed X and TikTok endpoints are enabled privately for explicitly entitled
-clients; they remain `public: false`. See the runtime catalog and prelaunch audit.
+payment reaches the provider. No automatic top-up exists. The accepted Instagram
+endpoints are now public on Base mainnet. The reviewed X and TikTok endpoints
+are enabled privately for explicitly entitled clients; they remain `public: false`.
+See the runtime catalog and prelaunch audit.
 
 ### Bounded product-discovery batch — 2026-08-25
 

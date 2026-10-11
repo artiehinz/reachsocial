@@ -2,7 +2,7 @@
 
 This runbook covers staged Base-USDC release work. Instagram profile and post
 are the only currently available public services, at $0.05 each on Base
-Sepolia. LinkedIn is a $0.10 private integration while its ScrapeCreators
+mainnet. LinkedIn is a $0.10 private integration while its ScrapeCreators
 replacement returns `not_found`; it is not available for public payment. This
 runbook does not authorize another provider credit purchase, catalog expansion,
 or an AEU payment mode.
@@ -43,8 +43,9 @@ ended at 6,812, with the 1,000-credit internal reserve intact. Its local ledger
 uses a 100-credit ceiling and conservatively records every uncertain
 ScrapeCreators attempt; it never keeps raw source URLs or provider payloads.
 This is a balance observation, not an invoice or an authorization to buy
-credits. Recheck it immediately before enabling mainnet so later InstaGet use
-is accounted for.
+credits. The 6,812-credit value was rechecked and installed as the Base-mainnet
+release baseline; recheck it before later staged promotions so InstaGet use is
+accounted for.
 
 LinkedIn has moved from Apify to ScrapeCreators. The new public-profile endpoint
 is priced from the same 1,880 micro-USD one-credit replacement basis, but three
@@ -156,8 +157,8 @@ only after its provider contract succeeds; it must use a newly reviewed,
 single-use acceptance path or the normal public route after mainnet is enabled.
 
 Before the earlier public-sales decision, the three paid launch routes could be exercised through a
-hidden acceptance handler. It stays on a separate Base-mainnet x402 middleware
-while normal public routes remain on Base Sepolia. It accepts only the configured
+hidden acceptance handler. It stayed on a separate Base-mainnet x402 middleware
+while normal public routes remained on Base Sepolia. It accepted only the configured
 independent buyer, once each for Instagram profile, Instagram post, and LinkedIn
 profile; each payment must use native Base USDC at the catalog price. The handler
 blocks B2B and service-credit bypasses, reserves provider capacity before
@@ -202,8 +203,9 @@ blocks, receipt checks, and provider-consumption evidence. It contains no raw
 payment signatures, job tokens, provider credentials, source URLs, or wallet
 recovery material.
 
-The normal public payment lane remains Base Sepolia and the separate acceptance
-handler was disarmed after its routes were consumed. The emergency-pause drill
+The normal public payment lane now uses Base mainnet for Instagram profile and
+post, and the separate acceptance handler remains disarmed after its routes
+were consumed. The emergency-pause drill
 also passed: it returned HTTP 503 before a new payment challenge while an
 already-paid result remained recoverable, then resumed with a healthy hosted
 service. An isolated provider-outage rehearsal also passed: a paid async

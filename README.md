@@ -89,7 +89,7 @@ uv run python scripts/release_provider_acceptance.py --help
 ```
 
 The current reviewed catalog has 18 entries across eight platforms: two
-available on Base Sepolia, fifteen private integrations, and one paused
+available on Base mainnet, fifteen private integrations, and one paused
 service. A 2026-10-11 bounded run verified 13 ScrapeCreators contracts at one
 credit each. `linkedin.profile` is a private integration while its replacement
 endpoint still returns `not_found` for the supplied target and the provider's
@@ -118,8 +118,8 @@ Set `REACHSOCIAL_ADDRESS` to the production hostname for normal HTTPS. During
 an IP-only deployment, set it to `http://<public-ip>` until DNS is connected.
 
 Production MCP is enabled as an authenticated B2B surface; public REST uses the
-CDP x402 facilitator on Base Sepolia (`eip155:84532`). B2B Bearer-key calls bypass
-x402. The public test path enforces a $5 UTC-day paid-provider cost cap, per-IP
+CDP x402 facilitator on Base mainnet (`eip155:8453`) for Instagram profile and
+post. B2B Bearer-key calls bypass x402. The public payment path enforces a $5 UTC-day paid-provider cost cap, per-IP
 and per-payer limits, and shared concurrency bounds. Provider costs are recorded
 in integer micro-USD.
 
@@ -180,13 +180,12 @@ uv run python scripts/x402_mainnet_canary.py \
   --confirm-mainnet-canary
 ```
 
-Do not switch to Base mainnet. Startup blocks `eip155:8453` unless every public
-service has verified margins, `ALLOW_MAINNET_X402=true`, and encrypted external
-recovery is enabled. Nightly encrypted Restic backups and weekly DigitalOcean
-volume snapshots are configured. Mainnet remains operationally blocked until
-the LinkedIn replacement and Person News availability checks pass, each public
-stage receives a fresh paid recovery acceptance, and its observation window is
-reconciled.
+Base mainnet is active for the two public Instagram services. Startup still
+blocks `eip155:8453` unless every public service has verified margins,
+`ALLOW_MAINNET_X402=true`, and encrypted external recovery is enabled. Nightly
+encrypted Restic backups and weekly DigitalOcean volume snapshots are configured.
+Private services remain outside public payment until each completes its own
+provider, paid-recovery, and observation gates.
 
 The application runs retention maintenance daily. Deployments take a bounded
 same-volume SQLite snapshot before migration, wait for `/readyz`, automatically
