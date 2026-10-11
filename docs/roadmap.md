@@ -22,10 +22,13 @@ item below is complete and recorded in the release notes.
 2. **Rotate the CDP credential.** The current credential was exposed during an
    earlier operational review. Replace it in CDP and in the runtime environment
    before any mainnet use.
-3. **Verify merchant-wallet custody and recovery.** The buyer wallet recovery
-   check is complete, but it does not prove control of `X402_PAY_TO`. Restore
-   the receiving wallet on an independent owner-controlled device and sign a
-   fresh non-payment challenge before public sales.
+3. **Merchant-wallet custody and recovery — completed 2026-10-11.** The
+   replacement receiving wallet was restored in a separate owner-controlled
+   local wallet installation and signed a fresh EIP-191 non-payment challenge.
+   The local verifier retained only the address, verification time, and
+   challenge hash; it never received the recovery phrase or raw signature.
+   Production payment quotes now name the replacement address. The buyer
+   wallet recovery check remains a separate control.
 4. **Operations rehearsal.** The isolated restore drill has passed for both
    production databases and application startups. Rehearse the payment pause,
    provider-outage credit, refund, and reconciliation paths. Ambiguous

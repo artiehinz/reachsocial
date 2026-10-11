@@ -125,6 +125,10 @@ and stores only the address, verification time, and challenge hash under the
 owner's local state directory. It never asks for, reads, or retains a recovery
 phrase or raw signature.
 
+**Completed 2026-10-11:** the replacement merchant receiving wallet passed
+this recovery and local-signature check. The protected runtime configuration
+and an unpaid public quote were then verified against the replacement address.
+
 Before setting `X402_NETWORK=eip155:8453` and `ALLOW_MAINNET_X402=true`, rotate
 the exposed CDP credential, run restore verification, check the credit balance,
 complete an independent-buyer acceptance for each route, and record the
