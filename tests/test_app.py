@@ -69,10 +69,18 @@ def test_health_and_mcp_gate() -> None:
         home = client.get("/").text
         catalog_page = client.get("/catalog").text
         assert 'href="/catalog#x"' in home
+        assert 'data-copy-target="agent-prompt"' in home
+        assert "artie_hinz" not in home
+        assert "artie_hinz" not in client.get("/docs/api").text
+        copy_script = client.get("/static/site.js").text
+        assert "navigator.clipboard.writeText" in copy_script
+        assert "Select and copy the prompt manually." in copy_script
         assert 'class="section-heading" id="x"' in catalog_page
         assert "X Public Posts" in catalog_page
         assert "Available" in client.get("/services/x.feed").text
         assert "LinkedIn Public Profile" in catalog_page
+        assert "artie_hinz" not in client.get("/services/instagram.profile").text
+        assert "DI2B5I4gsQY" not in client.get("/services/instagram.post").text
         llms = client.get("/llms.txt")
         assert llms.headers["content-type"].startswith("text/plain")
         assert llms.text.startswith("# ReachSocial")
