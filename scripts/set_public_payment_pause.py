@@ -25,12 +25,14 @@ def main() -> int:
         updated = re.sub(r"(?m)^PUBLIC_PAYMENTS_PAUSED=.*$", replacement, source)
     else:
         updated = source.rstrip("\n") + "\n" + replacement + "\n"
-    mode = path.stat().st_mode & 0o777
+    metadata = path.stat()
+    mode = metadata.st_mode & 0o777
     descriptor, temporary = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
     try:
         with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
             handle.write(updated)
         os.chmod(temporary, mode)
+        os.chown(temporary, metadata.st_uid, metadata.st_gid)
         os.replace(temporary, path)
     finally:
         if os.path.exists(temporary):
