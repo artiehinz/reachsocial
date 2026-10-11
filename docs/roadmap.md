@@ -34,9 +34,17 @@ item below is complete and recorded in the release notes.
    provider-outage credit, and refund/support paths before opening the route to
    more callers.
 6. **Make the release decision.** Review the evidence, set the mainnet network
-   and explicit allow flag, deploy, and verify the live 402 challenge with a
-   fresh buyer. Keep a capped spend limit for the first production window.
+and explicit allow flag, deploy, and verify the live 402 challenge with a
+fresh buyer. Keep a capped spend limit for the first production window.
 
 The application refuses a Base-mainnet configuration unless the allow flag is
 set and every public service has a positive verified upstream cost. That guard
 is necessary but does not replace the operational checks above.
+
+## Mainnet canary evidence
+
+**2026-10-11:** The isolated Base-mainnet canary settled one five-cent native
+USDC payment from its named buyer for `instagram.profile`. The durable receipt,
+successful normalized service result, and exactly one successful provider
+attempt were reconciled. The regular public x402 routes remain on Base Sepolia;
+this evidence does not authorize general Base-mainnet sales.
