@@ -219,6 +219,26 @@ service. An isolated provider-outage rehearsal also passed: a paid async
 failure persisted its provider reference, granted exactly one replacement
 credit, and resumed an existing provider run rather than starting another.
 
+For later public batches, use the normal-route acceptance command rather than
+rearming a historical acceptance handler. Its `--dry-run` validates the live
+Base-USDC quote without signing. Paid mode requires both
+`--confirm-mainnet-payments` and `--max-total-atomic`; it caps the batch,
+validates each exact quote, then recovers each paid result using its original
+idempotency key. Run it only from the owner-controlled local checkout:
+
+```bash
+uv run python scripts/x402_public_mainnet_acceptance.py \
+  --expected-pay-to <merchant-address> \
+  --expected-buyer <buyer-address> \
+  --target service.id=<public-target> \
+  --max-total-atomic <strict-batch-cap> \
+  --confirm-mainnet-payments
+```
+
+If a paid request has an unknown outcome, do not submit a new payment. Retain
+the locally printed idempotency key and use the standard paid-result recovery
+route with the original input.
+
 The off-host recovery path was verified with the configured DigitalOcean
 credentials: a temporary volume was created from the newest `tor1` production
 snapshot and then deleted without attaching it or touching production. The
