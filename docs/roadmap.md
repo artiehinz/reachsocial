@@ -4,8 +4,9 @@
 
 **Status (2026-10-11):** ReachSocial is live with authenticated B2B access,
 MCP discovery, and anonymous x402 challenges on Base Sepolia. One bounded
-Base-mainnet USDC canary settled and returned an Instagram result. General
-Base-mainnet sales remain intentionally blocked.
+Base-mainnet USDC canary and a separate independent three-route acceptance
+settled and recovered their results. The acceptance handler is disarmed;
+general Base-mainnet sales remain intentionally blocked.
 
 Do not set `X402_NETWORK=eip155:8453` or `ALLOW_MAINNET_X402=true` until every
 item below is complete and recorded in the release notes.
@@ -32,16 +33,22 @@ item below is complete and recorded in the release notes.
    challenge hash; it never received the recovery phrase or raw signature.
    Production payment quotes now name the replacement address. The buyer
    wallet recovery check remains a separate control.
-4. **Operations rehearsal.** The isolated restore drill has passed for both
-   production databases and application startups. Rehearse the payment pause,
-   provider-outage credit, refund, and reconciliation paths. Ambiguous
+4. **Operations rehearsal — partially completed.** The isolated restore drill
+   has passed for both production databases and application startups. The
+   hosted emergency-pause drill blocked a new payment before challenge and
+   preserved recovery of an existing settled result. Rehearse manual refund and
+   provider-outage credit/reconciliation paths before release. Ambiguous
    facilitator outcomes must remain `reconciliation_required`; no automatic
    payment retry is allowed.
-5. **Independent real-USDC acceptance.** Use a second buyer for bounded paid
-   acceptance of Instagram profile, Instagram post, and the asynchronous
-   LinkedIn flow. Confirm incorrect network/token/amount are rejected, lost
-   responses recover through the original idempotency key, and LinkedIn restart
-   recovery polls an existing provider run.
+5. **Independent real-USDC acceptance — completed 2026-10-11.** A second
+   buyer completed one Base-native-USDC payment for each launch route: $0.05
+   Instagram profile, $0.05 Instagram post, and $0.10 asynchronous LinkedIn
+   profile. Base receipts, durable settlement records, one-time route
+   reservations, provider consumption, paid-result recovery, and LinkedIn
+   protected polling all reconciled. Automated tests cover wrong
+   network/token/amount rejection and restart recovery. The protected
+   reconciliation record retains the transaction evidence without payment
+   signatures, job tokens, source URLs, or recovery material.
 6. **Make the release decision.** Review the evidence, set the mainnet network
    and explicit allow flag, deploy, and verify all public discovery and payment
    information. Keep the $5 daily upstream-cost ceiling, current rate and

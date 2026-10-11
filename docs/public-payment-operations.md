@@ -160,3 +160,26 @@ the exposed CDP credential, run restore verification, check the credit balance,
 complete an independent-buyer acceptance for each route, and record the
 reconciliation. These actions are release holds, not conditions that software
 can simulate.
+
+### Completed independent acceptance — 2026-10-11
+
+The named independent buyer completed the three one-time Base-mainnet routes:
+Instagram profile and post at 50,000 native-USDC atomic units each, and
+LinkedIn profile at 100,000. Each transfer settled to the configured merchant
+address, had a matching durable receipt and one-time route reservation, and
+recovered its paid result without a second transfer. The LinkedIn job completed
+after one provider run whose reference was recorded before polling.
+
+The two Instagram calls each consumed one ScrapeCreators credit at 1,880
+micro-USD. LinkedIn completed with one recorded provider unit at 10,000
+micro-USD, below its accepted 50,000 micro-USD cap. The root-owned, mode-0600
+operations reconciliation record contains the transaction references, Base
+blocks, receipt checks, and provider-consumption evidence. It contains no raw
+payment signatures, job tokens, provider credentials, source URLs, or wallet
+recovery material.
+
+The normal public payment lane remains Base Sepolia and the separate acceptance
+handler was disarmed after its routes were consumed. The emergency-pause drill
+also passed: it returned HTTP 503 before a new payment challenge while an
+already-paid result remained recoverable, then resumed with a healthy hosted
+service. Manual refund and provider-outage rehearsals remain release holds.

@@ -82,9 +82,10 @@ The health endpoint is `/healthz`. Public discovery starts at `/agent.md`,
 
 ## Payments and provider safety
 
-- Public x402 currently uses Base Sepolia. Base mainnet is intentionally
-  blocked in code and operations. One isolated five-cent canary settled on
-  2026-10-11; it does not authorize general public sales.
+- Normal public x402 currently uses Base Sepolia. A five-cent Base-mainnet
+  canary and the separate three-route independent acceptance both settled on
+  2026-10-11, but the acceptance handler is now disarmed and neither result
+  authorizes general public sales.
 - Do not set `X402_NETWORK=eip155:8453` or `ALLOW_MAINNET_X402=true` until every
   item in `docs/roadmap.md` is complete. The CDP credential identified there
   must be rotated before mainnet use.
