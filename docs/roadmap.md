@@ -2,40 +2,45 @@
 
 ## Base mainnet USDC launch gate
 
-**Status (2026-10-08):** ReachSocial is live with authenticated B2B access,
-MCP discovery, and anonymous x402 challenges on Base Sepolia. Base mainnet is
-intentionally blocked.
+**Status (2026-10-11):** ReachSocial is live with authenticated B2B access,
+MCP discovery, and anonymous x402 challenges on Base Sepolia. One bounded
+Base-mainnet USDC canary settled and returned an Instagram result. General
+Base-mainnet sales remain intentionally blocked.
 
 Do not set `X402_NETWORK=eip155:8453` or `ALLOW_MAINNET_X402=true` until every
 item below is complete and recorded in the release notes.
 
-1. **Verify the provider cost.** Reconcile the purchased ScrapeCreators pack or
-   invoice with the current catalog cost for `instagram.profile` and
-   `instagram.post`, then mark only those reviewed costs as verified. See
-   [provider contract status](provider-contract-status.md).
+1. **Provider credits and cost policy — completed in code, recheck before
+   release.** Instagram profile and post use a documented replacement-price
+   cost of 1,880 micro-USD per credited attempt, verified with live endpoint
+   consumption. This is explicitly not called a purchased invoice. The checked
+   balance was 6,827 credits on 2026-10-11; reserve 1,000 for InstaGet and set
+   the protected balance configuration immediately before release. Public
+   capacity is reserved durably before a mainnet provider call. See
+   [provider contract status](provider-contract-status.md) and
+   [public payment operations](public-payment-operations.md).
 2. **Rotate the CDP credential.** The current credential was exposed during an
    earlier operational review. Replace it in CDP and in the runtime environment
    before any mainnet use.
-3. **Establish buyer-wallet recovery.** Create the dedicated self-custody buyer
-   wallet with `scripts/create_mainnet_buyer_wallet.py` from the owner's local
-   terminal. Save its recovery phrase in the owner's password manager, then run
-   the script's `verify` command. The buyer wallet secret must never reach the
-   Droplet, repository, CI, or deployment output. Fund it only after recovery
-   verification, with the exact USDC canary amount and the minimum Base ETH
-   needed for its transaction fee.
-4. **Run one capped real purchase.** Use an independently funded Base-mainnet
-   buyer wallet for one small request. The implementation is the isolated
-   `x402_mainnet_canary.py` flow: it accepts one named buyer, one five-cent
-   native-USDC payment, and one `instagram.profile` provider attempt without
-   enabling general Base-mainnet x402. Confirm the exact x402 requirement,
-   facilitator settlement, service result, receipt, and provider charge.
-5. **Reconcile and rehearse operations.** Match the buyer payment, ReachSocial
-   receipt, provider cost, and accounting record. Exercise the payment pause,
-   provider-outage credit, and refund/support paths before opening the route to
-   more callers.
+3. **Verify merchant-wallet custody and recovery.** The buyer wallet recovery
+   check is complete, but it does not prove control of `X402_PAY_TO`. Restore
+   the receiving wallet on an independent owner-controlled device and sign a
+   fresh non-payment challenge before public sales.
+4. **Operations rehearsal.** The isolated restore drill has passed for both
+   production databases and application startups. Rehearse the payment pause,
+   provider-outage credit, refund, and reconciliation paths. Ambiguous
+   facilitator outcomes must remain `reconciliation_required`; no automatic
+   payment retry is allowed.
+5. **Independent real-USDC acceptance.** Use a second buyer for bounded paid
+   acceptance of Instagram profile, Instagram post, and the asynchronous
+   LinkedIn flow. Confirm incorrect network/token/amount are rejected, lost
+   responses recover through the original idempotency key, and LinkedIn restart
+   recovery polls an existing provider run.
 6. **Make the release decision.** Review the evidence, set the mainnet network
-and explicit allow flag, deploy, and verify the live 402 challenge with a
-fresh buyer. Keep a capped spend limit for the first production window.
+   and explicit allow flag, deploy, and verify all public discovery and payment
+   information. Keep the $5 daily upstream-cost ceiling, current rate and
+   concurrency limits, and the stricter verified credit budget for the first
+   24 hours.
 
 The application refuses a Base-mainnet configuration unless the allow flag is
 set and every public service has a positive verified upstream cost. That guard
@@ -47,4 +52,23 @@ is necessary but does not replace the operational checks above.
 USDC payment from its named buyer for `instagram.profile`. The durable receipt,
 successful normalized service result, and exactly one successful provider
 attempt were reconciled. The regular public x402 routes remain on Base Sepolia;
-this evidence does not authorize general Base-mainnet sales.
+this evidence does not authorize general Base-mainnet sales. The durable
+payment receipt and canary reservation are retained; the linked provider and
+request evidence must be exported into the protected reconciliation record
+before ordinary operational retention removes their rows.
+
+## Restore and backup evidence
+
+**2026-10-11:** The latest encrypted Restic snapshot was restored under an
+isolated NVMe verification path. ReachSocial's SQLite integrity check and
+isolated application startup passed. AEU's PostgreSQL custom dump restored to
+a temporary database with 16 public tables, and an isolated AEU container
+started successfully against it. The temporary containers and database were
+removed after the drill; the protected restore copy remains on NVMe for the
+retention window.
+
+Nightly Restic backup completed on 2026-10-10. The deployment documentation
+expects weekly DigitalOcean volume snapshots, but this host currently has no
+read-only `doctl` credential to list and verify them. Provide a least-privilege
+read-only DigitalOcean token or an owner-side snapshot listing before claiming
+off-host snapshot recovery is verified.

@@ -78,7 +78,7 @@ def submit_job(
         raise UnknownService("Unknown service")
     executor.validate_input(service, input_data)
     input_hash = stable_hash(input_data)
-    if idempotency_key and not anonymous:
+    if idempotency_key:
         prior = session.scalar(
             select(AsyncJob).where(
                 AsyncJob.client_id == client.id,
@@ -116,12 +116,19 @@ def submit_job(
         status="queued",
         input_json=input_data,
         input_hash=input_hash,
-        idempotency_key=idempotency_key if not anonymous else None,
+        idempotency_key=idempotency_key,
         access_token_hash=hash_api_key(token) if token else None,
         payment_id=payment_id,
         price_snapshot_cents=service.price_cents,
         reserved_upstream_cost_microusd=reserved_upstream_microusd,
-        expires_at=now + timedelta(hours=settings.async_job_retention_hours),
+        expires_at=now
+        + timedelta(
+            hours=(
+                settings.paid_result_retention_hours
+                if anonymous and payment_id
+                else settings.async_job_retention_hours
+            )
+        ),
     )
     session.add(job)
     try:

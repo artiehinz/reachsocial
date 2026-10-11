@@ -85,8 +85,9 @@ def test_partial_sqlite_migration_can_resume(tmp_path, monkeypatch) -> None:
         column["name"] for column in inspector.get_columns("payment_receipts")
     }
     with engine.connect() as connection:
-        assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "20261011_0003"
+        assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "20261011_0004"
         assert connection.scalar(
             text("SELECT updated_at FROM payment_receipts WHERE payment_id='payment-partial'")
         ) is not None
+    assert "provider_credit_reservations" in inspector.get_table_names()
     get_settings.cache_clear()

@@ -11,7 +11,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
-from starlette.responses import Response
+from starlette.responses import JSONResponse, Response
 from x402.http import HTTPFacilitatorClient
 from x402.http.middleware.fastapi import payment_middleware
 from x402.http.types import HTTPRequestContext, PaymentOption, RouteConfig
@@ -20,9 +20,17 @@ from x402.schemas import AbortResult
 from x402.server import x402ResourceServer
 
 from .catalog import Catalog
-from .config import Settings
+from .config import Settings, get_settings
+from .credit_budget import finalize as finalize_credit_reservation
+from .credit_budget import reserve as reserve_credit_reservation
 from .db import SessionLocal
-from .models import MainnetCanaryAttempt, PaymentReceipt
+from .models import (
+    AsyncJob,
+    Client,
+    IdempotencyRecord,
+    MainnetCanaryAttempt,
+    PaymentReceipt,
+)
 
 PUBLIC_EXECUTE_ROUTE = "POST /v1/services/*/execute"
 PUBLIC_JOB_ROUTE = "POST /v1/services/*/jobs"
@@ -65,6 +73,8 @@ def mainnet_x402_safety_errors(settings: Settings, catalog: Catalog) -> list[str
         errors.append("ALLOW_MAINNET_X402=true is required")
     if not settings.external_backup_enabled:
         errors.append("EXTERNAL_BACKUP_ENABLED=true is required")
+    if settings.scrapecreators_credit_balance <= settings.scrapecreators_credit_reserve:
+        errors.append("a checked ScrapeCreators balance above the internal reserve is required")
     for service in catalog.public_services():
         if not service.cost_verified or service.estimated_upstream_cost_microusd <= 0:
             errors.append(f"{service.id} needs a verified upstream cost")
@@ -125,10 +135,25 @@ def usdc_atomic_to_cents(amount: object) -> int:
         return 0
 
 
-def reserve_payment_receipt(context: Any) -> AbortResult | None:
+def reserve_payment_receipt(
+    context: Any,
+    *,
+    settings: Settings | None = None,
+    catalog: Catalog | None = None,
+) -> AbortResult | None:
     """Reserve a verified payment before provider execution to reject replay."""
     payment_id = payment_id_from_payload(context.payment_payload)
+    settings = settings or get_settings()
+    service_id = _context_service_id(context)
+    service = catalog.by_id(service_id) if catalog else None
     with SessionLocal() as session:
+        reserves_scrapecreators = (
+            settings.x402_network == MAINNET_CANARY_NETWORK
+            and service is not None
+            and service.provider.name == "scrapecreators"
+        )
+        if reserves_scrapecreators and session.bind and session.bind.dialect.name == "sqlite":
+            session.connection().exec_driver_sql("BEGIN IMMEDIATE")
         existing = session.scalar(
             select(PaymentReceipt).where(PaymentReceipt.payment_id == payment_id)
         )
@@ -137,10 +162,36 @@ def reserve_payment_receipt(context: Any) -> AbortResult | None:
                 "operational_alert kind=payment_replay service=%s", existing.service_id
             )
             return AbortResult("payment_replayed", "This payment has already been used")
+        if (
+            reserves_scrapecreators
+            and not reserve_credit_reservation(
+                session,
+                payment_id=payment_id,
+                service=service,
+                settings=settings,
+                lock=False,
+            )
+        ):
+            from .models import ProviderCreditReservation
+
+            duplicate = session.scalar(
+                select(ProviderCreditReservation).where(
+                    ProviderCreditReservation.payment_id == payment_id
+                )
+            )
+            if duplicate is not None:
+                return AbortResult("payment_replayed", "This payment has already been used")
+            logging.getLogger("reachsocial").warning(
+                "operational_alert kind=provider_credit_capacity service=%s", service_id
+            )
+            return AbortResult(
+                "provider_credit_capacity_reached",
+                "Public provider credit capacity is currently reserved",
+            )
         session.add(
             PaymentReceipt(
                 payment_id=payment_id,
-                service_id=_context_service_id(context),
+                service_id=service_id,
                 amount_cents=usdc_atomic_to_cents(getattr(context.requirements, "amount", None)),
                 network=str(context.requirements.network),
                 status="verified",
@@ -234,23 +285,38 @@ def mark_payment_settled(context: Any) -> None:
             amount=context.result.amount,
         )
         session.commit()
+    with SessionLocal() as session:
+        finalize_credit_reservation(session, payment_id)
     logging.getLogger("reachsocial").info(
         "payment_settled service=%s network=%s", _context_service_id(context), context.result.network
     )
 
 
 def mark_payment_canceled(context: Any) -> None:
+    """Keep uncertain settlement durable for manual reconciliation.
+
+    The facilitator callback does not prove that a submitted transfer was not
+    broadcast.  A support operator can later reconcile the transaction; this
+    callback must never call it canceled or trigger another charge.
+    """
     payment_id = payment_id_from_payload(context.payment_payload)
     with SessionLocal() as session:
         receipt = session.scalar(
             select(PaymentReceipt).where(PaymentReceipt.payment_id == payment_id)
         )
         if receipt is not None:
-            receipt.status = "canceled"
-            receipt.details = _details(reason=getattr(context, "reason", "settlement_failed"))
+            receipt.status = "reconciliation_required"
+            receipt.details = _details(
+                payer=receipt.payer,
+                transaction=receipt.transaction,
+                outcome="settlement_uncertain",
+                reason=getattr(context, "reason", "settlement_failed"),
+            )
             session.commit()
+    with SessionLocal() as session:
+        finalize_credit_reservation(session, payment_id)
     logging.getLogger("reachsocial").warning(
-        "operational_alert kind=payment_settlement_failed service=%s",
+        "operational_alert kind=payment_reconciliation_required service=%s",
         _context_service_id(context),
     )
 
@@ -311,7 +377,9 @@ def create_x402_payment_handler(settings: Settings, catalog: Catalog):
     facilitator = HTTPFacilitatorClient(facilitator_config)
     server = x402ResourceServer(facilitator)
     server.register(settings.x402_network, ExactEvmServerScheme())
-    server.on_after_verify(reserve_payment_receipt)
+    server.on_after_verify(
+        lambda context: reserve_payment_receipt(context, settings=settings, catalog=catalog)
+    )
     server.on_after_settle(mark_payment_settled)
     server.on_settle_failure(mark_payment_canceled)
     server.on_verified_payment_canceled(mark_payment_canceled)
@@ -381,12 +449,80 @@ class ReachSocialX402Middleware(BaseHTTPMiddleware):
             definition = self._catalog.by_id(service)
             if definition is None or not (definition.enabled and definition.public):
                 return await call_next(request)
+            if request.app.state.settings.public_payments_paused:
+                return JSONResponse(
+                    {
+                        "error": {
+                            "code": "payments_paused",
+                            "message": "New public payments are temporarily paused",
+                            "retryable": True,
+                        }
+                    },
+                    status_code=503,
+                )
         if credit and service:
             from .jobs import credit_is_valid
 
             if definition and credit_is_valid(credit, service, definition.price_cents):
                 return await call_next(request)
+        idempotency_key = request.headers.get("idempotency-key")
+        if idempotency_key and service and _has_paid_idempotency_recovery(service, idempotency_key):
+            return await call_next(request)
+        if service and not idempotency_key:
+            return JSONResponse(
+                {
+                    "error": {
+                        "code": "idempotency_key_required",
+                        "message": "Anonymous paid calls require an Idempotency-Key for result recovery",
+                        "retryable": False,
+                    }
+                },
+                status_code=400,
+            )
         return await self._payment_handler(request, call_next)
+
+
+def _has_paid_idempotency_recovery(service_id: str, idempotency_key: str) -> bool:
+    """Allow a lost-response retry to reach its already-paid result, never a new run."""
+    if not idempotency_key or len(idempotency_key) > 255:
+        return False
+    with SessionLocal() as session:
+        client = session.scalar(select(Client).where(Client.name == PUBLIC_X402_CLIENT_NAME))
+        if client is None:
+            return False
+        request_id: str | None = None
+        job_id: str | None = None
+        job = session.scalar(
+            select(AsyncJob).where(
+                AsyncJob.client_id == client.id,
+                AsyncJob.service_id == service_id,
+                AsyncJob.idempotency_key == idempotency_key,
+            )
+        )
+        if job is not None:
+            job_id = job.job_id
+        else:
+            record = session.scalar(
+                select(IdempotencyRecord).where(
+                    IdempotencyRecord.client_id == client.id,
+                    IdempotencyRecord.service_id == service_id,
+                    IdempotencyRecord.key == idempotency_key,
+                )
+            )
+            if record is None:
+                return False
+            request_id = str(record.response_json.get("request_id") or "") or None
+        receipt = session.scalar(
+            select(PaymentReceipt).where(
+                PaymentReceipt.request_id == request_id
+                if request_id
+                else PaymentReceipt.job_id == job_id
+            )
+        )
+        return bool(
+            receipt
+            and receipt.status in {"verified", "settled", "reconciliation_required"}
+        )
 
 
 class MainnetCanaryX402Middleware(BaseHTTPMiddleware):

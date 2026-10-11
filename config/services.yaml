@@ -36,7 +36,7 @@ services:
     cache_ttl_seconds: 21600
     estimated_upstream_cost_microusd: 1880
     provider_unit_cost_microusd: 1880
-    cost_verified: false
+    cost_verified: true
     price_cents: 5
     docs: Returns a provider-neutral profile object and never downloads profile media.
 
@@ -56,7 +56,7 @@ services:
     cache_ttl_seconds: 3600
     estimated_upstream_cost_microusd: 1880
     provider_unit_cost_microusd: 1880
-    cost_verified: false
+    cost_verified: true
     price_cents: 5
     docs: Returns source URLs only; ReachSocial does not download or retain media bytes.
 

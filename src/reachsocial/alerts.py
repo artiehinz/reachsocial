@@ -9,6 +9,7 @@ from pathlib import Path
 from sqlalchemy import func, select
 
 from .config import get_settings
+from .credit_budget import summary as credit_budget_summary
 from .db import SessionLocal
 from .models import AsyncJob, PaymentReceipt, ProviderAttempt
 from .services import utcnow_naive
@@ -66,12 +67,20 @@ def collect_alerts() -> list[tuple[str, str]]:
             alerts.append(("provider_failures", f"count_10m={recent_failures}"))
         payment_failures = session.scalar(
             select(func.count(PaymentReceipt.id)).where(
-                PaymentReceipt.status.in_(["canceled", "settlement_failed"]),
+                PaymentReceipt.status.in_(["canceled", "settlement_failed", "reconciliation_required"]),
                 PaymentReceipt.updated_at >= now - timedelta(minutes=10),
             )
         )
         if payment_failures:
             alerts.append(("payment_failures", f"count_10m={payment_failures}"))
+        credits = credit_budget_summary(session, settings)
+        if settings.scrapecreators_credit_balance and credits["public_available"] <= 10:
+            alerts.append(
+                (
+                    "provider_credit_capacity",
+                    f"public_available={credits['public_available']}",
+                )
+            )
     return alerts
 
 

@@ -1,6 +1,6 @@
 # Provider contract status
 
-Last verified: 2026-08-25. This file contains no credentials or raw provider payloads.
+Last verified: 2026-10-11. This file contains no credentials or raw provider payloads.
 
 ## InstaGet internal consumer contract
 
@@ -23,11 +23,18 @@ Credentialed live samples passed for:
 - `tiktok.video`
 
 Each successful sample reported one charged credit and returned the expected
-provider-neutral ReachSocial shape. The provisional catalog cost is 1,880
-micro-USD per credit. `cost_verified` remains false until the owner confirms the
-actual purchased pack price. The existing Instagram endpoints retain their
-current Base Sepolia availability. The newly implemented X and TikTok endpoints
-remain `enabled: false` and `public: false` until this release gate is cleared.
+provider-neutral ReachSocial shape. The catalog cost for the two public
+Instagram routes is verified on a documented replacement-price basis of 1,880
+micro-USD per credit ($47 / 25,000 credits), plus the endpoint consumption
+evidence. This is not a purchased invoice. A later acquisition must be recorded
+separately with its actual expense rather than relabeling this evidence.
+
+The protected account balance check on 2026-10-11 returned 6,827 credits. The
+mainnet application configuration reserves 1,000 credits for InstaGet before
+new public work can be accepted, and holds the maximum retry units before a
+payment reaches the provider. No automatic top-up exists. The existing Instagram
+endpoints remain on Base Sepolia until the independent public-launch holds are
+complete. The X and TikTok endpoints remain `enabled: false` and `public: false`.
 
 ### Bounded product-discovery batch — 2026-08-25
 

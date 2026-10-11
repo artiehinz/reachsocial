@@ -220,6 +220,24 @@ class ProviderAttempt(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
+class ProviderCreditReservation(Base):
+    """Durable capacity held before a verified public payment can reach a provider."""
+
+    __tablename__ = "provider_credit_reservations"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    payment_id: Mapped[str] = mapped_column(String(255), unique=True, index=True)
+    provider: Mapped[str] = mapped_column(String(40), index=True)
+    service_id: Mapped[str] = mapped_column(String(120), index=True)
+    status: Mapped[str] = mapped_column(String(40), default="reserved", index=True)
+    reserved_units: Mapped[int] = mapped_column(Integer, default=0)
+    consumed_units: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+
 class PublicTestUsage(Base):
     __tablename__ = "public_test_usage"
     __table_args__ = (UniqueConstraint("usage_day", "identity_kind", "identity_hash"),)

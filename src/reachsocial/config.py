@@ -36,11 +36,17 @@ class Settings(BaseSettings):
     default_daily_spend_cents: int = Field(default=5000, ge=0)
     provider_concurrency_limit: int = Field(default=4, ge=1, le=1000)
     max_daily_upstream_cost_microusd: int = Field(default=5_000_000, ge=0)
+    # A checked provider balance and a protected internal reserve are both required
+    # before Base-mainnet public sales can consume ScrapeCreators credits.
+    scrapecreators_credit_balance: int = Field(default=0, ge=0)
+    scrapecreators_credit_reserve: int = Field(default=0, ge=0)
+    public_payments_paused: bool = False
     public_test_rate_limit_per_minute: int = Field(default=5, ge=1, le=1000)
     public_test_daily_requests_per_identity: int = Field(default=20, ge=1, le=10000)
     cache_ttl_seconds: int = Field(default=60, ge=0, le=86400)
     request_retention_days: int = Field(default=30, ge=1, le=3650)
     async_job_retention_hours: int = Field(default=24, ge=1, le=168)
+    paid_result_retention_hours: int = Field(default=720, ge=24, le=720)
     async_job_lease_seconds: int = Field(default=180, ge=30, le=1800)
     async_worker_poll_seconds: float = Field(default=1.0, ge=0.1, le=30)
     service_credit_expiry_days: int = Field(default=30, ge=1, le=365)

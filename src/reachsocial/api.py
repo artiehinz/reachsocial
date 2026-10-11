@@ -3,7 +3,7 @@ from __future__ import annotations
 import hashlib
 import hmac
 import uuid
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Request
@@ -13,6 +13,8 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from .catalog import Catalog, ServiceDefinition
+from .config import get_settings
+from .credit_budget import summary as credit_budget_summary
 from .db import get_session
 from .errors import CreditUnavailable, ReachSocialError, TestCapacityReached
 from .jobs import (
@@ -26,6 +28,7 @@ from .jobs import (
 from .models import (
     AsyncJob,
     Client,
+    IdempotencyRecord,
     PaymentReceipt,
     ProviderAttempt,
     PublicTestUsage,
@@ -326,7 +329,115 @@ def _link_receipt(
     if receipt:
         receipt.request_id = request_id or receipt.request_id
         receipt.job_id = job_id or receipt.job_id
+        if request_id:
+            public_client = session.scalar(
+                select(Client).where(Client.name == PUBLIC_X402_CLIENT_NAME)
+            )
+            if public_client:
+                record = session.scalar(
+                    select(IdempotencyRecord).where(
+                        IdempotencyRecord.client_id == public_client.id,
+                        IdempotencyRecord.service_id == receipt.service_id,
+                        IdempotencyRecord.response_json["request_id"].as_string() == request_id,
+                    )
+                )
+                if record:
+                    record.expires_at = utcnow_naive() + timedelta(
+                        hours=get_settings().paid_result_retention_hours
+                    )
         session.commit()
+
+
+def _public_client_for_recovery(session: Session) -> Client | None:
+    return session.scalar(select(Client).where(Client.name == PUBLIC_X402_CLIENT_NAME))
+
+
+def _payment_receipt_for_request(
+    session: Session, *, request_id: str | None = None, job_id: str | None = None
+) -> PaymentReceipt | None:
+    if request_id:
+        return session.scalar(select(PaymentReceipt).where(PaymentReceipt.request_id == request_id))
+    if job_id:
+        return session.scalar(select(PaymentReceipt).where(PaymentReceipt.job_id == job_id))
+    return None
+
+
+def _recover_sync_payment(
+    session: Session,
+    *,
+    service_id: str,
+    idempotency_key: str | None,
+    input_data: dict[str, Any],
+) -> tuple[dict[str, Any], PaymentReceipt] | None:
+    if not idempotency_key:
+        return None
+    client = _public_client_for_recovery(session)
+    if client is None:
+        return None
+    record = session.scalar(
+        select(IdempotencyRecord).where(
+            IdempotencyRecord.client_id == client.id,
+            IdempotencyRecord.service_id == service_id,
+            IdempotencyRecord.key == idempotency_key,
+        )
+    )
+    if record is None or record.expires_at <= utcnow_naive():
+        return None
+    if record.input_hash != stable_hash(input_data):
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": "idempotency_conflict",
+                "message": "Idempotency key was already used with different input",
+            },
+        )
+    request_id = str(record.response_json.get("request_id") or "")
+    receipt = _payment_receipt_for_request(session, request_id=request_id)
+    if receipt is None:
+        return None
+    return record.response_json, receipt
+
+
+def _recover_async_payment(
+    session: Session,
+    *,
+    service_id: str,
+    idempotency_key: str | None,
+    input_data: dict[str, Any],
+) -> tuple[AsyncJob, PaymentReceipt] | None:
+    if not idempotency_key:
+        return None
+    client = _public_client_for_recovery(session)
+    if client is None:
+        return None
+    job = session.scalar(
+        select(AsyncJob).where(
+            AsyncJob.client_id == client.id,
+            AsyncJob.service_id == service_id,
+            AsyncJob.idempotency_key == idempotency_key,
+        )
+    )
+    if job is None or job.expires_at <= utcnow_naive():
+        return None
+    if job.input_hash != stable_hash(input_data):
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": "idempotency_conflict",
+                "message": "Idempotency key was already used with different input",
+            },
+        )
+    receipt = _payment_receipt_for_request(session, job_id=job.job_id)
+    return (job, receipt) if receipt else None
+
+
+def _recovery_payment_state(receipt: PaymentReceipt) -> dict[str, Any]:
+    return {
+        "service": receipt.service_id,
+        "status": receipt.status,
+        "network": receipt.network,
+        "result_available": bool(receipt.request_id or receipt.job_id),
+    }
 
 
 async def _enforce_and_record_public_limits(
@@ -458,6 +569,22 @@ async def execute_service(
             if not credit_is_valid(service_credit, service.id, service.price_cents):
                 raise CreditUnavailable("The service credit is invalid or unavailable")
         else:
+            recovered = _recover_sync_payment(
+                session,
+                service_id=service.id,
+                idempotency_key=idempotency_key,
+                input_data=body.input,
+            )
+            if recovered:
+                return recovered[0]
+            if not idempotency_key:
+                raise HTTPException(
+                    status_code=400,
+                    detail={
+                        "code": "idempotency_key_required",
+                        "message": "Anonymous paid calls require an Idempotency-Key for result recovery",
+                    },
+                )
             _ensure_public_payment(request)
         client = get_x402_public_client(session, request)
         await _enforce_and_record_public_limits(
@@ -538,6 +665,23 @@ async def create_job(
             if not credit_is_valid(service_credit, service.id, service.price_cents):
                 raise CreditUnavailable("The service credit is invalid or unavailable")
         else:
+            recovered = _recover_async_payment(
+                session,
+                service_id=service.id,
+                idempotency_key=idempotency_key,
+                input_data=body.input,
+            )
+            if recovered:
+                job, _receipt = recovered
+                return _job_submission_response(request, job)
+            if not idempotency_key:
+                raise HTTPException(
+                    status_code=400,
+                    detail={
+                        "code": "idempotency_key_required",
+                        "message": "Anonymous paid calls require an Idempotency-Key for result recovery",
+                    },
+                )
             _ensure_public_payment(request)
         client = get_x402_public_client(session, request)
         await _enforce_and_record_public_limits(
@@ -556,17 +700,62 @@ async def create_job(
         idempotency_key=idempotency_key,
     )
     _link_receipt(session, payment_id, job_id=job.job_id)
-    base = str(request.app.state.settings.public_base_url).rstrip("/")
-    response: dict[str, Any] = {
-        "job_id": job.job_id,
-        "service": service.id,
-        "status": job.status,
-        "status_url": f"{base}/v1/jobs/{job.job_id}",
-        "expires_at": job.expires_at.isoformat(),
-    }
+    response = _job_submission_response(request, job)
     if token:
         response["job_token"] = token
     return response
+
+
+def _job_submission_response(request: Request, job: AsyncJob) -> dict[str, Any]:
+    base = str(request.app.state.settings.public_base_url).rstrip("/")
+    return {
+        "job_id": job.job_id,
+        "service": job.service_id,
+        "status": job.status,
+        "status_url": f"{base}/v1/jobs/{job.job_id}",
+        "expires_at": job.expires_at.isoformat(),
+        "recovery_url": f"{base}/v1/payments/recover/{job.service_id}",
+    }
+
+
+@router.post("/payments/recover/{service_id}")
+def recover_paid_result(
+    service_id: str,
+    body: ExecuteRequest,
+    idempotency_key: Annotated[str | None, Header(alias="Idempotency-Key")] = None,
+    session: Session = Depends(get_session),
+    catalog: Catalog = Depends(get_catalog),
+    executor: ExecutionService = Depends(get_executor),
+) -> dict[str, Any]:
+    """Return an already-paid result or job using the original idempotency key."""
+    idempotency_key = _validate_idempotency_key(idempotency_key)
+    service = catalog.by_id(service_id)
+    if service is None or not service.public or not idempotency_key:
+        raise HTTPException(status_code=404, detail={"code": "not_found", "message": "Not found"})
+    executor.validate_input(service, body.input)
+    if service.is_async:
+        recovered_job = _recover_async_payment(
+            session,
+            service_id=service.id,
+            idempotency_key=idempotency_key,
+            input_data=body.input,
+        )
+        if recovered_job is None:
+            raise HTTPException(status_code=404, detail={"code": "not_found", "message": "Not found"})
+        job, receipt = recovered_job
+        payload = job_payload(job)
+        session.commit()
+        return {"payment": _recovery_payment_state(receipt), "job": payload}
+    recovered_result = _recover_sync_payment(
+        session,
+        service_id=service.id,
+        idempotency_key=idempotency_key,
+        input_data=body.input,
+    )
+    if recovered_result is None:
+        raise HTTPException(status_code=404, detail={"code": "not_found", "message": "Not found"})
+    result, receipt = recovered_result
+    return {"payment": _recovery_payment_state(receipt), "result": result}
 
 
 @router.get("/jobs/{job_id}")
@@ -622,6 +811,7 @@ def owner_overview(
     jobs = list(session.scalars(select(AsyncJob)))
     credits = list(session.scalars(select(ServiceCredit)))
     attempts = list(session.scalars(select(ProviderAttempt)))
+    credit_budget = credit_budget_summary(session, get_settings())
     requests = len(request_rows)
     errors = sum(row.status == "error" for row in request_rows)
     latencies = [row.latency_ms for row in request_rows if row.latency_ms is not None]
@@ -680,10 +870,15 @@ def owner_overview(
             "total": len(payment_rows),
             "settled": len(settled),
             "failed_or_canceled": sum(
-                row.status in {"canceled", "settlement_failed"} for row in payment_rows
+                row.status in {"canceled", "settlement_failed", "reconciliation_required"}
+                for row in payment_rows
+            ),
+            "reconciliation_required": sum(
+                row.status == "reconciliation_required" for row in payment_rows
             ),
             "public_revenue_cents": sum(row.amount_cents for row in settled),
         },
+        "provider_credit_budget": credit_budget,
         "jobs": {
             "queued": len(queued),
             "running": sum(job.status == "running" for job in jobs),

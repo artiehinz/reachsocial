@@ -1,6 +1,6 @@
 # ReachSocial readiness and next release gates
 
-Updated: 2026-08-27
+Updated: 2026-10-11
 
 ## Current catalog truth
 
@@ -17,9 +17,11 @@ is the reviewed product roadmap. The ScrapeCreators engineering inventory has
 
 The private services above have reviewed adapters, normalized fixtures, and
 credential-gated live coverage. They are executable only for explicitly
-entitled internal clients. Public sale remains blocked on purchased-plan
-reconciliation and margin-safe pricing; that separate sales gate does not
-block InstaGet's funded internal MVP use.
+entitled internal clients. The three available services have a documented
+margin-safe replacement-cost basis. General public Base-mainnet sale remains
+blocked on credential rotation, merchant-wallet recovery, isolated restore
+verification, and independent-buyer acceptance; those holds do not block
+InstaGet's funded internal MVP use.
 
 ## URL resolution contract
 
@@ -105,14 +107,14 @@ separate later approval.
    media relay failures, and consumer Usage settlement.
 3. Run one guarded LinkedIn submission/poll/recovery acceptance against an
    approved public profile before enabling its independent InstaGet flag.
-4. Reconcile the actual purchased ScrapeCreators plan for later public
-   ReachSocial pricing; this is not an internal MVP gate.
+4. Recheck the configured ScrapeCreators balance and retain the internal credit
+   reserve before any public-mainnet change; no automatic top-up is permitted.
 5. Enable authenticated B2B MCP after its independent live protocol and limit
    tests.
 6. Expand the provider-neutral catalog in batches: Instagram/TikTok comments
    and transcripts, Facebook/Reddit/LinkedIn company/post, then
    independently reviewed long-tail platforms.
 
-Mainnet, public x402 MCP, prepaid balances, and broad directory submissions
-remain later gates. Encrypted off-Droplet backup and a restore drill continue
-to block Base mainnet.
+Public x402 MCP, prepaid balances, and broad directory submissions remain later
+gates. Mainnet still requires the documented isolated restore drill and wallet
+custody confirmation.

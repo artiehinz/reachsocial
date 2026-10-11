@@ -83,12 +83,24 @@ The health endpoint is `/healthz`. Public discovery starts at `/agent.md`,
 ## Payments and provider safety
 
 - Public x402 currently uses Base Sepolia. Base mainnet is intentionally
-  blocked in code and operations.
+  blocked in code and operations. One isolated five-cent canary settled on
+  2026-10-11; it does not authorize general public sales.
 - Do not set `X402_NETWORK=eip155:8453` or `ALLOW_MAINNET_X402=true` until every
   item in `docs/roadmap.md` is complete. The CDP credential identified there
   must be rotated before mainnet use.
-- Never mark `cost_verified` from published pricing alone. Reconcile the actual
-  purchased provider plan or invoice and retain the existing positive-margin
-  checks.
+- The public Instagram routes use the documented 1,880 micro-USD
+  replacement-cost basis plus observed one-credit endpoint use. It is not an
+  invoice. Recheck the balance before mainnet, set
+  `SCRAPECREATORS_CREDIT_BALANCE` and the protected
+  `SCRAPECREATORS_CREDIT_RESERVE`, and retain the $5 daily upstream cap. No
+  code path may top up credits automatically.
+- Anonymous paid calls require `Idempotency-Key`. Same-key/same-input retries
+  recover the stored result; `POST /v1/payments/recover/{service}` is the
+  explicit recovery route. Do not retain payment signatures or recovery
+  phrases.
+- `PUBLIC_PAYMENTS_PAUSED=true` blocks new x402 challenges but preserves paid
+  result retrieval and accepted jobs. Facilitator uncertainty is
+  `reconciliation_required`, never an automatic retry or assumed cancellation.
+  See `docs/public-payment-operations.md`.
 - Never log raw provider payloads, provider credentials, wallet secrets, B2B
   API keys, or unredacted environment files.
