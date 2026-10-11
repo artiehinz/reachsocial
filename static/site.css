@@ -105,7 +105,7 @@ article p { color: var(--muted); }
 .status.validation { background: rgba(207, 144, 42, .18); color: #ffd17e; }
 .status.planned { background: rgba(86, 119, 165, .22); color: #b9d3fa; }
 .status.paused { background: rgba(174, 72, 66, .2); color: #ffaaa4; }
-.legend { display: flex; flex-wrap: wrap; gap: 18px; margin-top: 24px; color: var(--muted); font-size: .82rem; }
+.legend { display: flex; flex-wrap: wrap; gap: 18px; margin: 24px 0 32px; color: var(--muted); font-size: .82rem; }
 .legend span { display: flex; align-items: center; gap: 7px; }
 .muted { color: var(--muted); }
 

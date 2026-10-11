@@ -32,8 +32,11 @@ relabeling this evidence.
 Three LinkedIn samples and one supplied saved-highlight URL returned
 `not_found`; the release ledger conservatively accounts for those four possible
 credits even though the live balance showed no charge for them. The documented
-highlight sample then passed. GDELT returned a rate limit for `news.person`;
-it has no ScrapeCreators cost and remains private until it responds successfully.
+highlight sample then passed. LinkedIn is available only as a private
+integration until it has a successful bounded sample and public paid acceptance.
+GDELT initially returned a rate limit for `news.person`; its bounded retry
+passed under the reviewed zero-cost classification. It remains a private
+integration pending its public paid-acceptance stage.
 
 The balance was 6,825 before this run and 6,812 after it. The 1,000-credit
 InstaGet reserve remains intact, leaving 5,812 credits before any active public

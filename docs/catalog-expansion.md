@@ -20,6 +20,7 @@ much smaller curated set than the generated engineering inventory. The status
 values are:
 
 - `available`: executable and listed by `GET /v1/services`;
+- `private`: executable only for an explicitly entitled API client;
 - `validation`: adapter and normalization exist, but a release gate is open;
 - `planned`: reviewed product candidate without an accepted contract; and
 - `paused`: a known provider, contract, cost, or policy blocker exists.
@@ -40,15 +41,17 @@ shape.
 ## Current release batches
 
 The 2026-10-11 bounded run verified X, TikTok, Instagram feed/highlight,
-YouTube, Facebook, and Reddit contracts. Those services still need staged paid
-acceptance and 24-hour reconciliation before public promotion.
+YouTube, Facebook, and Reddit contracts. They are private integrations and
+still need staged paid acceptance and 24-hour reconciliation before public
+promotion.
 
-`linkedin.profile` is the only active migration dependency: its
-ScrapeCreators endpoint currently returns `not_found` for the tested public
-profiles. `news.person` needs a successful GDELT availability sample after its
-rate limit. Instagram current stories remains paused until ScrapeCreators offers
-an acceptable bounded contract. Comments, transcripts, search, and broader
-catalog work are outside this release.
+`linkedin.profile` is a private integration with an active public-release
+dependency: its ScrapeCreators endpoint currently returns `not_found` for the
+tested public profiles. `news.person` passed its bounded zero-cost GDELT retry
+and remains private pending its public paid-acceptance stage. Instagram current
+stories remains paused until ScrapeCreators offers an acceptable bounded
+contract. Comments, transcripts, search, and broader catalog work are outside
+this release.
 
 Apify is retired from active catalog services. Completed historical results
 remain recoverable, but no new service may introduce an Actor without a new

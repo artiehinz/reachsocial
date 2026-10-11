@@ -7,8 +7,7 @@ Updated: 2026-10-11
 | State | Services |
 | --- | --- |
 | Available | `instagram.profile`, `instagram.post` |
-| Private | `news.person`, `instagram.feed`, `x.profile`, `x.feed`, `x.post`, `tiktok.profile`, `tiktok.feed`, `tiktok.video`, `youtube.channel`, `youtube.feed`, `youtube.video` |
-| Validation | `linkedin.profile`, `instagram.highlight`, `facebook.profile`, `reddit.post` |
+| Private | `news.person`, `instagram.feed`, `instagram.highlight`, `x.profile`, `x.feed`, `x.post`, `tiktok.profile`, `tiktok.feed`, `tiktok.video`, `youtube.channel`, `youtube.feed`, `youtube.video`, `linkedin.profile`, `facebook.profile`, `reddit.post` |
 | Paused | `instagram.stories` |
 
 `GET /v1/services` is intentionally the executable subset. `GET /v1/catalog`
@@ -23,13 +22,14 @@ adapters added in this release. Their one-credit replacement-cost basis is
 recorded as 1,880 micro-USD per attempt. This is documented replacement pricing,
 not a purchased invoice.
 
-`linkedin.profile` is deliberately non-executable while ScrapeCreators returns
+`linkedin.profile` is a private integration while ScrapeCreators returns
 `not_found` for both the supplied profile and the provider's own documented
-sample. `news.person` is cost-classified as reviewed zero-fee GDELT work, but a
-fresh sample received an upstream rate limit; it stays private until it has a
-successful availability sample. Credential rotation, merchant-wallet custody,
-isolated restores, and the earlier independent-buyer acceptance passed. General
-Base-mainnet sale remains blocked by the current stage gates in
+sample. Its public release remains held until a successful bounded sample and
+paid acceptance pass. `news.person` is cost-classified as reviewed zero-fee
+GDELT work. Its first sample was rate-limited, and its bounded retry passed; it
+remains private while public release stages are held. Credential rotation,
+merchant-wallet custody, isolated restores, and the earlier independent-buyer
+acceptance passed. General Base-mainnet sale remains blocked by the current stage gates in
 [the roadmap](roadmap.md).
 
 ## URL resolution contract
@@ -58,7 +58,7 @@ REST is the current agent-ready surface:
 - `/llms.txt`, `/agent.md`, `/.well-known/api-catalog`, `/robots.txt`, and a
   sitemap;
 - an honest MCP Server Card at `/.well-known/mcp.json` when MCP is enabled;
-- explicit executable versus validation/planned/paused catalog states;
+- explicit available, private, planned, and paused catalog states;
 - B2B Bearer authentication and Base Sepolia x402 challenges;
 - durable async job submission/polling and replacement credits; and
 - idempotency, replay protection, entitlements, limits, cost accounting, and
@@ -115,8 +115,8 @@ is recorded separately. No purchase is required for existing-credit tests.
 1. Resolve the current ScrapeCreators LinkedIn `not_found` response, rerun its
    provider contract, then rerun submission, polling, restart, recovery, and
    a fresh real-USDC acceptance before restoring public availability.
-2. Retry Person News after GDELT's rate limit clears. Keep it private until a
-   bounded, successful result is recorded.
+2. Keep Person News private until its own paid recovery acceptance and public
+   release stage pass. Its bounded zero-cost availability retry passed.
 3. Recheck authenticated MCP discovery, entitlement denial, execution, and
    protected job polling on the deployed image.
 4. Recheck the provider balance, retain the 1,000-credit reserve, and use the

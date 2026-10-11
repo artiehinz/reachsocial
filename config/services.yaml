@@ -112,9 +112,9 @@ services:
       - {name: url, description: Canonical Instagram saved-highlight URL., format: url}
       - {name: max_items, description: Maximum highlight items to return., required: false, format: integer, default: 20, minimum: 1, maximum: 50}
     provider: {name: scrapecreators, route: https://api.scrapecreators.com/v1/instagram/user/highlight/detail, method: GET}
-    enabled: false
+    enabled: true
     public: false
-    catalog_status: validation
+    catalog_status: private
     timeout_seconds: 30
     retries: 0
     cache_ttl_seconds: 600
@@ -256,9 +256,9 @@ services:
     input_fields:
       - {name: url, description: Canonical LinkedIn person profile URL., format: url}
     provider: {name: scrapecreators, route: https://api.scrapecreators.com/v1/linkedin/profile, method: GET}
-    enabled: false
+    enabled: true
     public: false
-    catalog_status: validation
+    catalog_status: private
     timeout_seconds: 120
     retries: 0
     estimated_upstream_cost_microusd: 1880
@@ -336,9 +336,9 @@ services:
     input_fields:
       - {name: url, description: Canonical public Facebook profile URL., format: url}
     provider: {name: scrapecreators, route: https://api.scrapecreators.com/v1/facebook/profile, method: GET}
-    enabled: false
+    enabled: true
     public: false
-    catalog_status: validation
+    catalog_status: private
     timeout_seconds: 30
     retries: 0
     cache_ttl_seconds: 21600
@@ -356,9 +356,9 @@ services:
     input_fields:
       - {name: url, description: Canonical Reddit post URL., format: url}
     provider: {name: scrapecreators, route: https://api.scrapecreators.com/v1/reddit/post, method: GET}
-    enabled: false
+    enabled: true
     public: false
-    catalog_status: validation
+    catalog_status: private
     timeout_seconds: 30
     retries: 0
     cache_ttl_seconds: 3600

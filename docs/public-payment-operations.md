@@ -2,7 +2,7 @@
 
 This runbook covers staged Base-USDC release work. Instagram profile and post
 are the only currently available public services, at $0.05 each on Base
-Sepolia. LinkedIn remains $0.10 per job in validation while its ScrapeCreators
+Sepolia. LinkedIn is a $0.10 private integration while its ScrapeCreators
 replacement returns `not_found`; it is not available for public payment. This
 runbook does not authorize another provider credit purchase, catalog expansion,
 or an AEU payment mode.
@@ -48,9 +48,9 @@ is accounted for.
 
 LinkedIn has moved from Apify to ScrapeCreators. The new public-profile endpoint
 is priced from the same 1,880 micro-USD one-credit replacement basis, but three
-fresh samples returned `not_found`. It remains disabled until a successful
+fresh samples returned `not_found`. It remains private until a successful
 provider contract and a new paid submission, polling, and recovery acceptance
-pass. Before the provider call, the worker writes a durable dispatch marker. A
+pass clear it for public payment. Before the provider call, the worker writes a durable dispatch marker. A
 restart after dispatch but before result persistence becomes
 `reconciliation_required`; it never blindly repeats an uncertain upstream
 request. Provider timeout, unavailability, or internal failure makes exactly

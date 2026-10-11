@@ -11,8 +11,8 @@ new buyer transfer; its evidence and unresolved dependencies are in
 
 ## Implemented API coverage
 
-The runtime catalog has 18 services: 2 available, 11 private, 4 in validation,
-and 1 paused. Thirteen release-contract samples passed on ScrapeCreators, but
+The runtime catalog has 18 services: 2 available, 15 private, and 1 paused.
+Thirteen release-contract samples passed on ScrapeCreators, but
 the public catalog remains intentionally small until the staged mainnet gates
 pass:
 
@@ -23,13 +23,14 @@ pass:
 | TikTok | — | profile, video, feed |
 | YouTube | — | channel, video, feed |
 
-LinkedIn profile now uses ScrapeCreators but is validation-only after three
-`not_found` samples. Private `news.person` uses GDELT and received an upstream
-rate limit in its fresh sample. Facebook profile, Reddit post, and Instagram
-highlight have working adapters and passed provider contracts, but remain in
-validation until their stage is eligible for public paid acceptance. Instagram
-current stories is paused. No active catalog service uses Apify, and production
-has no queued or running Apify jobs.
+LinkedIn profile now uses ScrapeCreators as a private integration, but three
+samples returned `not_found`; it remains held from public paid acceptance.
+Private `news.person` uses GDELT. Its initial upstream rate limit cleared on a
+bounded retry, which passed with its reviewed zero-cost classification.
+Facebook profile, Reddit post, and Instagram highlight have working adapters
+and passed provider contracts; they are also private integrations until their
+paid public stages are eligible. Instagram current stories is paused. No active
+catalog service uses Apify, and production has no queued or running Apify jobs.
 
 ## Resolved launch holds
 
@@ -100,7 +101,7 @@ Observed through Cloudflare using GET requests:
 ## Website corrections
 
 Made testnet status explicit on home and pricing, named the public services,
-clarified private integrations and validation holds, replaced vague headings,
+clarified private integrations and public-release holds, replaced vague headings,
 and documented the 30-day paid-result recovery window. Corrected MCP status to
 read the runtime setting:
 production MCP is enabled and its server card returned 200. Status is catalog

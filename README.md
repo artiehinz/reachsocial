@@ -19,7 +19,7 @@ Open `http://localhost:8000`, `http://localhost:8000/docs`, and
 Machine clients can start at `/llms.txt`, `/agent.md`,
 `/.well-known/api-catalog`, or the typed `/openapi.json`. The executable
 catalog at `/v1/services` contains only services that can be called now;
-`/v1/catalog` also includes validation, planned, and paused services. A catalog
+`/v1/catalog` also includes private, validation, planned, and paused services. A catalog
 entry is never an implicit promise that its route is executable.
 
 Create B2B clients only after the service starts. Passing one or more
@@ -89,13 +89,14 @@ uv run python scripts/release_provider_acceptance.py --help
 ```
 
 The current reviewed catalog has 18 entries across eight platforms: two
-available on Base Sepolia, eleven private integrations, four services in
-validation, and one paused service. A 2026-10-11 bounded run verified 13
-ScrapeCreators contracts at one credit each. `linkedin.profile` remains in
-validation because its replacement endpoint returned `not_found` for both the
-supplied target and the provider's documented sample. `news.person` remains
-private after GDELT returned an upstream rate limit. Instagram current stories
-remains paused because there is no accepted ScrapeCreators contract.
+available on Base Sepolia, fifteen private integrations, and one paused
+service. A 2026-10-11 bounded run verified 13 ScrapeCreators contracts at one
+credit each. `linkedin.profile` is a private integration while its replacement
+endpoint still returns `not_found` for the supplied target and the provider's
+documented sample; it is not cleared for public payment. `news.person` remains
+private after its initial GDELT rate limit cleared on a bounded retry. Instagram
+current stories remains paused because there is no accepted ScrapeCreators
+contract.
 
 The private `news.person` service gives the scoped InstaGet Herald client a
 sanitized, cached GDELT news boundary without exposing it as a paid public API.

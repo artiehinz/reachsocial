@@ -3,9 +3,9 @@
 ## Paid MVP catalog completion — current state
 
 The catalog contains 18 reviewed services. Two Instagram services are available
-on Base Sepolia; eleven established integrations remain private; four services
-are in validation; and Instagram current stories is paused. Seventeen services
-are selected for the paid MVP: every entry except current stories.
+on Base Sepolia; fifteen integrations remain private; and Instagram current
+stories is paused. Seventeen services are selected for the paid MVP: every
+entry except current stories.
 
 The shared release foundation is complete in code: maximum provider units are
 reserved before payment settlement, uncertain provider use remains held for
@@ -20,15 +20,14 @@ profile/video/feed, Instagram feed/highlight, YouTube channel/video/feed,
 Facebook profile, and Reddit post. It used a 100-credit ledger and left 6,812
 provider credits, including the protected 1,000-credit InstaGet reserve.
 
-Two dependencies block public mainnet promotion:
+The current public-mainnet release dependencies are:
 
-1. `linkedin.profile` now uses ScrapeCreators, but three fresh profiles returned
-   `not_found`, including the provider's documented example. Keep it in
-   validation until a successful bounded sample, protected async flow, recovery,
-   and fresh real-USDC acceptance pass.
-2. `news.person` has an explicit reviewed zero-fee GDELT classification, but
-   its fresh sample was rate-limited. Keep it private until a successful bounded
-   availability sample passes.
+1. `linkedin.profile` now uses ScrapeCreators as a private integration, but
+   three fresh profiles returned `not_found`, including the provider's
+   documented example. Hold public release until a successful bounded sample,
+   protected async flow, recovery, and fresh real-USDC acceptance pass.
+2. Each private service, including `news.person`, still needs its own paid
+   recovery acceptance and 24-hour reconciliation before public promotion.
 
 After those dependencies clear, release one stage at a time. For each stage:
 recheck the live provider balance and 1,000-credit reserve, deploy the immutable
