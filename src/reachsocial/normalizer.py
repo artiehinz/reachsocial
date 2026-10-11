@@ -100,7 +100,17 @@ def canonicalize_url(value: object) -> str:
     parsed = urlparse(raw)
     if parsed.scheme not in {"http", "https"} or not parsed.hostname:
         raise InvalidInput("A valid http(s) URL is required")
-    host = HOST_ALIASES.get(parsed.hostname.lower(), parsed.hostname.lower())
+    raw_host = parsed.hostname.lower()
+    # LinkedIn serves public profiles through country subdomains such as
+    # ca.linkedin.com. They carry the same profile contract as linkedin.com.
+    if (
+        raw_host.endswith(".linkedin.com")
+        and len(raw_host.split(".", 1)[0]) == 2
+        and raw_host.split(".", 1)[0].isalpha()
+    ):
+        host = "linkedin.com"
+    else:
+        host = HOST_ALIASES.get(raw_host, raw_host)
     path = "/" + "/".join(segment for segment in parsed.path.split("/") if segment)
     if path != "/":
         path = path.rstrip("/")
