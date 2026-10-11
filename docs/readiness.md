@@ -21,8 +21,8 @@ entitled internal clients. The three available services have a documented
 margin-safe replacement-cost basis. Credential rotation, merchant-wallet
 custody, isolated restores, and independent-buyer acceptance have passed.
 General public Base-mainnet sale remains blocked on the remaining operations
-rehearsal, off-host snapshot verification, and an explicit release decision;
-those holds do not block InstaGet's funded internal MVP use.
+rehearsal and an explicit release decision; those holds do not block InstaGet's
+funded internal MVP use.
 
 ## URL resolution contract
 
@@ -117,5 +117,5 @@ separate later approval.
    independently reviewed long-tail platforms.
 
 Public x402 MCP, prepaid balances, and broad directory submissions remain later
-gates. Mainnet still requires the remaining operations rehearsal, off-host
-snapshot verification, and release decision.
+gates. Mainnet still requires the merchant refund rehearsal and release
+decision.

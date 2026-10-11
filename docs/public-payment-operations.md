@@ -182,4 +182,25 @@ The normal public payment lane remains Base Sepolia and the separate acceptance
 handler was disarmed after its routes were consumed. The emergency-pause drill
 also passed: it returned HTTP 503 before a new payment challenge while an
 already-paid result remained recoverable, then resumed with a healthy hosted
-service. Manual refund and provider-outage rehearsals remain release holds.
+service. An isolated provider-outage rehearsal also passed: a paid async
+failure persisted its provider reference, granted exactly one replacement
+credit, and resumed an existing provider run rather than starting another.
+
+The off-host recovery path was verified with the configured DigitalOcean
+credentials: a temporary volume was created from the newest `tor1` production
+snapshot and then deleted without attaching it or touching production. The
+remaining release rehearsal is a merchant-signed refund. Run it locally, never
+over SSH or on the Droplet:
+
+```bash
+uv run python scripts/mainnet_refund_rehearsal.py \
+  --expected-merchant <X402_PAY_TO-address> \
+  --expected-buyer <independent-buyer-address> \
+  --confirm-refund
+```
+
+The command sends exactly 50,000 native Base-USDC atomic units by default,
+requires a hidden local recovery-phrase entry, confirms the Base chain and
+recipient, and verifies the resulting ERC-20 transfer. Without
+`--confirm-refund`, it is a dry run. It does not write wallet material, signed
+transactions, or payment signatures to disk.

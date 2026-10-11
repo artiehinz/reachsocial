@@ -33,13 +33,15 @@ item below is complete and recorded in the release notes.
    challenge hash; it never received the recovery phrase or raw signature.
    Production payment quotes now name the replacement address. The buyer
    wallet recovery check remains a separate control.
-4. **Operations rehearsal — partially completed.** The isolated restore drill
+4. **Operations rehearsal — refund outstanding.** The isolated restore drill
    has passed for both production databases and application startups. The
    hosted emergency-pause drill blocked a new payment before challenge and
-   preserved recovery of an existing settled result. Rehearse manual refund and
-   provider-outage credit/reconciliation paths before release. Ambiguous
-   facilitator outcomes must remain `reconciliation_required`; no automatic
-   payment retry is allowed.
+   preserved recovery of an existing settled result. An isolated provider-outage
+   rehearsal confirmed one replacement credit and persisted-run recovery. The
+   off-host DigitalOcean recovery path created and removed a temporary volume
+   from the newest `tor1` production snapshot. Rehearse one merchant-signed
+   refund before release. Ambiguous facilitator outcomes must remain
+   `reconciliation_required`; no automatic payment retry is allowed.
 5. **Independent real-USDC acceptance — completed 2026-10-11.** A second
    buyer completed one Base-native-USDC payment for each launch route: $0.05
    Instagram profile, $0.05 Instagram post, and $0.10 asynchronous LinkedIn
