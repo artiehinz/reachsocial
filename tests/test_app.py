@@ -1,8 +1,10 @@
 from fastapi.testclient import TestClient
 
+from reachsocial.alerts import apply_payment_pause
 from reachsocial.api import ExecuteRequest, resolve
 from reachsocial.config import x402_network_label
 from reachsocial.main import app
+from reachsocial.runtime import RuntimeState
 
 
 def test_health_and_mcp_gate() -> None:
@@ -121,6 +123,15 @@ def test_readiness_reports_an_automatic_payment_pause() -> None:
             "reason": "provider_failures",
         }
         app.state.runtime.public_payments_paused_reason = None
+
+
+def test_clean_alert_recheck_resumes_an_automatic_payment_pause() -> None:
+    runtime = RuntimeState()
+    runtime.pause_public_payments("provider_credit_balance_unavailable")
+
+    apply_payment_pause(runtime, [])
+
+    assert runtime.public_payments_paused_reason is None
 
 
 def test_cache_headers_only_allow_public_get_routes() -> None:

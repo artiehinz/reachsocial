@@ -101,14 +101,21 @@ def collect_alerts() -> list[tuple[str, str]]:
     return alerts
 
 
+def apply_payment_pause(runtime: RuntimeState, alerts: list[tuple[str, str]]) -> None:
+    """Pause on a current launch alert and resume only after a clean recheck."""
+    if alerts:
+        runtime.pause_public_payments(alerts[0][0])
+    else:
+        runtime.resume_public_payments()
+
+
 async def alert_loop(runtime: RuntimeState) -> None:
     logger = logging.getLogger("reachsocial")
     settings = get_settings()
     while True:
         try:
             alerts = collect_alerts()
-            if alerts:
-                runtime.pause_public_payments(alerts[0][0])
+            apply_payment_pause(runtime, alerts)
             for kind, detail in alerts:
                 logger.warning(
                     "operational_alert kind=%s detail=%s contact=%s",

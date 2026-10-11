@@ -51,6 +51,10 @@ class RuntimeState:
     def pause_public_payments(self, reason: str) -> None:
         self.public_payments_paused_reason = reason
 
+    def resume_public_payments(self) -> None:
+        """Clear an automatic pause after every launch guard has passed again."""
+        self.public_payments_paused_reason = None
+
     async def acquire(
         self,
         client_id: int,
