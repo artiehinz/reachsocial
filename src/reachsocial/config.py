@@ -53,6 +53,11 @@ class Settings(BaseSettings):
     public_payments_paused: bool = False
     public_test_rate_limit_per_minute: int = Field(default=5, ge=1, le=1000)
     public_test_daily_requests_per_identity: int = Field(default=20, ge=1, le=10000)
+    max_request_body_bytes: int = Field(default=65_536, ge=1_024, le=1_048_576)
+    max_payment_header_bytes: int = Field(default=16_384, ge=1_024, le=65_536)
+    runtime_cache_max_entries: int = Field(default=512, ge=1, le=100_000)
+    runtime_cache_max_bytes: int = Field(default=33_554_432, ge=1_024, le=1_073_741_824)
+    runtime_state_idle_seconds: int = Field(default=900, ge=60, le=86_400)
     cache_ttl_seconds: int = Field(default=60, ge=0, le=86400)
     request_retention_days: int = Field(default=30, ge=1, le=3650)
     async_job_retention_hours: int = Field(default=24, ge=1, le=168)

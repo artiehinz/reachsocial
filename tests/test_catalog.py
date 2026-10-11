@@ -68,11 +68,11 @@ def test_repository_catalog_passes_release_safety_validation() -> None:
     assert x_feed.provider.name == "scrapecreators"
     assert x_feed.status == "private"
     linkedin = catalog.by_id("linkedin.profile")
-    assert linkedin.enabled is True
-    assert linkedin.public is True
+    assert linkedin.enabled is False
+    assert linkedin.public is False
     assert linkedin.cost_verified is True
     assert linkedin.price_cents == 10
-    assert linkedin.status == "available"
+    assert linkedin.status == "validation"
     assert load_catalog().by_id("x.profile").status == "private"
     assert load_catalog().by_id("instagram.stories").status == "paused"
 

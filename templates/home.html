@@ -4,7 +4,7 @@
 <section class="hero">
   <p class="eyebrow">SOCIAL DATA FOR SOFTWARE AND AGENTS</p>
   <h1>Social profiles and posts, through one API.</h1>
-  <p>Get Instagram profiles and posts, or submit a LinkedIn profile job. Responses use a consistent JSON format. Approved API-key clients can also access our private integrations.</p>
+  <p>Get public Instagram profile and post data through a consistent JSON contract. Approved API-key clients can also use the integrations we are still preparing for wider release.</p>
   <p>{% if request.app.state.settings.x402_network == "eip155:84532" %}Public x402 payments currently use Base Sepolia testnet. General real-USDC sales are not open yet.{% else %}Public x402 payments use {{ payment_network }}.{% endif %} <a href="/pricing">See prices and payment details</a>.</p>
   <div class="actions"><a class="button" href="/catalog">Explore the catalog</a><a class="button secondary" href="/agent.md">Open the agent guide</a></div>
   <div class="machine-links"><a href="/llms.txt">llms.txt</a><a href="/openapi.json">OpenAPI</a><a href="/.well-known/api-catalog">API catalog</a></div>
@@ -18,7 +18,7 @@
 </section>
 
 <section>
-  <div class="section-heading"><div><p class="eyebrow">COVERAGE</p><h2>Available services and planned coverage.</h2></div><a href="/catalog">Full catalog →</a></div>
+  <div class="section-heading"><div><p class="eyebrow">COVERAGE</p><h2>Available services and what we are checking next.</h2></div><a href="/catalog">Full catalog →</a></div>
   <div class="legend"><span><i class="dot available"></i>Available</span><span><i class="dot private"></i>Private integration</span><span><i class="dot validation"></i>In validation</span><span><i class="dot planned"></i>Planned</span><span><i class="dot paused"></i>Paused</span></div>
   <div class="platform-grid">
   {% for platform, services in catalog.discoverable_services()|groupby('platform') %}

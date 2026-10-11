@@ -80,22 +80,24 @@ uv run python scripts/calculate_scrapecreators_cost.py \
 The command does not edit the catalog or mark a cost verified. Save the plan or
 invoice reference and verification date before applying its result.
 
-Run the fixed, sequential Apify production validation only inside the production
-container. It has a combined new charge ceiling of $0.06 and prints no token or
-raw provider payload:
+Run a bounded release-contract stage only with an explicit confirmation. The
+local mode-0600 ledger records hashes and accounting only; it never stores a
+source URL, provider payload, credential, payment signature, or wallet material.
 
 ```bash
-python scripts/apify_billing_validate.py --confirm-paid-provider-call
+uv run python scripts/release_provider_acceptance.py --help
 ```
 
-Instagram Stories remains disabled with no active Actor. X latest-feed remains
-disabled because its bounded dataset returned no tweet records. LinkedIn
-enrichment passed its capped live contract and is public on Base Sepolia at
-$0.10 per accepted job.
+The current reviewed catalog has 18 entries across eight platforms: two
+available on Base Sepolia, eleven private integrations, four services in
+validation, and one paused service. A 2026-10-11 bounded run verified 13
+ScrapeCreators contracts at one credit each. `linkedin.profile` remains in
+validation because its replacement endpoint returned `not_found` for both the
+supplied target and the provider's documented sample. `news.person` remains
+private after GDELT returned an upstream rate limit. Instagram current stories
+remains paused because there is no accepted ScrapeCreators contract.
 
-The current reviewed catalog has 17 entries across eight platforms: three
-publicly available, eleven private, two planned, and one paused. The private
-`news.person` service gives the scoped InstaGet Herald client a
+The private `news.person` service gives the scoped InstaGet Herald client a
 sanitized, cached GDELT news boundary without exposing it as a paid public API.
 The generated
 ScrapeCreators review inventory is intentionally broader—currently 178
@@ -128,7 +130,7 @@ signing, then sends exactly one paid retry:
 ```bash
 uv run python scripts/x402_sepolia_smoke.py \
   --profile-url https://www.instagram.com/instagram/ \
-  --expected-pay-to 0x457d76fb1a0ce5414df9261179bf8547d58d3f86 \
+  --expected-pay-to <production-receiving-address> \
   --confirm-testnet-payment
 ```
 
@@ -178,12 +180,12 @@ uv run python scripts/x402_mainnet_canary.py \
 ```
 
 Do not switch to Base mainnet. Startup blocks `eip155:8453` unless every public
-service has verified positive margins, `ALLOW_MAINNET_X402=true`, and encrypted
-external recovery is enabled. Nightly encrypted Restic backups and weekly
-DigitalOcean volume snapshots are configured. Mainnet remains operationally
-blocked until the receiving wallet custody and recovery are verified, every
-public service cost is verified, and the restore, settlement, refund, and
-emergency-pause drills pass.
+service has verified margins, `ALLOW_MAINNET_X402=true`, and encrypted external
+recovery is enabled. Nightly encrypted Restic backups and weekly DigitalOcean
+volume snapshots are configured. Mainnet remains operationally blocked until
+the LinkedIn replacement and Person News availability checks pass, each public
+stage receives a fresh paid recovery acceptance, and its observation window is
+reconciled.
 
 The application runs retention maintenance daily. Deployments take a bounded
 same-volume SQLite snapshot before migration, wait for `/readyz`, automatically

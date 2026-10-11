@@ -215,6 +215,136 @@ async def test_worker_resumes_the_persisted_provider_run(session, client, monkey
 
 
 @pytest.mark.asyncio
+async def test_scrapecreators_job_marks_dispatch_before_execution(
+    session, client, monkeypatch
+) -> None:
+    factory = sessionmaker(bind=session.get_bind(), expire_on_commit=False)
+    monkeypatch.setattr("reachsocial.jobs.SessionLocal", factory)
+    seen_references: list[str | None] = []
+
+    class Adapter:
+        async def execute(self, service, input_data, *, context=None):
+            del service, input_data
+            seen_references.append(context.existing_reference)
+            return ProviderResult(
+                data={
+                    "profile": {
+                        "platform": "LinkedIn",
+                        "canonical_url": "https://linkedin.com/in/example",
+                        "platform_id": "1",
+                        "handle": "example",
+                        "display_name": "Example",
+                        "biography": None,
+                        "avatar_url": None,
+                        "verified": None,
+                        "private": None,
+                        "counts": {},
+                        "links": [],
+                        "fields": {},
+                    }
+                },
+                upstream_cost_microusd=1_880,
+                provider_reference="provider-request",
+                provider_units=1,
+                provider_unit_cost_microusd=1_880,
+            )
+
+    monkeypatch.setattr("reachsocial.services.adapter_for", lambda _service: Adapter())
+    catalog = Catalog(
+        services=[
+            ServiceDefinition(
+                id="linkedin.profile",
+                title="LinkedIn Public Profile",
+                platform="LinkedIn",
+                description="Profile",
+                execution="async",
+                input_fields=[InputField(name="url", description="URL", format="url")],
+                provider=ProviderConfig(name="scrapecreators"),
+                enabled=True,
+                public=True,
+                cost_verified=True,
+                estimated_upstream_cost_microusd=1_880,
+                provider_unit_cost_microusd=1_880,
+            )
+        ]
+    )
+    executor = ExecutionService(catalog, RuntimeState())
+    job, _ = submit_job(
+        session,
+        executor=executor,
+        client=client,
+        service_id="linkedin.profile",
+        input_data={"url": "https://linkedin.com/in/example"},
+        anonymous=False,
+    )
+    worker = JobWorker(catalog, executor)
+    claimed = worker._claim()
+    assert claimed == job.job_id
+    await worker._execute(claimed)
+
+    assert len(seen_references) == 1
+    assert seen_references[0] and seen_references[0].startswith("dispatch:")
+    session.expire_all()
+    completed = session.scalar(select(AsyncJob).where(AsyncJob.job_id == job.job_id))
+    assert completed is not None and completed.status == "succeeded"
+    assert completed.provider_reference == "provider-request"
+
+
+@pytest.mark.asyncio
+async def test_worker_never_replays_a_job_after_its_provider_changes(
+    session, client, monkeypatch
+) -> None:
+    factory = sessionmaker(bind=session.get_bind(), expire_on_commit=False)
+    monkeypatch.setattr("reachsocial.jobs.SessionLocal", factory)
+    calls = 0
+
+    class Adapter:
+        async def execute(self, service, input_data, *, context=None):
+            nonlocal calls
+            del service, input_data, context
+            calls += 1
+            raise AssertionError("the migrated provider must not execute an old job")
+
+    monkeypatch.setattr("reachsocial.services.adapter_for", lambda _service: Adapter())
+    catalog = Catalog(
+        services=[
+            ServiceDefinition(
+                id="linkedin.profile",
+                title="LinkedIn Public Profile",
+                platform="LinkedIn",
+                description="Profile",
+                execution="async",
+                input_fields=[InputField(name="url", description="URL", format="url")],
+                provider=ProviderConfig(name="scrapecreators"),
+                enabled=True,
+                public=True,
+            )
+        ]
+    )
+    executor = ExecutionService(catalog, RuntimeState())
+    job, _ = submit_job(
+        session,
+        executor=executor,
+        client=client,
+        service_id="linkedin.profile",
+        input_data={"url": "https://linkedin.com/in/example"},
+        anonymous=False,
+    )
+    job.provider = "apify"
+    session.commit()
+
+    worker = JobWorker(catalog, executor)
+    claimed = worker._claim()
+    assert claimed == job.job_id
+    await worker._execute(claimed)
+
+    session.expire_all()
+    completed = session.scalar(select(AsyncJob).where(AsyncJob.job_id == job.job_id))
+    assert calls == 0
+    assert completed is not None and completed.error_code == "reconciliation_required"
+
+
+@pytest.mark.asyncio
 async def test_worker_persists_run_reference_before_provider_completion(
     session, client, monkeypatch
 ) -> None:

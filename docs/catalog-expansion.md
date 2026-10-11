@@ -24,8 +24,9 @@ values are:
 - `planned`: reviewed product candidate without an accepted contract; and
 - `paused`: a known provider, contract, cost, or policy blocker exists.
 
-Use the actual ScrapeCreators pack values to calculate the conservative cost
-snapshot for the five validation services:
+Use the documented replacement price and observed provider-unit consumption to
+calculate the conservative cost snapshot for a validation service. Record an
+actual acquisition expense separately if a future pack is purchased:
 
 ```bash
 uv run python scripts/calculate_scrapecreators_cost.py \
@@ -36,16 +37,19 @@ The result alone does not make a service available. A credential-gated live
 contract sample and sanitized evidence are still required for each response
 shape.
 
-## Delivery batches
+## Current release batches
 
-1. Publish the already validated X and TikTok contracts after the actual
-   ScrapeCreators credit price is recorded.
-2. Close InstaGet gaps: Instagram profile posts, Instagram stories, X latest
-   feed, TikTok feed, and LinkedIn enrichment.
-3. Add high-value research services: Instagram/TikTok comments and transcripts,
-   then YouTube channel/video/search/comments/transcripts.
-4. Add Facebook, Reddit, LinkedIn company/post, and selected ad-library tools.
-5. Review newer and long-tail platforms independently.
+The 2026-10-11 bounded run verified X, TikTok, Instagram feed/highlight,
+YouTube, Facebook, and Reddit contracts. Those services still need staged paid
+acceptance and 24-hour reconciliation before public promotion.
 
-Apify is not treated as one bulk catalog. Each selected Actor requires its own
-permission, schema, bounded-run, cost, reliability, and maintainer review.
+`linkedin.profile` is the only active migration dependency: its
+ScrapeCreators endpoint currently returns `not_found` for the tested public
+profiles. `news.person` needs a successful GDELT availability sample after its
+rate limit. Instagram current stories remains paused until ScrapeCreators offers
+an acceptable bounded contract. Comments, transcripts, search, and broader
+catalog work are outside this release.
+
+Apify is retired from active catalog services. Completed historical results
+remain recoverable, but no new service may introduce an Actor without a new
+separate decision.

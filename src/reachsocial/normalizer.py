@@ -46,6 +46,7 @@ HOST_ALIASES = {
 
 _INSTAGRAM_USERNAME = re.compile(r"^[A-Za-z0-9._]{1,30}$")
 _INSTAGRAM_POST_ID = re.compile(r"^[A-Za-z0-9_-]{5,32}$")
+_INSTAGRAM_HIGHLIGHT_ID = re.compile(r"^[0-9]{10,32}$")
 _X_HANDLE = re.compile(r"^[A-Za-z0-9_]{1,15}$")
 _TIKTOK_HANDLE = re.compile(r"^[A-Za-z0-9._]{2,24}$")
 _LINKEDIN_SLUG = re.compile(r"^[A-Za-z0-9_-]{2,120}$")
@@ -138,6 +139,14 @@ def resolve_url(value: object) -> dict[str, str]:
         ):
             resource_type = "post"
             url = f"https://instagram.com/{segments[0].lower()}/{segments[1]}"
+        elif (
+            len(segments) == 3
+            and segments[0].lower() == "stories"
+            and segments[1].lower() == "highlights"
+            and _INSTAGRAM_HIGHLIGHT_ID.fullmatch(segments[2])
+        ):
+            resource_type = "highlight"
+            url = f"https://instagram.com/stories/highlights/{segments[2]}"
         elif (
             len(segments) in {2, 3}
             and segments[0].lower() == "stories"

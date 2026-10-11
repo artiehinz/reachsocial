@@ -6,10 +6,10 @@ Updated: 2026-10-11
 
 | State | Services |
 | --- | --- |
-| Available | `instagram.profile`, `instagram.post`, `linkedin.profile` |
+| Available | `instagram.profile`, `instagram.post` |
 | Private | `news.person`, `instagram.feed`, `x.profile`, `x.feed`, `x.post`, `tiktok.profile`, `tiktok.feed`, `tiktok.video`, `youtube.channel`, `youtube.feed`, `youtube.video` |
+| Validation | `linkedin.profile`, `instagram.highlight`, `facebook.profile`, `reddit.post` |
 | Paused | `instagram.stories` |
-| Planned | `facebook.profile`, `reddit.post` |
 
 `GET /v1/services` is intentionally the executable subset. `GET /v1/catalog`
 is the reviewed product roadmap. The ScrapeCreators engineering inventory has
@@ -17,12 +17,20 @@ is the reviewed product roadmap. The ScrapeCreators engineering inventory has
 
 The private services above have reviewed adapters, normalized fixtures, and
 credential-gated live coverage. They are executable only for explicitly
-entitled internal clients. The three available services have a documented
-margin-safe replacement-cost basis. Credential rotation, merchant-wallet
-custody, isolated restores, and independent-buyer acceptance have passed.
-General public Base-mainnet sale awaits the fixes in
-[the prelaunch audit](prelaunch-audit-2026-10-11.md) and a release decision; that
-hold does not block InstaGet's funded internal MVP use.
+entitled internal clients. A bounded 2026-10-11 contract run passed thirteen
+ScrapeCreators services, including the Facebook, Reddit, and saved-highlight
+adapters added in this release. Their one-credit replacement-cost basis is
+recorded as 1,880 micro-USD per attempt. This is documented replacement pricing,
+not a purchased invoice.
+
+`linkedin.profile` is deliberately non-executable while ScrapeCreators returns
+`not_found` for both the supplied profile and the provider's own documented
+sample. `news.person` is cost-classified as reviewed zero-fee GDELT work, but a
+fresh sample received an upstream rate limit; it stays private until it has a
+successful availability sample. Credential rotation, merchant-wallet custody,
+isolated restores, and the earlier independent-buyer acceptance passed. General
+Base-mainnet sale remains blocked by the current stage gates in
+[the roadmap](roadmap.md).
 
 ## URL resolution contract
 
@@ -35,11 +43,12 @@ it. Known but unreviewed URL shapes fail closed instead of guessing a service.
 Resolution does not make a catalog entry executable. Catalog state, client
 entitlements, and the normal execution endpoint remain independent gates.
 
-`x.feed` now uses the reviewed bounded ScrapeCreators route; the older Apify
-route remains rejected. ScrapeCreators documents this endpoint as returning a
+`x.feed` uses the reviewed bounded ScrapeCreators route; the older Apify route
+remains rejected. Saved Instagram highlight URLs resolve separately from current
+stories. ScrapeCreators documents X's endpoint as returning a
 publicly available popular-post set rather than a reliably chronological feed,
 so the catalog and consumer UI call these "public posts," not "latest posts."
-`instagram.stories` has no approved bounded provider.
+`instagram.stories` has no approved ScrapeCreators contract and remains paused.
 
 ## Agent and MCP readiness
 
@@ -55,11 +64,12 @@ REST is the current agent-ready surface:
 - idempotency, replay protection, entitlements, limits, cost accounting, and
   owner metrics.
 
-The MCP implementation now generates exact per-service tools, sends
+The MCP implementation generates exact tools for the public catalog, sends
 long-running services through durable jobs, and authorizes job polling by the
-calling B2B client. Production enables authenticated MCP and its server card was reachable on
-2026-10-11. The website reads that live setting. A fresh authenticated protocol
-and limit acceptance was not rerun in the prelaunch audit. Public unpaid MCP is not planned.
+calling B2B client. Production enables authenticated MCP and its server card
+was reachable on 2026-10-11. The next deployment must recheck authenticated
+discovery, execution, entitlement denial, and protected polling before another
+async service is released. Public unpaid MCP is not planned.
 
 ## InstaGet readiness
 
@@ -102,19 +112,17 @@ is recorded separately. No purchase is required for existing-credit tests.
 
 ## Ordered next release work
 
-1. Run the dedicated Base Sepolia paid API smoke command and reconcile its
-   transaction, receipt, request, and single provider attempt.
-2. Monitor the internal four-network Herald flow, cache hit rate, provider cost,
-   media relay failures, and consumer Usage settlement.
-3. Run one guarded LinkedIn submission/poll/recovery acceptance against an
-   approved public profile before enabling its independent InstaGet flag.
-4. Recheck the configured ScrapeCreators balance and retain the internal credit
-   reserve before any public-mainnet change; no automatic top-up is permitted.
-5. Enable authenticated B2B MCP after its independent live protocol and limit
-   tests.
-6. Expand the provider-neutral catalog in batches: Instagram/TikTok comments
-   and transcripts, Facebook/Reddit/LinkedIn company/post, then
-   independently reviewed long-tail platforms.
+1. Resolve the current ScrapeCreators LinkedIn `not_found` response, rerun its
+   provider contract, then rerun submission, polling, restart, recovery, and
+   a fresh real-USDC acceptance before restoring public availability.
+2. Retry Person News after GDELT's rate limit clears. Keep it private until a
+   bounded, successful result is recorded.
+3. Recheck authenticated MCP discovery, entitlement denial, execution, and
+   protected job polling on the deployed image.
+4. Recheck the provider balance, retain the 1,000-credit reserve, and use the
+   100-credit/$2 acceptance ledger before each staged public-mainnet release.
+5. Promote only services that complete their paid recovery acceptance, then
+   observe and reconcile each stage for 24 hours.
 
 Public x402 MCP, prepaid balances, and broad directory submissions remain later
 gates. Mainnet still requires the release decision.

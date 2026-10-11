@@ -95,6 +95,46 @@ def test_credit_reservation_refuses_capacity_below_internal_reserve(session, cat
     assert session.scalar(select(ProviderCreditReservation)) is None
 
 
+def test_credit_reservation_holds_the_verified_maximum_units_per_attempt(session, catalog) -> None:
+    service = catalog.by_id("instagram.profile").model_copy(
+        update={
+            "provider": ProviderConfig(name="scrapecreators"),
+            "retries": 1,
+            "max_provider_units_per_attempt": 3,
+        }
+    )
+    settings = Settings(scrapecreators_credit_balance=10, scrapecreators_credit_reserve=1)
+
+    assert reserve(session, payment_id="payment-three-units", service=service, settings=settings)
+    reservation = session.scalar(select(ProviderCreditReservation))
+    assert reservation is not None
+    assert reservation.reserved_units == 6
+
+
+def test_credit_reservation_stays_held_when_no_provider_accounting_exists(session, catalog) -> None:
+    service = catalog.by_id("instagram.profile").model_copy(
+        update={"provider": ProviderConfig(name="scrapecreators")}
+    )
+    settings = Settings(scrapecreators_credit_balance=5, scrapecreators_credit_reserve=1)
+    assert reserve(session, payment_id="payment-uncertain", service=service, settings=settings)
+    session.add(
+        PaymentReceipt(
+            payment_id="payment-uncertain",
+            service_id=service.id,
+            amount_cents=5,
+            network="eip155:8453",
+            status="settled",
+            request_id="req_missing_attempt",
+        )
+    )
+    session.commit()
+
+    finalize(session, "payment-uncertain")
+    reservation = session.scalar(select(ProviderCreditReservation))
+    assert reservation is not None
+    assert reservation.status == "reserved"
+
+
 def _public_client(session, client):
     client.name = PUBLIC_X402_CLIENT_NAME
     client.billing_mode = "external"

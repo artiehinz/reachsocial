@@ -339,7 +339,28 @@ class JobWorker:
                 job.lease_expires_at = None
                 session.commit()
                 return
+            if job.provider != service.provider.name:
+                job.status = "failed"
+                job.error_code = "reconciliation_required"
+                job.error_message = "Job provider changed before completion"
+                job.error_retryable = False
+                job.completed_at = utcnow_naive()
+                job.lease_expires_at = None
+                session.commit()
+                return
+            if service.provider.name == "scrapecreators" and job.provider_reference:
+                job.status = "failed"
+                job.error_code = "reconciliation_required"
+                job.error_message = "Provider dispatch is unresolved after worker recovery"
+                job.error_retryable = False
+                job.completed_at = utcnow_naive()
+                job.lease_expires_at = None
+                session.commit()
+                return
             try:
+                if service.provider.name == "scrapecreators":
+                    job.provider_reference = f"dispatch:{uuid.uuid4().hex}"
+                    session.commit()
 
                 def persist_provider_reference(reference: str) -> None:
                     job.provider_reference = reference

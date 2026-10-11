@@ -17,8 +17,9 @@ services:
     estimated_upstream_cost_microusd: 0
     provider_unit_cost_microusd: 0
     cost_verified: true
-    price_cents: 0
-    docs: Internal B2B service for sanitized GDELT DOC results; no raw payload or credential is returned.
+    verified_zero_upstream_cost: true
+    price_cents: 5
+    docs: Returns recent, normalized news for a public person. Name matching does not establish identity.
 
   - id: instagram.profile
     title: Instagram Profile
@@ -77,7 +78,7 @@ services:
     cache_ttl_seconds: 600
     estimated_upstream_cost_microusd: 1880
     provider_unit_cost_microusd: 1880
-    cost_verified: false
+    cost_verified: true
     price_cents: 5
     docs: Private InstaGet integration returning a bounded normalized profile feed and temporary media references.
 
@@ -100,7 +101,28 @@ services:
     provider_unit_cost_microusd: 0
     cost_verified: false
     price_cents: 15
-    docs: Submit through the jobs endpoint and poll with the returned job token.
+    docs: Paused. Saved highlights are a separate service; current stories await an acceptable ScrapeCreators contract.
+
+  - id: instagram.highlight
+    title: Instagram Highlight
+    platform: Instagram
+    description: Retrieve the saved items in one public Instagram story highlight.
+    response_shape: stories
+    input_fields:
+      - {name: url, description: Canonical Instagram saved-highlight URL., format: url}
+      - {name: max_items, description: Maximum highlight items to return., required: false, format: integer, default: 20, minimum: 1, maximum: 50}
+    provider: {name: scrapecreators, route: https://api.scrapecreators.com/v1/instagram/user/highlight/detail, method: GET}
+    enabled: false
+    public: false
+    catalog_status: validation
+    timeout_seconds: 30
+    retries: 0
+    cache_ttl_seconds: 600
+    estimated_upstream_cost_microusd: 1880
+    provider_unit_cost_microusd: 1880
+    cost_verified: true
+    price_cents: 5
+    docs: Returns a bounded collection from one saved highlight. Current stories remain paused.
 
   - id: x.profile
     title: X Profile
@@ -118,7 +140,7 @@ services:
     cache_ttl_seconds: 21600
     estimated_upstream_cost_microusd: 1880
     provider_unit_cost_microusd: 1880
-    cost_verified: false
+    cost_verified: true
     price_cents: 5
     docs: Normalized profile metadata from the public X profile.
 
@@ -138,7 +160,7 @@ services:
     cache_ttl_seconds: 3600
     estimated_upstream_cost_microusd: 1880
     provider_unit_cost_microusd: 1880
-    cost_verified: false
+    cost_verified: true
     price_cents: 5
     docs: Returns normalized text, author, engagement, and source media URLs.
 
@@ -159,7 +181,7 @@ services:
     cache_ttl_seconds: 600
     estimated_upstream_cost_microusd: 1880
     provider_unit_cost_microusd: 1880
-    cost_verified: false
+    cost_verified: true
     price_cents: 5
     docs: Private InstaGet integration returning a bounded normalized X feed and temporary media references. Provider ordering is not guaranteed to be chronological.
 
@@ -179,7 +201,7 @@ services:
     cache_ttl_seconds: 21600
     estimated_upstream_cost_microusd: 1880
     provider_unit_cost_microusd: 1880
-    cost_verified: false
+    cost_verified: true
     price_cents: 5
     docs: Returns profile metadata without retaining avatars or videos.
 
@@ -201,7 +223,7 @@ services:
     cache_ttl_seconds: 600
     estimated_upstream_cost_microusd: 1880
     provider_unit_cost_microusd: 1880
-    cost_verified: false
+    cost_verified: true
     price_cents: 5
     docs: Pass next_cursor back as cursor to request another page.
 
@@ -221,29 +243,29 @@ services:
     cache_ttl_seconds: 3600
     estimated_upstream_cost_microusd: 1880
     provider_unit_cost_microusd: 1880
-    cost_verified: false
+    cost_verified: true
     price_cents: 5
     docs: Returns source video and preview URLs without downloading the asset.
 
   - id: linkedin.profile
-    title: LinkedIn Profile Enrichment
+    title: LinkedIn Public Profile
     platform: LinkedIn
-    description: Create a durable job for normalized public LinkedIn profile enrichment.
+    description: Create a durable job for normalized public LinkedIn profile data.
     execution: async
     response_shape: profile
     input_fields:
       - {name: url, description: Canonical LinkedIn person profile URL., format: url}
-    provider: {name: apify, actor_id: "automation-lab~linkedin-profile-scraper", max_total_charge_microusd: 50000}
-    enabled: true
-    public: true
-    catalog_status: available
+    provider: {name: scrapecreators, route: https://api.scrapecreators.com/v1/linkedin/profile, method: GET}
+    enabled: false
+    public: false
+    catalog_status: validation
     timeout_seconds: 120
     retries: 0
-    estimated_upstream_cost_microusd: 50000
-    provider_unit_cost_microusd: 18000
+    estimated_upstream_cost_microusd: 1880
+    provider_unit_cost_microusd: 1880
     cost_verified: true
     price_cents: 10
-    docs: Returns normalized profile, experience, education, and skills when publicly available.
+    docs: Returns public profile data and recent posts. Work history and job titles may be unavailable.
 
   - id: youtube.channel
     title: YouTube Channel
@@ -261,7 +283,7 @@ services:
     cache_ttl_seconds: 21600
     estimated_upstream_cost_microusd: 1880
     provider_unit_cost_microusd: 1880
-    cost_verified: false
+    cost_verified: true
     price_cents: 5
     docs: Private InstaGet integration returning normalized public channel metadata.
 
@@ -282,7 +304,7 @@ services:
     cache_ttl_seconds: 600
     estimated_upstream_cost_microusd: 1880
     provider_unit_cost_microusd: 1880
-    cost_verified: false
+    cost_verified: true
     price_cents: 5
     docs: Private InstaGet integration returning recent video metadata and thumbnails. It does not return downloadable YouTube video bytes.
 
@@ -302,32 +324,46 @@ services:
     cache_ttl_seconds: 3600
     estimated_upstream_cost_microusd: 1880
     provider_unit_cost_microusd: 1880
-    cost_verified: false
+    cost_verified: true
     price_cents: 5
     docs: Private InstaGet integration returning video metadata and thumbnails; playback remains on the official YouTube player.
 
   - id: facebook.profile
     title: Facebook Profile
     platform: Facebook
-    description: Planned public Facebook profile lookup.
+    description: Retrieve normalized public Facebook profile metadata.
     response_shape: profile
     input_fields:
       - {name: url, description: Canonical public Facebook profile URL., format: url}
-    provider: {name: scrapecreators}
+    provider: {name: scrapecreators, route: https://api.scrapecreators.com/v1/facebook/profile, method: GET}
     enabled: false
     public: false
-    catalog_status: planned
+    catalog_status: validation
+    timeout_seconds: 30
+    retries: 0
+    cache_ttl_seconds: 21600
+    estimated_upstream_cost_microusd: 1880
+    provider_unit_cost_microusd: 1880
+    cost_verified: true
     price_cents: 5
+    docs: Returns normalized public profile fields. Private, gated, and unavailable profiles return an explicit terminal result.
 
   - id: reddit.post
     title: Reddit Post
     platform: Reddit
-    description: Planned public Reddit post lookup.
+    description: Retrieve normalized public Reddit post metadata without comments.
     response_shape: item
     input_fields:
       - {name: url, description: Canonical Reddit post URL., format: url}
-    provider: {name: scrapecreators}
+    provider: {name: scrapecreators, route: https://api.scrapecreators.com/v1/reddit/post, method: GET}
     enabled: false
     public: false
-    catalog_status: planned
+    catalog_status: validation
+    timeout_seconds: 30
+    retries: 0
+    cache_ttl_seconds: 3600
+    estimated_upstream_cost_microusd: 1880
+    provider_unit_cost_microusd: 1880
+    cost_verified: true
     price_cents: 5
+    docs: Returns normalized post text, author, engagement, and available media references. Comments are excluded.

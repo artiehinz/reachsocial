@@ -46,7 +46,9 @@ class ServiceDefinition(BaseModel):
     estimated_upstream_cost_cents: int = Field(default=0, ge=0)
     estimated_upstream_cost_microusd: int = Field(default=0, ge=0)
     provider_unit_cost_microusd: int = Field(default=0, ge=0)
+    max_provider_units_per_attempt: int = Field(default=1, ge=1, le=100)
     cost_verified: bool = False
+    verified_zero_upstream_cost: bool = False
     price_cents: int = Field(default=5, ge=0)
     docs: str = ""
     catalog_status: Literal["available", "private", "validation", "planned", "paused"] | None = None
@@ -68,20 +70,33 @@ class ServiceDefinition(BaseModel):
                 raise ValueError("An enabled Apify service requires a positive charge cap")
             if self.retries:
                 raise ValueError("Apify services cannot automatically create replacement runs")
+        if self.verified_zero_upstream_cost and (
+            not self.cost_verified
+            or self.estimated_upstream_cost_microusd
+            or self.provider_unit_cost_microusd
+        ):
+            raise ValueError("A verified zero upstream cost must be explicit and cost-verified")
         if self.public:
-            conservative_cost = max(
-                self.estimated_upstream_cost_microusd,
-                self.provider.max_total_charge_microusd,
-            )
+            conservative_cost = self.maximum_request_cost_microusd
             price_microusd = self.price_cents * 10_000
             if conservative_cost and (
                 price_microusd - conservative_cost < 10_000
                 or price_microusd < conservative_cost * 2
             ):
-                raise ValueError(
-                    "A public service requires at least one cent and 50% gross margin"
-                )
+                raise ValueError("A public service requires at least one cent and 50% gross margin")
         return self
+
+    @property
+    def maximum_attempt_cost_microusd(self) -> int:
+        return max(
+            self.estimated_upstream_cost_microusd,
+            self.provider.max_total_charge_microusd,
+            self.provider_unit_cost_microusd * self.max_provider_units_per_attempt,
+        )
+
+    @property
+    def maximum_request_cost_microusd(self) -> int:
+        return self.maximum_attempt_cost_microusd * (self.retries + 1)
 
     @property
     def effective_cache_ttl(self) -> int:

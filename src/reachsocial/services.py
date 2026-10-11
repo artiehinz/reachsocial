@@ -97,9 +97,7 @@ class ExecutionService:
                 and field.max_length is not None
                 and len(value) > field.max_length
             ):
-                raise InvalidInput(
-                    f"{field.name} must be at most {field.max_length} characters"
-                )
+                raise InvalidInput(f"{field.name} must be at most {field.max_length} characters")
             if field.format == "url":
                 input_data[field.name] = validate_service_url(service.id, value)
             elif field.format == "integer":
@@ -263,16 +261,12 @@ class ExecutionService:
 
     @classmethod
     def _enforce_upstream_cost_cap(
-        cls,
-        session: Session, client: Client, service: ServiceDefinition
+        cls, session: Session, client: Client, service: ServiceDefinition
     ) -> int:
         if client.billing_mode == "internal":
             return 0
         settings = get_settings()
-        estimate = max(
-            service.estimated_upstream_cost_microusd,
-            service.provider_unit_cost_microusd,
-        ) * (service.retries + 1)
+        estimate = service.maximum_request_cost_microusd
         if (
             cls._public_upstream_commitment(session) + estimate
             > settings.max_daily_upstream_cost_microusd
@@ -298,9 +292,7 @@ class ExecutionService:
                 if provider_context is None:
                     result = await adapter.execute(service, input_data)
                 else:
-                    result = await adapter.execute(
-                        service, input_data, context=provider_context
-                    )
+                    result = await adapter.execute(service, input_data, context=provider_context)
                 self._record_attempt(
                     session,
                     request_id=request_id,
@@ -422,10 +414,7 @@ class ExecutionService:
             else:
                 if client.billing_mode != "internal":
                     settings = get_settings()
-                    reserved_upstream_microusd = max(
-                        service.estimated_upstream_cost_microusd,
-                        service.provider_unit_cost_microusd,
-                    ) * (service.retries + 1)
+                    reserved_upstream_microusd = service.maximum_request_cost_microusd
                     await self.runtime.reserve_public_upstream_cost(
                         self._public_upstream_commitment(session),
                         reserved_upstream_microusd,

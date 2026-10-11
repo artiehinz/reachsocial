@@ -1,9 +1,11 @@
 # Public payment operations
 
-This runbook covers the three public Base-USDC services: Instagram profile and
-post at $0.05, and LinkedIn profile enrichment at $0.10. It is for the release
-window only; it does not authorize another provider credit purchase, catalog
-expansion, or an AEU payment mode.
+This runbook covers staged Base-USDC release work. Instagram profile and post
+are the only currently available public services, at $0.05 each on Base
+Sepolia. LinkedIn remains $0.10 per job in validation while its ScrapeCreators
+replacement returns `not_found`; it is not available for public payment. This
+runbook does not authorize another provider credit purchase, catalog expansion,
+or an AEU payment mode.
 
 ## Capacity and cost policy
 
@@ -36,17 +38,23 @@ and are not subtracted twice. No code path tops up automatically. The existing
 $5 daily upstream-cost cap, public request limits, and provider concurrency
 limit remain in force.
 
-The final 2026-10-11 balance check returned 6,825 credits. This was a balance
-observation, not an invoice or an authorization to buy credits. Recheck it
-immediately before enabling mainnet so later InstaGet use is accounted for.
+The 2026-10-11 release baseline was 6,825 credits. The bounded provider run
+ended at 6,812, with the 1,000-credit internal reserve intact. Its local ledger
+uses a 100-credit ceiling and conservatively records every uncertain
+ScrapeCreators attempt; it never keeps raw source URLs or provider payloads.
+This is a balance observation, not an invoice or an authorization to buy
+credits. Recheck it immediately before enabling mainnet so later InstaGet use
+is accounted for.
 
-LinkedIn uses Apify rather than ScrapeCreators. The accepted actor has a
-$0.05 total-charge cap and recorded a stable $0.018 cost. At a $0.10 sale
-price, its worst permitted expense leaves the required $0.05 margin. The
-worker persists the provider run reference before polling, so a restart polls
-the existing run rather than creating a second paid run. Provider timeout,
-unavailability, or internal failure makes exactly one replacement service
-credit claimable by the job holder.
+LinkedIn has moved from Apify to ScrapeCreators. The new public-profile endpoint
+is priced from the same 1,880 micro-USD one-credit replacement basis, but three
+fresh samples returned `not_found`. It remains disabled until a successful
+provider contract and a new paid submission, polling, and recovery acceptance
+pass. Before the provider call, the worker writes a durable dispatch marker. A
+restart after dispatch but before result persistence becomes
+`reconciliation_required`; it never blindly repeats an uncertain upstream
+request. Provider timeout, unavailability, or internal failure makes exactly
+one replacement service credit claimable by an eligible job holder.
 
 ## Paid-result recovery
 
@@ -141,7 +149,13 @@ and an unpaid public quote were then verified against the replacement address.
 
 ## Bounded Base-mainnet acceptance
 
-Before public sales, the three paid launch routes can be exercised through a
+The historical three-route acceptance handler is disarmed and its one-time
+routes are already consumed. It does not validate the ScrapeCreators LinkedIn
+migration. Do not re-arm or reuse it. A fresh LinkedIn acceptance is required
+only after its provider contract succeeds; it must use a newly reviewed,
+single-use acceptance path or the normal public route after mainnet is enabled.
+
+Before the earlier public-sales decision, the three paid launch routes could be exercised through a
 hidden acceptance handler. It stays on a separate Base-mainnet x402 middleware
 while normal public routes remain on Base Sepolia. It accepts only the configured
 independent buyer, once each for Instagram profile, Instagram post, and LinkedIn

@@ -1,12 +1,49 @@
 # ReachSocial roadmap
 
+## Paid MVP catalog completion — current state
+
+The catalog contains 18 reviewed services. Two Instagram services are available
+on Base Sepolia; eleven established integrations remain private; four services
+are in validation; and Instagram current stories is paused. Seventeen services
+are selected for the paid MVP: every entry except current stories.
+
+The shared release foundation is complete in code: maximum provider units are
+reserved before payment settlement, uncertain provider use remains held for
+reconciliation, provider caches have entry and byte limits, unused runtime state
+is pruned safely, oversized bodies and payment headers are rejected before x402
+parsing, and ScrapeCreators async work records dispatch before execution. The
+production dependency audit is clean after updating `multidict` to 6.9.1.
+
+The bounded 2026-10-11 provider run passed thirteen new or renewed
+ScrapeCreators contracts at one credit each: X profile/post/feed, TikTok
+profile/video/feed, Instagram feed/highlight, YouTube channel/video/feed,
+Facebook profile, and Reddit post. It used a 100-credit ledger and left 6,812
+provider credits, including the protected 1,000-credit InstaGet reserve.
+
+Two dependencies block public mainnet promotion:
+
+1. `linkedin.profile` now uses ScrapeCreators, but three fresh profiles returned
+   `not_found`, including the provider's documented example. Keep it in
+   validation until a successful bounded sample, protected async flow, recovery,
+   and fresh real-USDC acceptance pass.
+2. `news.person` has an explicit reviewed zero-fee GDELT classification, but
+   its fresh sample was rate-limited. Keep it private until a successful bounded
+   availability sample passes.
+
+After those dependencies clear, release one stage at a time. For each stage:
+recheck the live provider balance and 1,000-credit reserve, deploy the immutable
+commit, run one real-USDC payment and recovery for each newly public service,
+reconcile receipts and provider attempts, and observe for 24 hours. Pause new
+payments on any unexplained settlement or consumption difference while keeping
+paid-result recovery and accepted-job completion available.
+
 ## Base mainnet USDC launch gate
 
 **Status (2026-10-11):** ReachSocial is live with authenticated B2B access,
-MCP discovery, and anonymous x402 challenges on Base Sepolia. One bounded
-Base-mainnet USDC canary and a separate independent three-route acceptance
-settled and recovered their results. The acceptance handler is disarmed;
-general Base-mainnet sales remain intentionally blocked.
+MCP discovery, and anonymous x402 challenges on Base Sepolia. The earlier
+Base-mainnet canary and three-route acceptance settled and recovered their
+results, but the LinkedIn acceptance covered the retired Apify path. The handler
+is disarmed and general Base-mainnet sales remain intentionally blocked.
 
 **Audit follow-up completed:** [the prelaunch audit](prelaunch-audit-2026-10-11.md)
 found and resolved shared-credit accounting, SDK edge access, recovery-key
@@ -20,7 +57,7 @@ item below is complete and recorded in the release notes.
    release.** Instagram profile and post use a documented replacement-price
    cost of 1,880 micro-USD per credited attempt, verified with live endpoint
    consumption. This is explicitly not called a purchased invoice. The checked
-   balance was 6,825 credits on 2026-10-11 after the three-route acceptance;
+   balance was 6,825 credits before the catalog-completion provider run;
    reserve 1,000 for InstaGet and set
    the protected balance configuration immediately before release. Public
    capacity is reserved durably before a mainnet provider call. A live,
@@ -52,10 +89,11 @@ item below is complete and recorded in the release notes.
    receipt-parser bug occurred after broadcast, not in payment execution; it
    is fixed and regression-tested. Ambiguous facilitator outcomes must remain
    `reconciliation_required`; no automatic payment retry is allowed.
-5. **Independent real-USDC acceptance — completed 2026-10-11.** A second
+5. **Independent real-USDC acceptance — completed 2026-10-11 for the prior provider mix.** A second
    buyer completed one Base-native-USDC payment for each launch route: $0.05
    Instagram profile, $0.05 Instagram post, and $0.10 asynchronous LinkedIn
-   profile. Base receipts, durable settlement records, one-time route
+   profile. The LinkedIn evidence covered the retired Apify route and must not
+   be used to release its ScrapeCreators replacement. Base receipts, durable settlement records, one-time route
    reservations, provider consumption, paid-result recovery, and LinkedIn
    protected polling all reconciled. Automated tests cover wrong
    network/token/amount rejection and restart recovery. The protected

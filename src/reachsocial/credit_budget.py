@@ -9,7 +9,7 @@ provider attempt is durable.
 from __future__ import annotations
 
 import httpx
-from sqlalchemy import func, select
+from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -45,7 +45,7 @@ def fetch_provider_balance(settings: Settings) -> int:
 
 
 def reservation_units(service: ServiceDefinition) -> int:
-    return max(1, service.retries + 1)
+    return service.max_provider_units_per_attempt * (service.retries + 1)
 
 
 def configured_capacity(settings: Settings, observed_balance: int | None = None) -> int:
@@ -150,13 +150,17 @@ def finalize(session: Session, payment_id: str) -> None:
         request_filter.append(ProviderAttempt.job_id == receipt.job_id)
     if not request_filter:
         return
-    attempts = session.scalar(
-        select(func.coalesce(func.sum(ProviderAttempt.provider_units), 0)).where(
-            ProviderAttempt.provider == reservation.provider,
-            *request_filter,
+    attempts = list(
+        session.scalars(
+            select(ProviderAttempt).where(
+                ProviderAttempt.provider == reservation.provider,
+                *request_filter,
+            )
         )
     )
-    reservation.consumed_units = max(0, int(attempts or 0))
+    if not attempts:
+        return
+    reservation.consumed_units = max(0, sum(attempt.provider_units for attempt in attempts))
     reservation.reserved_units = 0
     reservation.status = "consumed"
     session.commit()

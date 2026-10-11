@@ -185,6 +185,34 @@ def test_mainnet_is_allowed_when_all_launch_checks_pass() -> None:
     assert mainnet_x402_safety_errors(settings, catalog) == []
 
 
+def test_mainnet_allows_an_explicitly_verified_zero_cost_provider() -> None:
+    settings = Settings(
+        x402_enabled=True,
+        x402_network="eip155:8453",
+        allow_mainnet_x402=True,
+        external_backup_enabled=True,
+    )
+    catalog = Catalog(
+        services=[
+            ServiceDefinition(
+                id="news.person",
+                title="Person News",
+                platform="News",
+                description="Test service",
+                input_fields=[InputField(name="full_name", description="Name")],
+                provider=ProviderConfig(name="gdelt"),
+                enabled=True,
+                public=True,
+                price_cents=5,
+                cost_verified=True,
+                verified_zero_upstream_cost=True,
+            )
+        ]
+    )
+
+    assert mainnet_x402_safety_errors(settings, catalog) == []
+
+
 def test_mainnet_canary_requires_a_testnet_public_route_and_named_buyer(catalog) -> None:
     settings = Settings(
         x402_enabled=True,

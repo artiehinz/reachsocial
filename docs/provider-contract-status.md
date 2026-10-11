@@ -12,7 +12,38 @@ gate. It does not mark a service as cost-verified or accepted for live traffic.
 
 ## ScrapeCreators
 
-Credentialed live samples passed for:
+### Current release validation — 2026-10-11
+
+The mode-0600 local release ledger records hashes and accounting only. It made
+one bounded call per service, without retries, and imposes a 100-credit cap for
+this launch phase. Thirteen ScrapeCreators calls passed with the expected
+normalized shapes and one reported provider credit each: `x.profile`, `x.post`,
+`tiktok.profile`, `tiktok.video`, `instagram.feed`, `x.feed`, `tiktok.feed`,
+`youtube.channel`, `youtube.video`, `youtube.feed`, `facebook.profile`,
+`reddit.post`, and `instagram.highlight`.
+
+The two public Instagram routes were already accepted separately. All promoted
+ScrapeCreators services use the documented replacement-price basis of 1,880
+micro-USD per credited attempt ($47 / 25,000 credits), plus the observed
+one-credit consumption above. This is not a purchased invoice. A later
+acquisition must be recorded separately with its actual expense rather than
+relabeling this evidence.
+
+Three LinkedIn samples and one supplied saved-highlight URL returned
+`not_found`; the release ledger conservatively accounts for those four possible
+credits even though the live balance showed no charge for them. The documented
+highlight sample then passed. GDELT returned a rate limit for `news.person`;
+it has no ScrapeCreators cost and remains private until it responds successfully.
+
+The balance was 6,825 before this run and 6,812 after it. The 1,000-credit
+InstaGet reserve remains intact, leaving 5,812 credits before any active public
+reservation. No automatic top-up exists. The public routes remain on Base
+Sepolia while the staged public-release gates are incomplete. See the runtime
+catalog and [roadmap](roadmap.md).
+
+### Historical internal-consumer validation
+
+Earlier credentialed live samples passed for:
 
 - `instagram.profile`
 - `instagram.post`
@@ -29,7 +60,8 @@ micro-USD per credit ($47 / 25,000 credits), plus the endpoint consumption
 evidence. This is not a purchased invoice. A later acquisition must be recorded
 separately with its actual expense rather than relabeling this evidence.
 
-The protected account balance check on 2026-10-11 returned 6,827 credits. The
+The protected account balance check recorded here returned 6,827 credits before
+the current release run. The current baseline is 6,812 credits. The
 mainnet application configuration reserves 1,000 credits for InstaGet before
 new public work can be accepted, and holds the maximum retry units before a
 payment reaches the provider. No automatic top-up exists. The existing Instagram
@@ -141,7 +173,21 @@ before the provider boundary and cost zero. Starting from the owner's stated
 is test-capacity evidence only; no paid pack has been purchased or reconciled,
 so `cost_verified` remains false.
 
-## Apify
+## Apify retirement
+
+No active catalog service uses Apify. The LinkedIn migration now uses
+ScrapeCreators and `instagram.stories` is paused rather than substituted with
+an Actor. A production query found zero queued or running Apify jobs on
+2026-10-11. The production Apify token can be removed with the deployment that
+ships this catalog; historical completed jobs keep their stored results and
+paid-result recovery without needing an Apify credential.
+
+LinkedIn is not released merely because the adapter changed. Its current
+ScrapeCreators contract must return a successful bounded sample before an
+asynchronous paid acceptance can be repeated. Current stories stay paused until
+ScrapeCreators offers an acceptable, bounded current-stories contract.
+
+### Historical Apify validation
 
 The replacement production token authenticates successfully. Bounded validation
 has established this baseline:

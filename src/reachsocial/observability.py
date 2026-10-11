@@ -8,6 +8,72 @@ from datetime import UTC, datetime
 
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
+from starlette.responses import JSONResponse
+from starlette.types import ASGIApp, Message, Receive, Scope, Send
+
+
+class RequestBodyTooLarge(Exception):
+    pass
+
+
+class RequestBodyLimitMiddleware:
+    """Reject oversized request bodies before payment middleware parses them."""
+
+    payment_headers = {b"payment-signature", b"payment-required"}
+
+    def __init__(self, app: ASGIApp, *, max_body_bytes: int, max_payment_header_bytes: int) -> None:
+        self.app = app
+        self.max_body_bytes = max_body_bytes
+        self.max_payment_header_bytes = max_payment_header_bytes
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+        for name, value in scope.get("headers", []):
+            if name.lower() in self.payment_headers and len(value) > self.max_payment_header_bytes:
+                await JSONResponse(
+                    {
+                        "error": {
+                            "code": "header_too_large",
+                            "message": "Payment header is too large",
+                        }
+                    },
+                    status_code=431,
+                )(scope, receive, send)
+                return
+            if name.lower() == b"content-length":
+                try:
+                    if int(value) > self.max_body_bytes:
+                        await JSONResponse(
+                            {
+                                "error": {
+                                    "code": "request_too_large",
+                                    "message": "Request body is too large",
+                                }
+                            },
+                            status_code=413,
+                        )(scope, receive, send)
+                        return
+                except ValueError:
+                    await JSONResponse(
+                        {"error": {"code": "invalid_input", "message": "Invalid Content-Length"}},
+                        status_code=400,
+                    )(scope, receive, send)
+                    return
+
+        received_bytes = 0
+
+        async def limited_receive() -> Message:
+            nonlocal received_bytes
+            message = await receive()
+            if message["type"] == "http.request":
+                received_bytes += len(message.get("body", b""))
+                if received_bytes > self.max_body_bytes:
+                    raise RequestBodyTooLarge
+            return message
+
+        await self.app(scope, limited_receive, send)
 
 
 class JsonFormatter(logging.Formatter):

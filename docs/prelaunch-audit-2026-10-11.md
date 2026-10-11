@@ -3,14 +3,18 @@
 ## Decision
 
 Keep general Base-mainnet sales disabled until the owner makes the final release
-decision. Earlier acceptance and refund evidence remains valid. The four holds
-found by this audit were resolved on 2026-10-11 without a new paid provider
-request or transfer.
+decision. Earlier acceptance and refund evidence remains valid for the routes
+and providers that produced it. The four original holds were resolved on
+2026-10-11. This catalog-completion update made bounded provider calls but no
+new buyer transfer; its evidence and unresolved dependencies are in
+[the roadmap](roadmap.md).
 
 ## Implemented API coverage
 
-The runtime catalog has 17 services: 3 public, 11 private, 2 planned, 1 paused.
-Twelve enabled adapters use ScrapeCreators:
+The runtime catalog has 18 services: 2 available, 11 private, 4 in validation,
+and 1 paused. Thirteen release-contract samples passed on ScrapeCreators, but
+the public catalog remains intentionally small until the staged mainnet gates
+pass:
 
 | Platform | Public | Private / explicitly entitled B2B |
 | --- | --- | --- |
@@ -19,10 +23,13 @@ Twelve enabled adapters use ScrapeCreators:
 | TikTok | — | profile, video, feed |
 | YouTube | — | channel, video, feed |
 
-LinkedIn profile is the third public route and uses Apify. Private news.person
-uses GDELT. Facebook profile and Reddit post are planned; Instagram stories
-is paused. The broader generated endpoint inventory is not an implemented API
-catalog. This audit adds no new wrappers and does not run fresh live coverage.
+LinkedIn profile now uses ScrapeCreators but is validation-only after three
+`not_found` samples. Private `news.person` uses GDELT and received an upstream
+rate limit in its fresh sample. Facebook profile, Reddit post, and Instagram
+highlight have working adapters and passed provider contracts, but remain in
+validation until their stage is eligible for public paid acceptance. Instagram
+current stories is paused. No active catalog service uses Apify, and production
+has no queued or running Apify jobs.
 
 ## Resolved launch holds
 
@@ -58,12 +65,14 @@ settlement state are implemented. Payment and operational responses default to
 no-store. The app runs as a non-root container user; port 8000 is not published
 on the host. Caddy normalizes forwarded client addresses.
 
-This is not a penetration test or dependency vulnerability audit. Unauthenticated
-CPU/body abuse, multi-process races, host firewall configuration, and all external
-provider failure modes are not certified by this review. Process-local rate,
-concurrency, and in-flight spend state assumes the current single-process runtime;
-do not add workers/replicas without shared enforcement. Runtime cache and lock
-maps are not globally bounded; expire/evict unused entries before sustained load.
+This is not a penetration test. The production dependency audit is clean after
+updating `multidict` to 6.9.1. Unauthenticated CPU abuse beyond the configured
+body/header limits, multi-process races, host firewall configuration, and all
+external-provider failure modes are not certified by this review. Process-local
+rate, concurrency, and in-flight spend state assumes the current single-process
+runtime; do not add workers or replicas without shared enforcement. Runtime
+cache storage now has LRU entry/byte bounds, and idle rate-limit identities and
+unheld idempotency locks are pruned.
 The ingress container now receives only its address and Basic Auth settings,
 rather than the application provider and payment credentials. The deployment
 workflow synchronizes and validates Compose and Caddy configuration before
@@ -90,18 +99,22 @@ Observed through Cloudflare using GET requests:
 
 ## Website corrections
 
-Made testnet status explicit on home and pricing, named the three public services,
-clarified private integrations, replaced vague headings, and documented the 30-day
-paid-result recovery window. Corrected MCP status to read the runtime setting:
+Made testnet status explicit on home and pricing, named the public services,
+clarified private integrations and validation holds, replaced vague headings,
+and documented the 30-day paid-result recovery window. Corrected MCP status to
+read the runtime setting:
 production MCP is enabled and its server card returned 200. Status is catalog
 availability, not a guarantee that each upstream provider is healthy.
 
 ## Validation
 
-Ruff passed; 155 tests passed, 10 credentialed live tests skipped. Read-only
+The original audit passed its code suite; the catalog-completion update adds
+bounded cache, body-limit, provider-dispatch, and new-adapter coverage. Its
+final local result was 171 passed and 17 credential-gated live tests skipped;
+the production dependency audit found no known vulnerabilities. Read-only
 production checks confirmed Base Sepolia, ALLOW_MAINNET_X402=false, MCP enabled,
-three public services, stylesheet edge caching, scoped Python-client access,
-and external readiness monitoring. Herald's legacy local development database
-was preserved twice on NVMe and replaced with a clean database at migration
-`20261011_0004`. No AEU runtime changes or new AEU acceptance tests were part
-of this ReachSocial audit.
+stylesheet edge caching, scoped Python-client access, and external readiness
+monitoring.
+Herald's legacy local development database was preserved twice on NVMe and
+replaced with a clean database at migration `20261011_0004`. No AEU runtime
+changes or new AEU acceptance tests were part of this ReachSocial audit.

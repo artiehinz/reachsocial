@@ -131,6 +131,16 @@ def _safe_public_url(value: object) -> str | None:
     return text
 
 
+def _linkedin_provider_url(canonical_url: str) -> str:
+    """Restore the public LinkedIn URL form required by ScrapeCreators.
+
+    ReachSocial canonicalizes LinkedIn country aliases to one neutral host,
+    while the provider documents and accepts the browser-facing www URL.
+    """
+    path = urlparse(canonical_url).path.rstrip("/")
+    return f"https://www.linkedin.com{path}/"
+
+
 def _gdelt_country_code(value: object) -> str | None:
     text = _clean_text(value, max_length=96)
     if not text:
@@ -338,6 +348,10 @@ class ScrapeCreatorsAdapter:
                 "/v1/instagram/post",
                 {"url": canonical_url, "download_media": "false"},
             ),
+            "instagram.highlight": (
+                "/v1/instagram/user/highlight/detail",
+                {"id": _segments(canonical_url)[-1]},
+            ),
             "x.profile": ("/v1/twitter/profile", {"handle": _handle(canonical_url)}),
             "x.post": ("/v1/twitter/tweet", {"url": canonical_url}),
             "x.feed": (
@@ -354,19 +368,31 @@ class ScrapeCreatorsAdapter:
                 },
             ),
             "tiktok.video": ("/v2/tiktok/video", {"url": canonical_url}),
+            "linkedin.profile": (
+                "/v1/linkedin/profile",
+                {"url": _linkedin_provider_url(canonical_url)},
+            ),
             "youtube.channel": (
                 "/v1/youtube/channel",
-                {"channelId" if _segments(canonical_url)[0] == "channel" else "handle": _handle(canonical_url)},
+                {
+                    "channelId" if _segments(canonical_url)[0] == "channel" else "handle": _handle(
+                        canonical_url
+                    )
+                },
             ),
             "youtube.feed": (
                 "/v1/youtube/channel-videos",
                 {
-                    "channelId" if _segments(canonical_url)[0] == "channel" else "handle": _handle(canonical_url),
+                    "channelId" if _segments(canonical_url)[0] == "channel" else "handle": _handle(
+                        canonical_url
+                    ),
                     "sort": "latest",
                     "includeExtras": "true",
                 },
             ),
             "youtube.video": ("/v1/youtube/video", {"url": canonical_url}),
+            "facebook.profile": ("/v1/facebook/profile", {"url": canonical_url}),
+            "reddit.post": ("/v1/reddit/post", {"url": canonical_url}),
         }
         route = routes.get(service.id)
         if route is None:
@@ -389,27 +415,79 @@ class ScrapeCreatorsAdapter:
             async with httpx.AsyncClient(timeout=service.timeout_seconds) as client:
                 response = await client.get(url, headers=headers, params=params)
         except httpx.TimeoutException as exc:
-            raise ProviderTimeout("ScrapeCreators timed out") from exc
+            raise _costed_error(
+                ProviderTimeout("ScrapeCreators timed out"),
+                units=service.max_provider_units_per_attempt,
+                unit_cost_microusd=service.provider_unit_cost_microusd,
+                upstream_cost_microusd=(
+                    service.max_provider_units_per_attempt * service.provider_unit_cost_microusd
+                ),
+            ) from exc
         except httpx.HTTPError as exc:
-            raise ProviderUnavailable("ScrapeCreators connection failed") from exc
+            raise _costed_error(
+                ProviderUnavailable("ScrapeCreators connection failed"),
+                units=service.max_provider_units_per_attempt,
+                unit_cost_microusd=service.provider_unit_cost_microusd,
+                upstream_cost_microusd=(
+                    service.max_provider_units_per_attempt * service.provider_unit_cost_microusd
+                ),
+            ) from exc
         if response.status_code >= 400:
-            raise _http_error("ScrapeCreators", response)
+            raise _costed_error(
+                _http_error("ScrapeCreators", response),
+                reference=response.headers.get("x-request-id"),
+                units=service.max_provider_units_per_attempt,
+                unit_cost_microusd=service.provider_unit_cost_microusd,
+                upstream_cost_microusd=(
+                    service.max_provider_units_per_attempt * service.provider_unit_cost_microusd
+                ),
+            )
         try:
             payload = response.json()
         except ValueError as exc:
-            raise ProviderUnavailable("ScrapeCreators returned invalid JSON") from exc
+            raise _costed_error(
+                ProviderUnavailable("ScrapeCreators returned invalid JSON"),
+                reference=response.headers.get("x-request-id"),
+                units=service.max_provider_units_per_attempt,
+                unit_cost_microusd=service.provider_unit_cost_microusd,
+                upstream_cost_microusd=(
+                    service.max_provider_units_per_attempt * service.provider_unit_cost_microusd
+                ),
+            ) from exc
         if not isinstance(payload, dict):
-            raise ProviderUnavailable("ScrapeCreators returned an unexpected response")
+            raise _costed_error(
+                ProviderUnavailable("ScrapeCreators returned an unexpected response"),
+                reference=response.headers.get("x-request-id"),
+                units=service.max_provider_units_per_attempt,
+                unit_cost_microusd=service.provider_unit_cost_microusd,
+                upstream_cost_microusd=(
+                    service.max_provider_units_per_attempt * service.provider_unit_cost_microusd
+                ),
+            )
         credits_value = payload.get("credits_charged")
-        credits = max(
-            0,
-            int(
-                credits_value
-                if credits_value is not None
-                else (0 if payload.get("cached") is True else 1)
-            ),
-        )
         unit_cost = service.provider_unit_cost_microusd
+        if credits_value is None:
+            credits = 0 if payload.get("cached") is True else service.max_provider_units_per_attempt
+        else:
+            try:
+                credits = int(credits_value)
+            except (TypeError, ValueError) as exc:
+                raise _costed_error(
+                    ProviderUnavailable("ScrapeCreators returned invalid credit accounting"),
+                    reference=response.headers.get("x-request-id"),
+                    units=service.max_provider_units_per_attempt,
+                    unit_cost_microusd=unit_cost,
+                    upstream_cost_microusd=service.max_provider_units_per_attempt * unit_cost,
+                ) from exc
+            if credits < 0 or credits > service.max_provider_units_per_attempt:
+                raise _costed_error(
+                    ProviderUnavailable("ScrapeCreators credit use exceeded the verified limit"),
+                    reference=response.headers.get("x-request-id"),
+                    units=max(credits, service.max_provider_units_per_attempt),
+                    unit_cost_microusd=unit_cost,
+                    upstream_cost_microusd=max(credits, service.max_provider_units_per_attempt)
+                    * unit_cost,
+                )
         if payload.get("success") is False:
             raise _costed_error(
                 ProviderUnavailable("ScrapeCreators did not return a successful result"),

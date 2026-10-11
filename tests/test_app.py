@@ -36,7 +36,7 @@ def test_health_and_mcp_gate() -> None:
         assert openapi["paths"]["/v1/services/{service_id}/execute"]["post"]["responses"]["402"][
             "headers"
         ]["PAYMENT-REQUIRED"]
-        assert len(openapi["x-reachsocial-services"]) == 17
+        assert len(openapi["x-reachsocial-services"]) == 18
         assert client.get("/healthz").json() == {"status": "ok"}
         assert client.get("/readyz").json()["status"] == "ready"
         assert client.post("/mcp").status_code == 503
@@ -45,17 +45,16 @@ def test_health_and_mcp_gate() -> None:
         assert [item["id"] for item in client.get("/v1/services").json()["services"]] == [
             "instagram.profile",
             "instagram.post",
-            "linkedin.profile",
         ]
         services = client.get("/v1/services").json()["services"]
         assert all(item["schema_version"] == "1.0" for item in services)
-        assert [item["execution"] for item in services] == ["sync", "sync", "async"]
+        assert [item["execution"] for item in services] == ["sync", "sync"]
         roadmap = client.get("/v1/catalog").json()
         assert roadmap["summary"] == {
-            "available": 3,
+            "available": 2,
             "private": 11,
-            "validation": 0,
-            "planned": 2,
+            "validation": 4,
+            "planned": 0,
             "paused": 1,
             "platforms": 8,
         }
@@ -63,11 +62,11 @@ def test_health_and_mcp_gate() -> None:
         assert client.get("/services/linkedin.profile").status_code == 200
         assert "X Public Posts" in client.get("/catalog").text
         assert "Private" in client.get("/services/x.feed").text
-        assert "LinkedIn Profile Enrichment" in client.get("/catalog").text
+        assert "LinkedIn Public Profile" in client.get("/catalog").text
         llms = client.get("/llms.txt")
         assert llms.headers["content-type"].startswith("text/plain")
         assert llms.text.startswith("# ReachSocial")
-        assert "linkedin.profile" in llms.text
+        assert "instagram.profile" in llms.text
         assert client.get("/agent.md").headers["content-type"].startswith("text/markdown")
         assert (
             client.get("/.well-known/api-catalog")

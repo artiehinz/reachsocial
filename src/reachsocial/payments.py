@@ -85,19 +85,24 @@ def mainnet_x402_safety_errors(settings: Settings, catalog: Catalog) -> list[str
         errors.append("ALLOW_MAINNET_X402=true is required")
     if not settings.external_backup_enabled:
         errors.append("EXTERNAL_BACKUP_ENABLED=true is required")
-    if settings.scrapecreators_credit_balance <= settings.scrapecreators_credit_reserve:
-        errors.append("a checked ScrapeCreators balance above the internal reserve is required")
-    if (
-        any(service.provider.name == "scrapecreators" for service in catalog.public_services())
-        and not settings.scrapecreators_api_key
+    has_public_scrapecreators = any(
+        service.provider.name == "scrapecreators" for service in catalog.public_services()
+    )
+    if has_public_scrapecreators and (
+        settings.scrapecreators_credit_balance <= settings.scrapecreators_credit_reserve
     ):
+        errors.append("a checked ScrapeCreators balance above the internal reserve is required")
+    if has_public_scrapecreators and not settings.scrapecreators_api_key:
         errors.append("SCRAPECREATORS_API_KEY is required for live balance checks")
     for service in catalog.public_services():
-        if not service.cost_verified or service.estimated_upstream_cost_microusd <= 0:
+        if not service.cost_verified:
             errors.append(f"{service.id} needs a verified upstream cost")
+        elif service.maximum_request_cost_microusd <= 0:
+            if not service.verified_zero_upstream_cost:
+                errors.append(f"{service.id} needs an explicit verified zero upstream cost")
         else:
             price_micros = service.price_cents * 10_000
-            margin_micros = price_micros - service.estimated_upstream_cost_microusd
+            margin_micros = price_micros - service.maximum_request_cost_microusd
             if (
                 margin_micros < settings.minimum_public_margin_cents * 10_000
                 or margin_micros * 2 < price_micros
@@ -140,7 +145,7 @@ def mainnet_acceptance_safety_errors(settings: Settings, catalog: Catalog) -> li
         service = catalog.by_id(service_id)
         if service is None or not (service.enabled and service.public):
             errors.append(f"{service_id} must remain publicly executable")
-        elif not service.cost_verified or service.estimated_upstream_cost_microusd <= 0:
+        elif not service.cost_verified or service.maximum_request_cost_microusd <= 0:
             errors.append(f"{service_id} needs a verified upstream cost")
         else:
             price_micros = service.price_cents * 10_000

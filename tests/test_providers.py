@@ -160,6 +160,31 @@ def test_scrapecreators_routes_cover_profile_feeds_and_youtube() -> None:
     assert video_params == {"url": "https://youtube.com/watch?v=dQw4w9WgXcQ"}
 
 
+def test_scrapecreators_routes_cover_linkedin_facebook_reddit_and_highlights() -> None:
+    linkedin_url, linkedin_params = ScrapeCreatorsAdapter.request_for(
+        service("linkedin.profile"), {"url": "https://linkedin.com/in/example"}
+    )
+    facebook_url, facebook_params = ScrapeCreatorsAdapter.request_for(
+        service("facebook.profile"), {"url": "https://facebook.com/example"}
+    )
+    reddit_url, reddit_params = ScrapeCreatorsAdapter.request_for(
+        service("reddit.post"), {"url": "https://reddit.com/comments/abc123"}
+    )
+    highlight_url, highlight_params = ScrapeCreatorsAdapter.request_for(
+        service("instagram.highlight"),
+        {"url": "https://instagram.com/stories/highlights/17968483024692630"},
+    )
+
+    assert linkedin_url.endswith("/v1/linkedin/profile")
+    assert linkedin_params == {"url": "https://www.linkedin.com/in/example/"}
+    assert facebook_url.endswith("/v1/facebook/profile")
+    assert facebook_params == {"url": "https://facebook.com/example"}
+    assert reddit_url.endswith("/v1/reddit/post")
+    assert reddit_params == {"url": "https://reddit.com/comments/abc123"}
+    assert highlight_url.endswith("/v1/instagram/user/highlight/detail")
+    assert highlight_params == {"id": "17968483024692630"}
+
+
 def test_apify_payloads_are_service_specific() -> None:
     x_service = service("x.feed").model_copy(
         update={"provider": {"name": "apify", "actor_id": "apidojo~tweet-scraper"}}
@@ -454,13 +479,9 @@ def test_normalized_instagram_feed_uses_media_assets_not_post_permalink() -> Non
                     "carousel_media": [
                         {
                             "id": "slide-video",
-                            "video_versions": [
-                                {"url": "https://cdn.example/slide.mp4"}
-                            ],
+                            "video_versions": [{"url": "https://cdn.example/slide.mp4"}],
                             "image_versions2": {
-                                "candidates": [
-                                    {"url": "https://cdn.example/slide-preview.jpg"}
-                                ]
+                                "candidates": [{"url": "https://cdn.example/slide-preview.jpg"}]
                             },
                         },
                         {
@@ -669,11 +690,7 @@ def test_normalized_youtube_channel_and_video_feed() -> None:
                 "channelTitle": "Example Channel",
                 "description": "Channel bio",
                 "avatar": {
-                    "image": {
-                        "sources": [
-                            {"url": "https://cdn.example/avatar.jpg", "width": 900}
-                        ]
-                    }
+                    "image": {"sources": [{"url": "https://cdn.example/avatar.jpg", "width": 900}]}
                 },
                 "isVerified": True,
                 "subscriberCountText": "2.9M subscribers",
@@ -741,16 +758,26 @@ def test_provider_authorization_errors_are_not_content_privacy_errors() -> None:
 
 
 def test_instagram_mobile_feed_caption_counts_author_and_media_type():
-    result = normalize_provider_payload("instagram.feed", "https://instagram.com/example", {
-        "items": [{
-            "id": "123", "code": "Example123", "product_type": "clips",
-            "caption": {"text": "Full caption\nwith a second line"},
-            "like_count": 0, "comment_count": 2, "play_count": 1234,
-            "user": {"username": "example", "full_name": "Example Author"},
-            "video_versions": [{"url": "https://cdn.example/video.mp4"}],
-            "image_versions2": {"candidates": [{"url": "https://cdn.example/poster.jpg"}]},
-        }]
-    })
+    result = normalize_provider_payload(
+        "instagram.feed",
+        "https://instagram.com/example",
+        {
+            "items": [
+                {
+                    "id": "123",
+                    "code": "Example123",
+                    "product_type": "clips",
+                    "caption": {"text": "Full caption\nwith a second line"},
+                    "like_count": 0,
+                    "comment_count": 2,
+                    "play_count": 1234,
+                    "user": {"username": "example", "full_name": "Example Author"},
+                    "video_versions": [{"url": "https://cdn.example/video.mp4"}],
+                    "image_versions2": {"candidates": [{"url": "https://cdn.example/poster.jpg"}]},
+                }
+            ]
+        },
+    )
     item = result["items"][0]
     assert item["text"] == "Full caption\nwith a second line"
     assert item["metrics"]["likes"] == 0

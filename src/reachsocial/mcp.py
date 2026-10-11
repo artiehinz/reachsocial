@@ -65,23 +65,23 @@ def _input_data(
     return value
 
 
+def _news_input(full_name: str, max_items: int) -> dict[str, Any]:
+    return {"full_name": full_name, "max_items": max_items}
+
+
 async def _execute_sync(
     service: ServiceDefinition,
     executor: ExecutionService,
     *,
-    url: str,
+    input_data: dict[str, Any],
     idempotency_key: str,
-    max_items: int | None = None,
-    cursor: str | None = None,
 ) -> dict[str, Any]:
     with SessionLocal() as session:
         return await executor.execute(
             session,
             client=_current_client(session),
             service_id=service.id,
-            input_data=_input_data(
-                service, url=url, max_items=max_items, cursor=cursor
-            ),
+            input_data=input_data,
             idempotency_key=idempotency_key,
         )
 
@@ -101,9 +101,7 @@ def _submit_async(
             executor=executor,
             client=_current_client(session),
             service_id=service.id,
-            input_data=_input_data(
-                service, url=url, max_items=max_items, cursor=cursor
-            ),
+            input_data=_input_data(service, url=url, max_items=max_items, cursor=cursor),
             anonymous=False,
             idempotency_key=idempotency_key,
         )
@@ -117,7 +115,19 @@ ToolCallable = Callable[..., Awaitable[dict[str, Any]]]
 
 def _sync_tool_for(service: ServiceDefinition, executor: ExecutionService) -> ToolCallable:
     fields = {field.name for field in service.input_fields}
-    if "cursor" in fields:
+    if "full_name" in fields:
+
+        async def execute(
+            full_name: str, idempotency_key: str, max_items: int = 50
+        ) -> dict[str, Any]:
+            return await _execute_sync(
+                service,
+                executor,
+                input_data=_news_input(full_name, max_items),
+                idempotency_key=idempotency_key,
+            )
+
+    elif "cursor" in fields:
 
         async def execute(
             url: str,
@@ -128,10 +138,8 @@ def _sync_tool_for(service: ServiceDefinition, executor: ExecutionService) -> To
             return await _execute_sync(
                 service,
                 executor,
-                url=url,
+                input_data=_input_data(service, url=url, max_items=max_items, cursor=cursor),
                 idempotency_key=idempotency_key,
-                max_items=max_items,
-                cursor=cursor,
             )
 
     elif "max_items" in fields:
@@ -142,9 +150,8 @@ def _sync_tool_for(service: ServiceDefinition, executor: ExecutionService) -> To
             return await _execute_sync(
                 service,
                 executor,
-                url=url,
+                input_data=_input_data(service, url=url, max_items=max_items),
                 idempotency_key=idempotency_key,
-                max_items=max_items,
             )
 
     else:
@@ -153,7 +160,10 @@ def _sync_tool_for(service: ServiceDefinition, executor: ExecutionService) -> To
             url: str, idempotency_key: str
         ) -> dict[str, Any]:
             return await _execute_sync(
-                service, executor, url=url, idempotency_key=idempotency_key
+                service,
+                executor,
+                input_data=_input_data(service, url=url),
+                idempotency_key=idempotency_key,
             )
 
     execute.__name__ = service.id.replace(".", "_").replace("-", "_")
@@ -201,9 +211,7 @@ def _async_tool_for(service: ServiceDefinition, executor: ExecutionService) -> T
         async def start(  # type: ignore[no-redef]
             url: str, idempotency_key: str
         ) -> dict[str, Any]:
-            return _submit_async(
-                service, executor, url=url, idempotency_key=idempotency_key
-            )
+            return _submit_async(service, executor, url=url, idempotency_key=idempotency_key)
 
     start.__name__ = "start_" + service.id.replace(".", "_").replace("-", "_")
     start.__doc__ = (
@@ -232,7 +240,7 @@ def make_mcp_server(catalog: Catalog, executor: ExecutionService | None = None) 
         title="ReachSocial social data",
         description="Provider-neutral social data tools for authenticated B2B clients.",
         instructions=(
-            "Choose the smallest available service. Supply a canonical public URL and a stable "
+            "Choose the smallest available service. Supply the documented service input and a stable "
             "idempotency key. Poll asynchronous jobs; never recreate pending work."
         ),
         website_url="https://reachsocial.dev",

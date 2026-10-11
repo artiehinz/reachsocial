@@ -113,7 +113,11 @@ def _handle_from_url(url: str) -> str | None:
     parts = [part for part in urlparse(url).path.split("/") if part]
     if not parts:
         return None
-    youtube = (urlparse(url).hostname or "").lower() in {"youtube.com", "www.youtube.com", "m.youtube.com"}
+    youtube = (urlparse(url).hostname or "").lower() in {
+        "youtube.com",
+        "www.youtube.com",
+        "m.youtube.com",
+    }
     if youtube and parts[0] == "channel":
         return None
     if (parts[0] in {"in", "pub"} or youtube and parts[0] in {"c", "user"}) and len(parts) > 1:
@@ -145,9 +149,13 @@ def _first_browser_image_url(source: dict[str, Any], *paths: str) -> str | None:
             if url := _url(candidate):
                 candidates.append(url)
     return next(
-        (url for url in candidates if urlparse(url).path.lower().endswith(
-            (".jpg", ".jpeg", ".png", ".webp", ".gif", ".avif")
-        )),
+        (
+            url
+            for url in candidates
+            if urlparse(url)
+            .path.lower()
+            .endswith((".jpg", ".jpeg", ".png", ".webp", ".gif", ".avif"))
+        ),
         candidates[0] if candidates else None,
     )
 
@@ -278,9 +286,7 @@ def _profile(
             "account_type",
         )
     )
-    tags = _text_values(
-        _first(normalized_source, "tags", "labels", "interests", "keywords")
-    )
+    tags = _text_values(_first(normalized_source, "tags", "labels", "interests", "keywords"))
     fields = {
         **({"categories": categories} if categories else {}),
         **({"tags": tags} if tags else {}),
@@ -379,8 +385,12 @@ def _author(
         "X": {"x.com", "www.x.com", "twitter.com", "www.twitter.com"},
         "TikTok": {"tiktok.com", "www.tiktok.com"},
         "YouTube": {"youtube.com", "www.youtube.com"},
+        "Facebook": {"facebook.com", "www.facebook.com", "m.facebook.com"},
+        "Reddit": {"reddit.com", "www.reddit.com", "old.reddit.com"},
     }
-    if canonical_url and (urlparse(canonical_url).hostname or "").lower() not in allowed_hosts.get(platform, set()):
+    if canonical_url and (urlparse(canonical_url).hostname or "").lower() not in allowed_hosts.get(
+        platform, set()
+    ):
         canonical_url = None
     profile = _profile(platform, canonical_url or "", source)
     handle = profile["handle"]
@@ -468,16 +478,23 @@ def _x_media(source: dict[str, Any]) -> list[dict[str, Any]]:
                 )
             )
     for entry in entries:
-        variants = [item for item in _items(_first(entry, "video_info.variants") or [])
-                    if item.get("content_type") == "video/mp4" or str(item.get("url") or "").split("?", 1)[0].endswith(".mp4")]
+        variants = [
+            item
+            for item in _items(_first(entry, "video_info.variants") or [])
+            if item.get("content_type") == "video/mp4"
+            or str(item.get("url") or "").split("?", 1)[0].endswith(".mp4")
+        ]
         best_video = max(variants, key=lambda item: _integer(item.get("bitrate")) or 0, default={})
         video_url = _first(best_video, "url")
         duration_millis = _integer(_first(entry, "video_info.duration_millis"))
         output.append(
             _media(
                 media_type="video" if entry.get("type") in {"video", "animated_gif"} else "image",
-                source_url=(video_url if entry.get("type") in {"video", "animated_gif"}
-                            else entry.get("media_url_https") or entry.get("media_url")),
+                source_url=(
+                    video_url
+                    if entry.get("type") in {"video", "animated_gif"}
+                    else entry.get("media_url_https") or entry.get("media_url")
+                ),
                 preview_url=entry.get("media_url_https") or entry.get("media_url"),
                 width=_first(entry, "original_info.width", "sizes.large.w"),
                 height=_first(entry, "original_info.height", "sizes.large.h"),
@@ -490,12 +507,15 @@ def _x_media(source: dict[str, Any]) -> list[dict[str, Any]]:
 def _tiktok_media(source: dict[str, Any]) -> list[dict[str, Any]]:
     photos = _items(_first(source, "image_post_info.images", "imagePost.images") or [])
     if photos:
-        return _dedupe_media(_media(
-            media_type="image",
-            source_url=_first_browser_image_url(photo, "display_image", "imageURL", "url_list"),
-            width=_first(photo, "display_image.width", "width"),
-            height=_first(photo, "display_image.height", "height"),
-        ) for photo in photos)
+        return _dedupe_media(
+            _media(
+                media_type="image",
+                source_url=_first_browser_image_url(photo, "display_image", "imageURL", "url_list"),
+                width=_first(photo, "display_image.width", "width"),
+                height=_first(photo, "display_image.height", "height"),
+            )
+            for photo in photos
+        )
     video = _mapping(source.get("video"))
     source_url = _first_url(
         source,
@@ -571,7 +591,9 @@ def _content(platform: str, canonical_url: str, source: dict[str, Any]) -> dict[
     elif platform == "YouTube":
         media = _youtube_media(source)
         author_source = _mapping(source.get("channel")) or {
-            key: source[key] for key in ("channelId", "channelHandle", "channelTitle") if key in source
+            key: source[key]
+            for key in ("channelId", "channelHandle", "channelTitle")
+            if key in source
         }
     else:
         media = _dedupe_media(
@@ -598,7 +620,9 @@ def _content(platform: str, canonical_url: str, source: dict[str, Any]) -> dict[
     elif not content_type:
         content_type = "video" if platform == "YouTube" or has_video else "post"
     author = _author(platform, author_source, _url(_first(author_source, "url", "twitterUrl")))
-    post_id = _text(_first(source, "rest_id", "id", "videoId", "shortcode", "code", "aweme_id", "tweetId"))
+    post_id = _text(
+        _first(source, "rest_id", "id", "videoId", "shortcode", "code", "aweme_id", "tweetId")
+    )
     if not canonical_url and post_id and author.get("handle"):
         if platform == "X":
             canonical_url = f"https://x.com/{author['handle']}/status/{post_id}"
@@ -665,6 +689,8 @@ def _content(platform: str, canonical_url: str, source: dict[str, Any]) -> dict[
                     "statistics.diggCount",
                     "statistics.digg_count",
                     "legacy.favorite_count",
+                    "score",
+                    "upvotes",
                 )
             ),
             "comments": _integer(
@@ -683,6 +709,7 @@ def _content(platform: str, canonical_url: str, source: dict[str, Any]) -> dict[
                     "statistics.commentCount",
                     "statistics.comment_count",
                     "legacy.reply_count",
+                    "num_comments",
                 )
             ),
             "shares": _integer(
@@ -783,6 +810,21 @@ def normalize_provider_payload(
             "next_cursor": None,
             "has_more": False,
         }
+    if service_id == "instagram.highlight":
+        rows = _items(_first(data, "items", "stories", "highlights") or [])
+        return {
+            "profile": None,
+            "items": [
+                _content(
+                    "Instagram",
+                    _url(_first(row, "permalink", "link")) or canonical_url,
+                    row,
+                )
+                for row in rows
+            ],
+            "next_cursor": None,
+            "has_more": False,
+        }
     if service_id == "x.profile":
         return {"profile": _profile("X", canonical_url, data)}
     if service_id == "x.post":
@@ -870,6 +912,10 @@ def normalize_provider_payload(
             else [],
         }
         return {"profile": _profile("LinkedIn", canonical_url, item, service_fields=fields)}
+    if service_id == "facebook.profile":
+        return {"profile": _profile("Facebook", canonical_url, data)}
+    if service_id == "reddit.post":
+        return {"item": _content("Reddit", canonical_url, data)}
     if service_id == "youtube.channel":
         item = _mapping(data.get("channel")) or data
         fields = {
@@ -898,12 +944,19 @@ def normalized_result_is_complete(service_id: str, data: dict[str, Any]) -> bool
     if service_id.endswith(".profile") or service_id == "youtube.channel":
         profile = _mapping(data.get("profile"))
         return bool(
-            profile.get("platform") and profile.get("canonical_url")
-            and (profile.get("platform_id") or profile.get("handle") and (
-                profile.get("display_name") or profile.get("biography") or profile.get("avatar_url")
-            ))
+            profile.get("platform")
+            and profile.get("canonical_url")
+            and (
+                profile.get("platform_id")
+                or profile.get("handle")
+                and (
+                    profile.get("display_name")
+                    or profile.get("biography")
+                    or profile.get("avatar_url")
+                )
+            )
         )
-    if service_id in {"instagram.post", "x.post", "tiktok.video", "youtube.video"}:
+    if service_id in {"instagram.post", "x.post", "tiktok.video", "youtube.video", "reddit.post"}:
         item = _mapping(data.get("item"))
         author = _mapping(item.get("author"))
         has_content = bool(

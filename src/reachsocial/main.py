@@ -30,7 +30,12 @@ from .discovery import (
 from .errors import ReachSocialError
 from .jobs import JobWorker
 from .maintenance import prune_operational_records
-from .observability import RequestLoggingMiddleware, configure_logging
+from .observability import (
+    RequestBodyLimitMiddleware,
+    RequestBodyTooLarge,
+    RequestLoggingMiddleware,
+    configure_logging,
+)
 from .payments import (
     MainnetAcceptanceX402Middleware,
     MainnetCanaryX402Middleware,
@@ -94,7 +99,11 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
             )
     app.state.settings = settings
     app.state.catalog = catalog
-    app.state.runtime = RuntimeState()
+    app.state.runtime = RuntimeState(
+        cache_max_entries=settings.runtime_cache_max_entries,
+        cache_max_bytes=settings.runtime_cache_max_bytes,
+        idle_seconds=settings.runtime_state_idle_seconds,
+    )
     app.state.executor = ExecutionService(catalog, app.state.runtime)
     app.state.job_worker = JobWorker(catalog, app.state.executor)
 
@@ -102,6 +111,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         while True:
             try:
                 deleted = prune_operational_records()
+                await app.state.runtime.prune()
                 logging.getLogger("reachsocial").info("maintenance_pruned counts=%s", deleted)
             except Exception:
                 logging.getLogger("reachsocial").exception("maintenance_prune_failed")
@@ -197,6 +207,11 @@ def create_app() -> FastAPI:
             settings=settings,
             catalog=get_catalog(),
         )
+    app.add_middleware(
+        RequestBodyLimitMiddleware,
+        max_body_bytes=settings.max_request_body_bytes,
+        max_payment_header_bytes=settings.max_payment_header_bytes,
+    )
     app.mount("/static", StaticFiles(directory=str(ROOT / "static")), name="static")
     app.include_router(api_router)
 
@@ -269,6 +284,21 @@ def create_app() -> FastAPI:
                     "retryable": False,
                     "request_id": getattr(request.state, "request_id", None),
                     "details": error.errors(),
+                }
+            },
+        )
+
+    @app.exception_handler(RequestBodyTooLarge)
+    async def request_too_large(request: Request, error: RequestBodyTooLarge) -> JSONResponse:
+        del error
+        return JSONResponse(
+            status_code=413,
+            content={
+                "error": {
+                    "code": "request_too_large",
+                    "message": "Request body is too large",
+                    "retryable": False,
+                    "request_id": getattr(request.state, "request_id", None),
                 }
             },
         )

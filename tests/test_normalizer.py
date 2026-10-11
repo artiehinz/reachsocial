@@ -25,6 +25,15 @@ def test_resolve_story_url_to_canonical_profile() -> None:
     assert result["canonical_url"] == "https://instagram.com/openai"
 
 
+def test_resolve_saved_highlight_url() -> None:
+    assert resolve_url("https://www.instagram.com/stories/highlights/17968483024692630/") == {
+        "platform": "Instagram",
+        "resource_type": "highlight",
+        "canonical_url": "https://instagram.com/stories/highlights/17968483024692630",
+        "service_id": "instagram.highlight",
+    }
+
+
 @pytest.mark.parametrize(
     ("raw_url", "service_id", "canonical_url"),
     (
