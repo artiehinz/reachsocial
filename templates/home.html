@@ -19,6 +19,7 @@
 
 <section>
   <div class="section-heading"><div><p class="eyebrow">COVERAGE</p><h2>Available services and planned coverage.</h2></div><a href="/catalog">Full catalog →</a></div>
+  <div class="legend"><span><i class="dot available"></i>Available</span><span><i class="dot private"></i>Private integration</span><span><i class="dot validation"></i>In validation</span><span><i class="dot planned"></i>Planned</span><span><i class="dot paused"></i>Paused</span></div>
   <div class="platform-grid">
   {% for platform, services in catalog.discoverable_services()|groupby('platform') %}
     <article><h3>{{ platform }}</h3><p>{{ services|length }} reviewed service{{ '' if services|length == 1 else 's' }}</p><div class="mini-statuses">{% for service in services %}<span class="dot {{ service.status }}" title="{{ service.status }}"></span>{% endfor %}</div></article>
