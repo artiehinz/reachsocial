@@ -1,4 +1,5 @@
 import asyncio
+import time
 
 from reachsocial.runtime import RuntimeState
 
@@ -26,7 +27,9 @@ def test_runtime_prunes_idle_idempotency_locks() -> None:
         runtime = RuntimeState(idle_seconds=60)
         lock = await runtime.acquire_idempotency("client:service:key")
         lock.release()
-        runtime.idempotency_locks["client:service:key"].last_used_at = 0
+        runtime.idempotency_locks["client:service:key"].last_used_at = (
+            time.monotonic() - runtime.idle_seconds - 1
+        )
         await runtime.prune()
         assert runtime.idempotency_locks == {}
 
