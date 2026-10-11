@@ -88,18 +88,13 @@ source URL, provider payload, credential, payment signature, or wallet material.
 uv run python scripts/release_provider_acceptance.py --help
 ```
 
-The current reviewed catalog has 18 entries across eight platforms: two
-available on Base mainnet, fifteen private integrations, and one paused
-service. A 2026-10-11 bounded run verified 13 ScrapeCreators contracts at one
-credit each. `linkedin.profile` is a private integration while its replacement
-endpoint still returns `not_found` for the supplied target and the provider's
-documented sample; it is not cleared for public payment. `news.person` remains
-private after its initial GDELT rate limit cleared on a bounded retry. Instagram
-current stories remains paused because there is no accepted ScrapeCreators
-contract.
+The reviewed catalog has 18 entries across eight platforms: eight public
+Base-mainnet services, seven private integrations, and three services on hold.
+Instagram profile/post and X/TikTok profile, post or video, and feed have paid
+acceptance evidence. The latest X/TikTok batch still needs 24-hour observation
+and reconciliation. Person News and LinkedIn are disabled pending reliable
+provider responses; current Instagram stories lacks an approved contract.
 
-The private `news.person` service gives the scoped InstaGet Herald client a
-sanitized, cached GDELT news boundary without exposing it as a paid public API.
 The generated
 ScrapeCreators review inventory is intentionally broader—currently 178
 operations—but those routes are not public pass-throughs. See

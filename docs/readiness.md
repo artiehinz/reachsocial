@@ -6,9 +6,9 @@ Updated: 2026-10-11
 
 | State | Services |
 | --- | --- |
-| Available | `news.person`, `instagram.profile`, `instagram.post`, `x.profile`, `x.post`, `x.feed`, `tiktok.profile`, `tiktok.feed`, `tiktok.video` |
-| Private | `instagram.feed`, `instagram.highlight`, `youtube.channel`, `youtube.feed`, `youtube.video`, `linkedin.profile`, `facebook.profile`, `reddit.post` |
-| Paused | `instagram.stories` |
+| Available | `instagram.profile`, `instagram.post`, `x.profile`, `x.post`, `x.feed`, `tiktok.profile`, `tiktok.feed`, `tiktok.video` |
+| Private | `instagram.feed`, `instagram.highlight`, `youtube.channel`, `youtube.feed`, `youtube.video`, `facebook.profile`, `reddit.post` |
+| On hold | `news.person`, `linkedin.profile`, `instagram.stories` |
 
 `GET /v1/services` is intentionally the executable subset. `GET /v1/catalog`
 is the reviewed product roadmap. The ScrapeCreators engineering inventory has
@@ -29,18 +29,17 @@ sample passed. The protected ledger now records 33 conservative ScrapeCreators
 units out of its 100-credit allowance; the live balance was 6,799 credits, with
 the 1,000-credit InstaGet reserve intact.
 
-`linkedin.profile` is a private integration while ScrapeCreators returns
-`not_found` for both the supplied profile and the provider's own documented
-sample. Its public release remains held until a successful bounded sample and
-paid acceptance pass. `news.person` is cost-classified as reviewed zero-fee
-GDELT work. Its first sample was rate-limited, and its bounded retry passed; it
-remains private while public release stages are held. Credential rotation,
-merchant-wallet custody, isolated restores, and the earlier independent-buyer
-acceptance passed. The current Base-mainnet batch is Person News, the two
-Instagram services, and the X and TikTok routes. Its owner-local paid recovery
-acceptance and 24-hour observation remain the required evidence before another
-batch is promoted; the remaining private integrations are subject to the staged
-gates in [the roadmap](roadmap.md).
+Person News and LinkedIn are disabled for new public and API-key requests by
+owner decision. Production GDELT calls returned HTTP 429 before settlement;
+ScrapeCreators LinkedIn samples returned `not_found`. Historical recovery and
+accepted jobs remain separate from new-service availability.
+
+The owner reported six successful Base-USDC settlements with recovery for
+X profile/post/feed and TikTok profile/video/feed, totaling $0.30. Together
+with Instagram profile/post, eight current services have paid acceptance.
+The new batch still needs its 24-hour observation and receipt/provider
+reconciliation. Seven private integrations still need paid acceptance before
+public promotion. No further paid tests were performed for this status update.
 
 ## URL resolution contract
 

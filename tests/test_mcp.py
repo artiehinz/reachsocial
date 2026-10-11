@@ -10,7 +10,6 @@ def test_mcp_exposes_exact_sync_and_async_b2b_tools() -> None:
     tools = asyncio.run(make_mcp_server(load_catalog()).list_tools())
     by_name = {tool.name: tool for tool in tools}
     assert set(by_name) == {
-        "news_person",
         "instagram_profile",
         "instagram_post",
         "x_profile",

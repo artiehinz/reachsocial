@@ -43,7 +43,6 @@ def test_health_and_mcp_gate() -> None:
         assert client.get("/mcp/server-card").status_code == 503
         assert client.get("/.well-known/mcp.json").status_code == 503
         assert [item["id"] for item in client.get("/v1/services").json()["services"]] == [
-            "news.person",
             "instagram.profile",
             "instagram.post",
             "x.profile",
@@ -55,14 +54,14 @@ def test_health_and_mcp_gate() -> None:
         ]
         services = client.get("/v1/services").json()["services"]
         assert all(item["schema_version"] == "1.0" for item in services)
-        assert [item["execution"] for item in services] == ["sync"] * 9
+        assert [item["execution"] for item in services] == ["sync"] * 8
         roadmap = client.get("/v1/catalog").json()
         assert roadmap["summary"] == {
-            "available": 9,
-            "private": 8,
+            "available": 8,
+            "private": 7,
             "validation": 0,
             "planned": 0,
-            "paused": 1,
+            "paused": 3,
             "platforms": 8,
         }
         assert client.get("/services/x.feed").status_code == 200

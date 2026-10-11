@@ -2,12 +2,10 @@
 
 ## Paid MVP catalog completion — current state
 
-The catalog contains 18 reviewed services. The current Base-mainnet batch makes
-nine services available: Person News, Instagram profile and post, X profile,
-post, and public-post feed, and TikTok profile, video, and feed. Eight
-integrations remain private, LinkedIn remains held by its provider, and
-Instagram current stories is paused. Seventeen services are selected for the
-paid MVP: every entry except current stories.
+Eight services are publicly available: Instagram profile/post, X profile/post/feed,
+and TikTok profile/video/feed. Seven integrations remain private. Person News
+(GDELT rate limits), LinkedIn (unreliable provider results), and Instagram current
+stories (missing provider contract) are on hold and disabled for new execution.
 
 The shared release foundation is complete in code: maximum provider units are
 reserved before payment settlement, uncertain provider use remains held for
@@ -32,15 +30,11 @@ returned `not_found` again for both the supplied public profile and
 ScrapeCreators' documented sample, so it remains a provider dependency rather
 than a releasable service.
 
-The current public-mainnet release dependencies are:
-
-1. `linkedin.profile` now uses ScrapeCreators as a private integration, but
-   five fresh profiles returned `not_found`, including the provider's
-   documented example. Hold public release until a successful bounded sample,
-   protected async flow, recovery, and fresh real-USDC acceptance pass.
-2. The current nine-service batch needs its owner-local paid recovery
-   acceptance and 24-hour reconciliation before the next stage. Each remaining
-   private service needs the same evidence before public promotion.
+The owner reported successful payment and recovery for all six X/TikTok
+services ($0.30 total). Remaining gates are 24-hour observation and reconciliation
+for that batch, plus paid acceptance for the seven private services. Person News
+and LinkedIn are explicitly deferred by owner decision; do not retry or promote
+them without resolving their provider dependencies.
 
 After those dependencies clear, release one stage at a time. For each stage:
 recheck the live provider balance and 1,000-credit reserve, deploy the immutable
