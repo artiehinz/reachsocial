@@ -19,9 +19,12 @@ item below is complete and recorded in the release notes.
    capacity is reserved durably before a mainnet provider call. See
    [provider contract status](provider-contract-status.md) and
    [public payment operations](public-payment-operations.md).
-2. **Rotate the CDP credential.** The current credential was exposed during an
-   earlier operational review. Replace it in CDP and in the runtime environment
-   before any mainnet use.
+2. **Rotate the CDP credential — completed 2026-10-11.** The exposed CDP API
+   key pair was replaced in CDP and installed through a one-time hidden-input
+   transit into the protected runtime configuration. The transit file was
+   deleted after installation, and the restarted hosted service returned a
+   valid unpaid x402 quote. Facilitator-authenticated settlement remains part
+   of the independent real-USDC acceptance below.
 3. **Merchant-wallet custody and recovery — completed 2026-10-11.** The
    replacement receiving wallet was restored in a separate owner-controlled
    local wallet installation and signed a fresh EIP-191 non-payment challenge.
