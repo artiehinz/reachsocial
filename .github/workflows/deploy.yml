@@ -64,7 +64,7 @@ jobs:
             docker compose run --rm --no-deps caddy caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile"
           doctl registry docker-config --expiry-seconds 1200 | \
             ssh -i ~/.ssh/reachsocial_deploy -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes "$SSH_USER@$SSH_HOST" \
-              "install -d -m 700 /root/.docker && umask 077 && cat > /root/.docker/config.json"
+              "install -d -m 700 ~/.docker && umask 077 && cat > ~/.docker/config.json"
           ssh -i ~/.ssh/reachsocial_deploy -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes "$SSH_USER@$SSH_HOST" \
             "DEPLOY_PATH='$DEPLOY_PATH' DOCR_REGISTRY='$DOCR_REGISTRY' IMAGE_TAG='$IMAGE_TAG' bash -s" \
             < scripts/deploy_droplet.sh
