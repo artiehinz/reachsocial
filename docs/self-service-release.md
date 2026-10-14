@@ -53,7 +53,7 @@ Release gates still requiring recorded evidence:
 - [ ] Isolated production-backup restore with the additive OAuth migration.
 - [ ] Full OAuth/MCP integration and browser security checks, including real client compatibility.
 - [ ] One bounded browser payment and same-key recovery.
-- [ ] One bounded direct-MCP approval/payment/recovery and fresh-user authorization.
+- [x] One bounded owner direct-MCP approval/payment/recovery and initial OAuth authorization. Independent client compatibility remains open.
 - [ ] One bounded AgentCash payment/recovery, preserving the original key.
 - [ ] Reconcile the six existing X/TikTok transfers and their observation evidence.
 - [ ] Stage A: Instagram feed/highlight paid acceptance, then 24-hour observation.
@@ -189,3 +189,38 @@ monitoring and alerts for stalled MCP intents, retention review of expired
 intent state (preserving uncertain charges), and account-cookie/privacy wording.
 Bazaar discovery integration/indexing and real directory-client interoperability
 remain unverified. These are not closed by the current unit tests.
+
+
+## Owner direct-MCP acceptance passed — 2026-10-14
+
+The owner completed wallet sign-in, OAuth consent, MCP intent creation, browser
+approval, and repeated MCP result retrieval using the original checkpoint.
+Service: `instagram.profile`; amount: 50,000 native Base-USDC atomic units ($0.05).
+Transaction: `0x0698ad8794fbc8741b1b871fe548262b5784ffbca3951e713645899a45e643a9`.
+Request: `1c786c05bb80e160a34775e36b7dae8996f0e873c0908fbebd5c16cc8409d7c1`.
+
+Independent Base RPC verification confirmed successful settlement in block
+52,608,395, with exactly one matching native-USDC transfer between the expected
+buyer and merchant. Production has one matching settled receipt for five cents,
+one provider attempt consuming one credit, and the correct OAuth wallet owner.
+The live account balance decreased from 6,782 to 6,781. The script reported
+matching recovered results; the receipt and attempt counts show no duplicate
+charge or execution during recovery.
+
+This batch has consumed $0.05 of its $0.50 limit and one of its 20 provider
+credits. The local cumulative provider ledger now records 34 credits against
+its 100-credit cap. Production settled receipt totals are 12 / $0.65; the two
+canceled-before-settlement records remain unchanged. Count this flow once, not
+as separate browser and MCP purchases. The standalone browser and AgentCash
+acceptance allocations remain unused.
+
+The checkpoint is retained. During setup, its ownership was repaired and a
+suspended duplicate local listener was terminated; neither required replacing
+the request key. MetaMask's site-connected account differed from the selected
+account, causing the owner-only gate to reject login until the buyer account
+was reconnected. Improve account selection/disconnect guidance and display the
+actual auth rejection reason before general availability.
+
+Owner-only access remains enabled. This closes the direct-MCP paid-flow gate,
+not directory interoperability, standalone browser acceptance, staged catalog
+promotion, monitoring/retention work, or the required observation windows.

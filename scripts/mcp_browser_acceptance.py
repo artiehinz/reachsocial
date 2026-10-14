@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 import base64
+import errno
 import hashlib
 import json
 import os
@@ -24,6 +25,22 @@ import httpx
 
 BASE = "https://reachsocial.dev"
 ASSET = "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913"
+
+
+def failure_message(exc: Exception) -> str:
+    # Do not echo exception text: HTTP errors may contain tokens or callback URLs.
+    hint = ""
+    if isinstance(exc, OSError):
+        if exc.errno == errno.EADDRINUSE:
+            hint = " The saved callback port is busy. Close the earlier acceptance run before retrying."
+        elif exc.errno in {errno.EACCES, errno.EPERM}:
+            hint = " Check checkpoint ownership and local network permissions; run as your desktop user."
+        elif exc.errno is not None:
+            hint = f" OS error number: {exc.errno}."
+    return (
+        f"Acceptance stopped ({type(exc).__name__}).{hint} "
+        "Keep the checkpoint; no automatic payment retry was made."
+    )
 
 
 def save(path: Path, value: dict) -> None:
@@ -290,6 +307,4 @@ if __name__ == "__main__":
     try:
         main()
     except (RuntimeError, OSError, ValueError, httpx.HTTPError) as exc:
-        raise SystemExit(
-            f"Acceptance stopped ({type(exc).__name__}). Keep the checkpoint; no automatic payment retry was made."
-        ) from None
+        raise SystemExit(failure_message(exc)) from None
