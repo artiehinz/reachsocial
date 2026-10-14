@@ -8,6 +8,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 from cdp.x402 import create_facilitator_config
+from fastapi import HTTPException
 from sqlalchemy import select, update
 from sqlalchemy.exc import IntegrityError
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -241,6 +242,10 @@ def reserve_payment_receipt(
 ) -> AbortResult | None:
     """Reserve a verified payment before provider execution to reject replay."""
     payment_id = payment_id_from_payload(context.payment_payload)
+    from .mcp_requests import expected_mcp_payer
+    expected_payer = expected_mcp_payer.get()
+    if expected_payer and str(getattr(context.result, "payer", "")).lower() != expected_payer:
+        return AbortResult("mcp_payer_mismatch", "Pay using the wallet that owns this request")
     settings = settings or get_settings()
     service_id = _context_service_id(context)
     service = catalog.by_id(service_id) if catalog else None
@@ -751,6 +756,13 @@ class ReachSocialX402Middleware(BaseHTTPMiddleware):
             if definition is None or not (definition.enabled and definition.public):
                 return await call_next(request)
         idempotency_key = request.headers.get("idempotency-key")
+        expected_payer = None
+        if get_settings().oauth_enabled and service and idempotency_key and idempotency_key.startswith("mcp_"):
+            from .mcp_requests import guard_payment
+            try:
+                expected_payer = await guard_payment(request, service, idempotency_key)
+            except HTTPException as error:
+                return JSONResponse({"error": {"code": "mcp_payment_rejected", "message": error.detail}}, status_code=error.status_code)
         if idempotency_key and service and _has_paid_idempotency_recovery(service, idempotency_key):
             return await call_next(request)
         if service:
@@ -824,7 +836,17 @@ class ReachSocialX402Middleware(BaseHTTPMiddleware):
                     },
                     status_code=error.status_code,
                 )
-        return await self._payment_handler(request, call_next)
+        if expected_payer and service and idempotency_key:
+            try:
+                await guard_payment(request, service, idempotency_key, dispatch=True)
+            except HTTPException as error:
+                return JSONResponse({"error": {"code": "mcp_payment_rejected", "message": error.detail}}, status_code=error.status_code)
+        from .mcp_requests import expected_mcp_payer
+        context_token = expected_mcp_payer.set(expected_payer)
+        try:
+            return await self._payment_handler(request, call_next)
+        finally:
+            expected_mcp_payer.reset(context_token)
 
 
 def _has_payment_signature(request: Request) -> bool:

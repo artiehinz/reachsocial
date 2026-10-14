@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-from contextlib import asynccontextmanager
+from contextlib import AsyncExitStack, asynccontextmanager
 from pathlib import Path
 from typing import AsyncIterator
 
@@ -99,58 +99,62 @@ def public_cache_control(path: str) -> str | None:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-    settings = get_settings()
-    configure_logging()
-    catalog = get_catalog()
-    if not settings.is_production:
-        init_db()
-    from .db import SessionLocal
+    async with AsyncExitStack() as stack:
+        mcp_app = getattr(app.state, "mcp_app", None)
+        if mcp_app is not None:
+            await stack.enter_async_context(mcp_app.router.lifespan_context(mcp_app))
+        settings = get_settings()
+        configure_logging()
+        catalog = get_catalog()
+        if not settings.is_production:
+            init_db()
+        from .db import SessionLocal
 
-    with SessionLocal() as session:
-        sync_service_records(session, catalog)
-        reconciled = reconcile_credit_reservations(session)
-        if reconciled:
-            logging.getLogger("reachsocial").info(
-                "provider_credit_reservations_reconciled count=%s", reconciled
-            )
-    app.state.settings = settings
-    app.state.catalog = catalog
-    app.state.runtime = RuntimeState(
-        cache_max_entries=settings.runtime_cache_max_entries,
-        cache_max_bytes=settings.runtime_cache_max_bytes,
-        idle_seconds=settings.runtime_state_idle_seconds,
-    )
-    app.state.executor = ExecutionService(catalog, app.state.runtime)
-    app.state.job_worker = JobWorker(catalog, app.state.executor)
-
-    async def maintenance_loop() -> None:
-        while True:
-            try:
-                deleted = prune_operational_records()
-                await app.state.runtime.prune()
-                logging.getLogger("reachsocial").info("maintenance_pruned counts=%s", deleted)
-            except Exception:
-                logging.getLogger("reachsocial").exception("maintenance_prune_failed")
-            await asyncio.sleep(settings.maintenance_interval_hours * 60 * 60)
-
-    maintenance_task = asyncio.create_task(maintenance_loop())
-    job_task = asyncio.create_task(app.state.job_worker.run())
-    alert_task = asyncio.create_task(
-        alert_loop(
-            app.state.runtime,
-            frozenset(service.id for service in catalog.public_services()),
+        with SessionLocal() as session:
+            sync_service_records(session, catalog)
+            reconciled = reconcile_credit_reservations(session)
+            if reconciled:
+                logging.getLogger("reachsocial").info(
+                    "provider_credit_reservations_reconciled count=%s", reconciled
+                )
+        app.state.settings = settings
+        app.state.catalog = catalog
+        app.state.runtime = RuntimeState(
+            cache_max_entries=settings.runtime_cache_max_entries,
+            cache_max_bytes=settings.runtime_cache_max_bytes,
+            idle_seconds=settings.runtime_state_idle_seconds,
         )
-    )
-    logging.getLogger("reachsocial").info(
-        "ReachSocial started with %s services", len(catalog.services)
-    )
-    try:
-        yield
-    finally:
-        maintenance_task.cancel()
-        job_task.cancel()
-        alert_task.cancel()
-        await asyncio.gather(maintenance_task, job_task, alert_task, return_exceptions=True)
+        app.state.executor = ExecutionService(catalog, app.state.runtime)
+        app.state.job_worker = JobWorker(catalog, app.state.executor)
+
+        async def maintenance_loop() -> None:
+            while True:
+                try:
+                    deleted = prune_operational_records()
+                    await app.state.runtime.prune()
+                    logging.getLogger("reachsocial").info("maintenance_pruned counts=%s", deleted)
+                except Exception:
+                    logging.getLogger("reachsocial").exception("maintenance_prune_failed")
+                await asyncio.sleep(settings.maintenance_interval_hours * 60 * 60)
+
+        maintenance_task = asyncio.create_task(maintenance_loop())
+        job_task = asyncio.create_task(app.state.job_worker.run())
+        alert_task = asyncio.create_task(
+            alert_loop(
+                app.state.runtime,
+                frozenset(service.id for service in catalog.public_services()),
+            )
+        )
+        logging.getLogger("reachsocial").info(
+            "ReachSocial started with %s services", len(catalog.services)
+        )
+        try:
+            yield
+        finally:
+            maintenance_task.cancel()
+            job_task.cancel()
+            alert_task.cancel()
+            await asyncio.gather(maintenance_task, job_task, alert_task, return_exceptions=True)
 
 
 def create_app() -> FastAPI:
@@ -168,6 +172,20 @@ def create_app() -> FastAPI:
         ],
     )
     app.add_middleware(RequestLoggingMiddleware)
+    if settings.oauth_enabled:
+        from .oauth_routes import install_oauth
+
+        install_oauth(app, settings)
+        from .mcp_requests import router as mcp_requests_router
+        app.include_router(mcp_requests_router)
+
+        @app.get("/account", include_in_schema=False)
+        async def account_page(request: Request):
+            return templates.TemplateResponse(request=request, name="account.html", context={"settings": settings})
+
+        @app.get("/pay/{request_id}", include_in_schema=False)
+        async def payment_page(request: Request, request_id: str):
+            return templates.TemplateResponse(request=request, name="payment.html", context={"settings": settings, "request_id": request_id})
 
     @app.middleware("http")
     async def cache_control(request: Request, call_next):  # type: ignore[no-untyped-def]
@@ -181,6 +199,9 @@ def create_app() -> FastAPI:
         response.headers.setdefault("X-Content-Type-Options", "nosniff")
         response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
         response.headers.setdefault("X-Frame-Options", "DENY")
+        if request.url.path.startswith(("/auth/", "/account", "/pay/")):
+            response.headers["X-Robots-Tag"] = "noindex, nofollow"
+            response.headers["Referrer-Policy"] = "no-referrer"
         if (
             response.headers.get("content-type", "").startswith("text/html")
             and request.url.path != "/docs"
@@ -238,6 +259,20 @@ def create_app() -> FastAPI:
     app.mount("/static", StaticFiles(directory=str(ROOT / "static")), name="static")
     app.include_router(api_router)
 
+    @app.get("/.well-known/mcp/server-card.json", include_in_schema=False)
+    async def smithery_card():
+        if not settings.mcp_enabled:
+            return JSONResponse({"error": "mcp_disabled"}, status_code=503)
+        from .mcp import make_mcp_server
+
+        tools = await make_mcp_server(get_catalog()).list_tools()
+        return {
+            "serverInfo": {"name": "ReachSocial", "version": "0.2.0"},
+            "authentication": {"required": True, "schemes": ["oauth2"] if settings.oauth_enabled else ["bearer"]},
+            "tools": [{"name": tool.name, "description": tool.description, "inputSchema": tool.input_schema} for tool in tools],
+            "resources": [], "prompts": [],
+        }
+
     @app.get("/mcp/server-card", include_in_schema=False)
     @app.get("/mcp.json", include_in_schema=False)
     @app.get("/.well-known/mcp.json", include_in_schema=False)
@@ -260,7 +295,8 @@ def create_app() -> FastAPI:
     if settings.mcp_enabled:
         from .mcp import make_mcp_app
 
-        app.mount("/mcp", make_mcp_app(get_catalog()))
+        app.state.mcp_app = make_mcp_app(get_catalog())
+        app.mount("/mcp", app.state.mcp_app)
     else:
 
         @app.api_route(
@@ -490,6 +526,7 @@ def create_app() -> FastAPI:
             request=request,
             name="docs.html",
             context={
+                "self_service_mcp": settings.oauth_enabled and settings.mcp_payment_approval_enabled and not settings.oauth_validation_wallets,
                 "payment_network": x402_network_label(request.app.state.settings.x402_network),
                 "payment": public_payment_metadata(request.app.state.settings),
                 "browser_example": BROWSER_EXAMPLE,

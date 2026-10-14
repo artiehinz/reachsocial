@@ -1,0 +1,49 @@
+"""Local acceptance checkpoints must survive restarts without retaining secrets."""
+
+import importlib.util
+import json
+from pathlib import Path
+
+import pytest
+
+
+@pytest.fixture
+def acceptance():
+    path = Path(__file__).parents[1] / "scripts/mcp_browser_acceptance.py"
+    spec = importlib.util.spec_from_file_location("mcp_acceptance", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_checkpoint_is_atomic_private_and_preserves_original_on_failure(
+    acceptance, tmp_path, monkeypatch
+):
+    path = tmp_path / "state.json"
+    original = {"key": "original-request", "request_id": "original-id"}
+    acceptance.save(path, original)
+    assert path.stat().st_mode & 0o777 == 0o600
+
+    def fail(*_):
+        raise OSError("simulated failed replacement")
+
+    monkeypatch.setattr(acceptance.os, "replace", fail)
+    with pytest.raises(OSError):
+        acceptance.save(path, {"key": "replacement"})
+    assert json.loads(path.read_text()) == original
+    assert list(tmp_path.iterdir()) == [path]
+
+
+@pytest.mark.parametrize(
+    "arguments", [[], ["--confirm-mainnet-payments", "--max-total-atomic", "100000"]]
+)
+def test_acceptance_requires_exact_bounded_confirmation(acceptance, monkeypatch, arguments):
+    monkeypatch.setattr(
+        "sys.argv", ["acceptance", "--expected-pay-to", "public-address", *arguments]
+    )
+    monkeypatch.setattr(
+        acceptance.httpx, "Client", lambda **_: pytest.fail("No network request permitted")
+    )
+    with pytest.raises(SystemExit) as error:
+        acceptance.main()
+    assert error.value.code == 2

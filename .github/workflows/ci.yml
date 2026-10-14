@@ -28,6 +28,7 @@ jobs:
       - run: uv sync --all-groups --frozen
       - run: npm ci
       - run: npm run typecheck
+      - run: npm run build:browser && git diff --exit-code -- static/reachsocial-client.js
       - run: npm test
       - run: uv run ruff check .
       - run: uv run pytest

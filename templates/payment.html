@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Approve a request — ReachSocial{% endblock %}
+{% block content %}
+<section class="page-intro"><h1>Approve one request.</h1>
+<p>Pay $0.05 in native USDC on Base. Your wallet approves this request only.</p></section>
+<section class="docs-section" data-payment-request="{{ request_id }}">
+<p><a href="/account">Sign in with your wallet</a> first, then return to this page.</p>
+<pre data-payment-summary>Loading request…</pre>
+<label for="payment-wallet">Browser wallet</label><select id="payment-wallet" data-payment-wallet></select>
+<button class="button primary" data-payment-approve disabled>Approve $0.05 payment</button>
+<button class="button secondary" data-payment-refresh>Refresh result</button>
+<p data-payment-status role="status" aria-live="polite"></p>
+<pre data-payment-result hidden></pre>
+<p>Your agent can retrieve the result with the original request ID. Refreshing never starts another payment.</p>
+<noscript>Enable JavaScript and use an installed browser wallet to approve this request.</noscript>
+</section>
+<script type="module" src="/static/payment.js?v=20261014-1"></script>
+{% endblock %}

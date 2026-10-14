@@ -10,8 +10,19 @@
   </nav>
 </section>
 
+<section class="docs-section" id="ai-client">
+  <h2>Use with an AI client.</h2>
+  {% if self_service_mcp %}
+  <p>Add <code>https://reachsocial.dev/mcp/</code> as a remote MCP server. Sign in with your wallet and allow the connection. A tool request returns a link where you approve its $0.05 payment; your agent retrieves the result using the same request ID.</p>
+  <p><a href="/account">Manage agent connections and requests</a>. Login does not authorize payments.</p>
+  {% else %}
+  <p>Use an x402-compatible HTTP client with the <a href="/agent.txt">agent instructions</a>. Direct MCP access currently requires an approved Bearer key; self-service MCP is not enabled.</p>
+  {% endif %}
+  <p>Check <a href="/v1/services">live availability</a> before choosing a service. The browser helper below has automated wallet and recovery tests; live acceptance for the new onboarding flow is still pending.</p>
+</section>
+
 <section id="public-request" class="docs-section">
-  <h2>Start with one request.</h2>
+  <h2>Integrate into your app.</h2>
   <p>Use a TypeScript project with a browser bundler, such as Vite. These are the official x402 client packages:</p>
   <div class="code-toolbar"><span>1. Install dependencies</span><button class="copy-button" type="button" data-copy-target="npm-install" data-copy-status="npm-install-status">Copy command</button></div>
   <pre id="npm-install"><code>npm install @x402/core@2.28.0 @x402/evm@2.28.0 @x402/fetch@2.28.0</code></pre>

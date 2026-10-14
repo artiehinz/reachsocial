@@ -1,0 +1,159 @@
+# Self-service MCP and catalog release
+
+Owner-approved implementation plan, 2026-10-14. This document records release
+state, not a claim that unfinished acceptance has passed.
+
+## Decisions and invariants
+
+- REST remains anonymous x402. MCP adds wallet SIWE login, OAuth, and approval
+  of each $0.05 request in an owner-controlled browser wallet.
+- No prepaid balance, delegated spending, server-held wallets, or public B2B-key issuance.
+- Preserve B2B entitlements, existing result recovery, the 1,000-credit reserve,
+  $5 daily upstream ceiling, single-process deployment, and NVMe/DO storage.
+- Seven additional social routes ship in stages: Instagram feed/highlight;
+  YouTube channel/video/feed; Facebook profile/Reddit post. LinkedIn, public
+  Person News, and current Instagram stories remain on hold. AEU is unchanged.
+- Directories use `artemhinz2@gmail.com`, explicitly approved by the owner.
+
+## Implementation and rollout
+
+- Concrete OpenAPI paid operations and guidance derive from the public catalog;
+  never include private services as paid operations.
+- OAuth uses the installed MCP SDK protocol handlers, durable hashed state,
+  PKCE, one-time SIWE challenges, opaque short-lived access tokens, rotating
+  refresh tokens, revocation, and constrained client registration/metadata fetch.
+- `OAUTH_ENABLED` and `MCP_PAYMENT_APPROVAL_ENABLED` default false. They must
+  not be activated merely because a database migration or static card exists.
+- `/account` manages connections and recent requests. `/pay/{request_id}` uses
+  the tested browser helper. A request key binds wallet, OAuth client, service,
+  input and price. Unpaid requests expire after 30 minutes; approval capabilities
+  after five minutes. Signed attempts are never automatically reissued.
+- OAuth codes/tokens, browser sessions, and approval capabilities are hashed.
+  Wallet signatures and x402 payment signatures are never persisted.
+- `PUBLIC_PROVIDER_MAX_ATTEMPTS=1` enforces the one-attempt acceptance limit for
+  public execution. Default 3 preserves each service's existing lower retry bound.
+- The browser bundle is generated from the tested TypeScript source using
+  `npm run build:browser`; CI rejects a stale committed bundle.
+
+## Acceptance ledger and gates
+
+The existing local provider ledger was read without printing targets or keys:
+100-credit original cap, 33 conservative credits consumed, 38 recorded events.
+This is historical provider evidence, not a fresh account-wide balance check.
+
+The new batch may consume at most $0.50 USDC and 20 provider credits, bounded
+further by the remaining original $2/100-credit allowance. Reconcile payment
+receipts before spending; count retries and failed charged calls. Ten payments
+are allocated: browser, direct MCP, AgentCash, and the seven additional services.
+Wallet signing remains local to the owner. No automatic top-ups.
+
+Release gates still requiring recorded evidence:
+
+- [ ] Current budget reconciliation and live provider balance baseline.
+- [ ] Isolated production-backup restore with the additive OAuth migration.
+- [ ] Full OAuth/MCP integration and browser security checks, including real client compatibility.
+- [ ] One bounded browser payment and same-key recovery.
+- [ ] One bounded direct-MCP approval/payment/recovery and fresh-user authorization.
+- [ ] One bounded AgentCash payment/recovery, preserving the original key.
+- [ ] Reconcile the six existing X/TikTok transfers and their observation evidence.
+- [ ] Stage A: Instagram feed/highlight paid acceptance, then 24-hour observation.
+- [ ] Stage B: YouTube channel/video/feed paid acceptance, then 24-hour observation.
+- [ ] Stage C: Facebook profile/Reddit post paid acceptance, then 24-hour observation.
+- [ ] Official MCP Registry domain HTTP verification and publication.
+- [ ] Smithery OAuth acceptance; Glama claim/health; follow up existing submissions.
+- [ ] AgentCash/x402scan owner SIWX registration and indexing; Bazaar indexing.
+- [ ] Public docs repository retained-history cleanup before visibility changes.
+
+Directory details and evidence are in [the tracker](registry-submissions/README.md).
+Submitted, approved, and indexed are separate statuses. Do not duplicate the
+owner's Glama, MCP Market, or MCPservers.org submissions. External approval and
+observation windows cannot be marked complete by automated unit tests.
+
+## Operations
+
+Use unpaid discovery/auth probes for routine monitoring; never make paid
+provider calls as health checks. Keep uncertain payments for reconciliation,
+retain paid retrieval when new payments are paused, and isolate OAuth failure
+from public REST. Manual refunds, exceptional reconciliation, and security
+incidents remain operator tasks.
+
+Keep the public documentation repository private pending its documented
+retained-history cleanup. Neither application source nor operational evidence
+belongs in that repository. Do not repeat completed wallet-custody or refund
+ceremonies without evidence of a new issue.
+
+## Read-only production baseline — 2026-10-14
+
+Production image: `9be5c68a730965236ee9301c19b97b81a34222d8`.
+Live ScrapeCreators balance: 6,782 credits; reserve: 1,000; upstream ceiling:
+5,000,000 micro-USD/day. No unfinished queued/running jobs were found.
+There are 11 settled receipts totaling $0.60 and two canceled-before-settlement
+receipts totaling $0.10; no uncertain receipt status was present in this read.
+This aggregate is a conservative spending baseline, not attribution of every
+receipt to this release batch.
+
+All six owner-supplied X/TikTok transactions were verified independently on
+Base RPC: successful receipt, exact native-USDC contract, expected buyer and
+merchant, exactly 50,000 atomic units. Each production receipt is settled and
+links to one recorded provider attempt consuming one credit. This closes their
+receipt/provider reconciliation, but does not establish a clean 24-hour
+observation window for the newest deployment.
+
+The deployment account cannot invoke the configured nightly Restic repository
+with sudo without a password. Its root-protected snapshot restore remains an
+access dependency. Pre-deployment SQLite snapshots are separately accessible
+through the application container and can be restored without expanded sudo.
+
+The public docs repository was unexpectedly public with retained backend
+history still accessible. It was returned to private; historical-object cleanup
+remains pending. See the dedicated cleanup record.
+
+## Isolated restore and transport verification
+
+Restored the configured pre-deployment snapshot `reachsocial-20261014T163544Z.db`
+into a protected ignored directory on Herald NVMe. SQLite integrity passed before
+and after migration to `20261014_0005`; all 13 historical receipts remained.
+Isolated application startup, OAuth metadata, account page, authenticated MCP
+challenge, and static server card returned expected responses, with payments
+and provider credentials disabled. This does not replace verification of the
+root-protected nightly Restic repository.
+
+The real local MCP HTTP test now covers initialize, tools/list, an OAuth-owned
+Instagram payment intent, and request retrieval without a transfer/provider call.
+It found and fixed the mounted MCP session-manager lifespan integration.
+Transport host/origin checks now use the configured public origin explicitly.
+
+`OAUTH_VALIDATION_WALLETS` can restrict login/token use to the owner during live
+acceptance. Do not clear this gate or advertise general self-service until the
+browser, direct-MCP, and client payment checks pass.
+
+## Owner-only direct-MCP acceptance
+
+After deploying the tested commit, keep public self-service gated by
+`OAUTH_VALIDATION_WALLETS` and set `PUBLIC_PROVIDER_MAX_ATTEMPTS=1` before any
+owner approval. Confirm the current provider balance and batch ledger first.
+The browser and AgentCash cases remain separate gates.
+
+Run on the owner's desktop computer with its injected wallet installed (not a
+remote shell whose loopback callback the browser cannot reach):
+
+```bash
+cd /mnt/instaget-nvme/herald-work/reachsocial
+uv run python scripts/mcp_browser_acceptance.py \
+  --expected-pay-to 0x76bCc44696A4c67579A6aF2F25CF953BE0931E38 \
+  --max-total-atomic 50000 \
+  --confirm-mainnet-payments
+```
+
+The browser signs a non-payment login, grants the named client access, then
+separately asks for one $0.05 Instagram-profile payment. The script never asks
+for a recovery phrase. It saves the original client and request identifiers in
+`data/mcp-browser-acceptance.json` with mode 0600 before opening payment approval.
+If interrupted, rerun with the same checkpoint. Do not delete it or replace its
+key to retry an uncertain charge. Tokens remain in memory; no wallet secrets,
+payment signatures, or profile results are written to the checkpoint.
+
+Success requires a settled receipt plus two matching request retrievals. After
+owner acceptance, independently reconcile the transaction and provider-attempt
+count before recording a pass. A successful script alone does not prove the
+provider-credit delta or complete the fresh-client directory acceptance gates.

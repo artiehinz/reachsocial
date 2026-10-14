@@ -1,5 +1,7 @@
 # ReachSocial development and operations
 
+Current self-service implementation and remaining release gates: [self-service release](self-service-release.md).
+
 For the hosted API, start at [reachsocial.dev](https://reachsocial.dev/).
 
 ReachSocial is a provider-neutral social-data service for InstaGet, B2B clients,

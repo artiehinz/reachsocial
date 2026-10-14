@@ -1,5 +1,7 @@
 # ReachSocial roadmap
 
+Current self-service implementation and remaining release gates: [self-service release](self-service-release.md).
+
 ## Paid MVP catalog completion — current state
 
 Eight services are publicly available: Instagram profile/post, X profile/post/feed,
