@@ -241,3 +241,23 @@ export function initializeWalletReadiness(root) {
 }
 
 for (const root of document.querySelectorAll("[data-wallet-readiness]")) initializeWalletReadiness(root);
+
+export function initializeWalletDialog(walletDialog, triggers) {
+  if (!walletDialog || typeof walletDialog.showModal !== "function") return;
+  for (const trigger of triggers) {
+    trigger.addEventListener("click", (event) => {
+      event.preventDefault();
+      walletDialog.showModal();
+      const select = walletDialog.querySelector("[data-wallet-select]");
+      const connect = walletDialog.querySelector("[data-wallet-connect]");
+      const disconnect = walletDialog.querySelector("[data-wallet-disconnect]");
+      if (select.options.length === 1 && !connect.disabled && disconnect.hidden) {
+        connect.click();
+      } else {
+        select.focus();
+      }
+    });
+  }
+}
+
+initializeWalletDialog(document.querySelector("[data-wallet-dialog]"), document.querySelectorAll("[data-wallet-open]"));

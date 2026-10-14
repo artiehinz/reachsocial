@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   formatUsdc,
+  initializeWalletDialog,
   initializeWalletReadiness as initialize,
   requestAccounts,
   shortAddress,
@@ -200,5 +201,54 @@ describe("wallet readiness", () => {
     await settle();
     expect(root.querySelector("[data-wallet-balance]").textContent).toBe("Unavailable");
     expect(root.querySelector("[data-wallet-status]").textContent).toContain("refresh");
+  });
+});
+
+describe("header connection", () => {
+  it("opens the dialog and requests connection only after a click", async () => {
+    const root = panel();
+    const dialog = document.createElement("dialog");
+    root.replaceWith(dialog);
+    dialog.append(root);
+    dialog.showModal = vi.fn();
+    const trigger = document.createElement("a");
+    trigger.href = "/docs/api#wallet-readiness";
+    document.body.append(trigger);
+    Object.defineProperty(window, "ethereum", { value: undefined, configurable: true });
+    const request = vi.fn(async ({ method }) => {
+      if (method === "eth_requestAccounts") return [ADDRESS];
+      if (method === "eth_chainId") return "0x2105";
+      if (method === "eth_call") return "0xc350";
+      throw new Error("Unexpected wallet request");
+    });
+    initializeWalletReadiness(root);
+    announce("header", "Wallet", { request });
+    initializeWalletDialog(dialog, [trigger]);
+    expect(request).not.toHaveBeenCalled();
+    trigger.click();
+    await settle();
+    expect(dialog.showModal).toHaveBeenCalledOnce();
+    expect(request.mock.calls.map(([call]) => call.method)).toEqual([
+      "eth_requestAccounts", "eth_chainId", "eth_call",
+    ]);
+  });
+
+  it("asks users to choose when multiple wallets are detected", () => {
+    const root = panel();
+    const dialog = document.createElement("dialog");
+    root.replaceWith(dialog);
+    dialog.append(root);
+    dialog.showModal = vi.fn();
+    const trigger = document.createElement("a");
+    document.body.append(trigger);
+    Object.defineProperty(window, "ethereum", { value: undefined, configurable: true });
+    const request = vi.fn();
+    initializeWalletReadiness(root);
+    announce("a", "Wallet A", { request });
+    announce("b", "Wallet B", { request });
+    initializeWalletDialog(dialog, [trigger]);
+    trigger.click();
+    expect(request).not.toHaveBeenCalled();
+    expect(document.activeElement).toBe(root.querySelector("[data-wallet-select]"));
   });
 });
