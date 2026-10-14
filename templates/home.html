@@ -12,17 +12,15 @@
     <p class="availability">{{ catalog.public_services()|length }} public APIs · <a href="/pricing">{% if prices|length == 1 %}${{ '%.2f'|format(prices[0] / 100) }} per request{% else %}See prices{% endif %}</a> · {{ payment_network }}</p>
     {% if request.app.state.settings.x402_network == "eip155:84532" %}<p class="notice">Payments are currently on testnet. Real-USDC sales are not open.</p>{% endif %}
   </div>
-  <aside class="request-preview" aria-label="How a request works">
-    <p class="eyebrow">ONE ENTRY POINT</p>
-    <p class="endpoint">reachsocial.dev</p>
-    <ul class="source-list"><li>Instagram <span>Profiles · Posts &amp; reels</span></li><li>X <span>Profiles · Posts · Feeds</span></li><li>TikTok <span>Profiles · Videos · Feeds</span></li></ul>
-    <p class="preview-label">Choose a service and send its public URL</p>
-    <pre><code>POST /v1/services/instagram.profile/execute
-
-{"input": {
-  "url": "https://www.instagram.com/example/"
-}}</code></pre>
-    <p class="muted">Your x402 client handles the payment request and returns the JSON result. <a href="/docs/api#public-request">See the request flow →</a></p>
+  <aside class="request-preview request-flow" aria-label="Example Instagram profile request">
+    <p class="eyebrow">FROM URL TO USEFUL JSON</p>
+    <ol class="request-flow-steps">
+      <li class="flow-step flow-input"><span>1</span><div><small>Public URL</small><code>https://www.instagram.com/instagram/</code></div></li>
+      <li class="flow-step flow-request"><span>2</span><div><small>API request · $0.05</small><code>POST /v1/services/instagram.profile/execute</code></div></li>
+      <li class="flow-step flow-result"><span>3</span><div><small>Normalized result</small><strong>JSON your application can use</strong></div></li>
+    </ol>
+    <div class="example-response"><div class="example-label"><span>Example response — live values may differ.</span><button class="copy-button" type="button" data-copy-target="home-example-response" data-copy-status="home-example-status">Copy JSON</button></div><pre id="home-example-response"><code>{{ example_response }}</code></pre><span id="home-example-status" class="sr-only" role="status" aria-live="polite"></span></div>
+    <p class="muted">The page uses this stored example and makes no provider request. <a href="/docs/api">Copy working browser code →</a></p>
   </aside>
 </section>
 
@@ -33,7 +31,7 @@
 
 <section id="agent-setup" class="split">
   <div><p class="eyebrow">AGENT READY</p><h2>Give your agent the link.</h2><p>Copy the setup prompt into your AI agent. It can read our guide, choose an available API, and help configure payment per request.</p><ol class="steps"><li><span>1</span><div><strong>Share the guide and your task</strong><p>Tell your agent which public profile or post you need.</p></div></li><li><span>2</span><div><strong>Connect your payment wallet</strong><p>Use an x402-compatible client with USDC on {{ payment_network }}. Choose a spending limit before enabling payments.</p></div></li><li><span>3</span><div><strong>Request data when you need it</strong><p>The client checks the price, signs the payment authorization, and receives JSON.</p></div></li></ol></div>
-  <div class="agent-prompt"><div class="prompt-label"><label for="agent-prompt">Copy this into your agent</label><button class="copy-button" type="button" data-copy-target="agent-prompt" data-copy-status="agent-prompt-status">Copy prompt</button></div><textarea id="agent-prompt" readonly rows="8">Read https://reachsocial.dev/agent.txt and help me set up ReachSocial. Fetch https://reachsocial.dev/v1/services and https://reachsocial.dev/status.json for current prices, availability, and payment network; do not rely on search snippets. Help me connect an x402-compatible wallet and ask for a spending limit. Verify the payment challenge before signing. Keep wallet secrets out of chat.</textarea><span id="agent-prompt-status" class="sr-only" role="status" aria-live="polite"></span><p class="muted">The agent needs HTTP tools and a compatible wallet integration to make paid calls. Sharing the guide alone does not connect a wallet.</p><a class="text-link" href="/agent.txt">Read the agent guide →</a></div>
+  <div class="agent-prompt"><div class="prompt-label"><label for="agent-prompt">Copy this into your agent</label><button class="copy-button" type="button" data-copy-target="agent-prompt" data-copy-status="agent-prompt-status">Copy prompt</button></div><textarea id="agent-prompt" readonly rows="8">{{ agent_setup_prompt }}</textarea><span id="agent-prompt-status" class="sr-only" role="status" aria-live="polite"></span><p class="muted">The agent needs HTTP tools and a compatible wallet integration to make paid calls. Sharing the guide alone does not connect a wallet.</p><a class="text-link" href="/agent.txt">Read the agent guide →</a></div>
 </section>
 
 <section>

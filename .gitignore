@@ -10,3 +10,4 @@ data/
 !.env.example
 *.sqlite3
 *.db
+node_modules

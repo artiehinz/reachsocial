@@ -11,8 +11,9 @@
     <link rel="service-desc" type="application/openapi+json" href="/openapi.json">
     <link rel="icon" href="/static/favicon.ico?v=20261011-1" sizes="128x128">
     <title>{% block title %}ReachSocial{% endblock %}</title>
-    <link rel="stylesheet" href="/static/site.css?v=20261011-5">
-    <script src="/static/site.js?v=20261011-1" defer></script>
+    <link rel="stylesheet" href="/static/site.css?v=20261013-1">
+    <script src="/static/site.js?v=20261013-1" defer></script>
+    {% block scripts %}{% endblock %}
   </head>
   <body>
     <header><a class="brand" href="/"><img class="brand-logo" src="/static/reachsocial-logo.svg" alt="" width="30" height="30">ReachSocial</a><nav><a href="/catalog">Catalog</a><a href="/pricing">Pricing</a><a href="/docs/api">Docs</a><a href="/agent.md">Agents</a><a href="/status">Status</a></nav></header>

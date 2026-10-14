@@ -31,8 +31,9 @@ ScrapeCreators' documented sample, so it remains a provider dependency rather
 than a releasable service.
 
 The owner reported successful payment and recovery for all six X/TikTok
-services ($0.30 total). Remaining gates are 24-hour observation and reconciliation
-for that batch, plus paid acceptance for the seven private services. Person News
+services ($0.30 total). Those services are now in the public executable set;
+their operating evidence still needs ongoing reconciliation. The seven private
+services need paid acceptance before promotion. Person News
 and LinkedIn are explicitly deferred by owner decision; do not retry or promote
 them without resolving their provider dependencies.
 
@@ -47,7 +48,7 @@ paid-result recovery and accepted-job completion available.
 
 **Status (2026-10-11):** ReachSocial is live with authenticated B2B access,
 MCP discovery, and anonymous x402 payment acceptance on Base mainnet for
-`instagram.profile` and `instagram.post`. A fresh unpaid challenge confirmed
+the eight services listed by `GET /v1/services`. A fresh unpaid challenge confirmed
 native Base USDC, the $0.05 amount, and the active receiving configuration
 without sending a transfer or provider request. The historical three-route
 acceptance handler remains disarmed; its LinkedIn evidence covered the retired
@@ -55,8 +56,9 @@ Apify path and does not release the ScrapeCreators replacement.
 
 **Audit follow-up completed:** [the prelaunch audit](prelaunch-audit-2026-10-11.md)
 found and resolved shared-credit accounting, SDK edge access, recovery-key
-strength, and external monitoring gaps. The owner approved the two-service
-mainnet release; all other services remain private pending their own evidence.
+strength, and external monitoring gaps. The owner first approved the two-service
+mainnet release and later supplied successful paid-recovery evidence for the six
+X/TikTok services now marked available. Other services remain private or on hold.
 
 The two-service release set `X402_NETWORK=eip155:8453` and
 `ALLOW_MAINNET_X402=true` after the items below were completed and recorded.
@@ -123,7 +125,7 @@ is necessary but does not replace the operational checks above.
 USDC payment from its named buyer for `instagram.profile`. The durable receipt,
 successful normalized service result, and exactly one successful provider
 attempt were reconciled. The regular public x402 routes now use Base mainnet
-only for the two accepted Instagram services. The durable
+for the accepted catalog services. The durable
 payment receipt and canary reservation are retained; the linked provider and
 request evidence must be exported into the protected reconciliation record
 before ordinary operational retention removes their rows.

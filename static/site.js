@@ -3,23 +3,33 @@
     button.addEventListener("click", async () => {
       const target = document.getElementById(button.dataset.copyTarget);
       const status = document.getElementById(button.dataset.copyStatus);
-      if (!(target instanceof HTMLTextAreaElement)) return;
+      if (!target) return;
+      const text = target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement
+        ? target.value
+        : target.textContent || "";
 
       try {
-        await navigator.clipboard.writeText(target.value);
+        await navigator.clipboard.writeText(text);
       } catch {
-        target.focus();
-        target.select();
+        const fallback = document.createElement("textarea");
+        fallback.value = text;
+        fallback.setAttribute("readonly", "");
+        fallback.className = "copy-fallback";
+        document.body.append(fallback);
+        fallback.select();
         if (!document.execCommand("copy")) {
-          if (status) status.textContent = "Select and copy the prompt manually.";
+          if (status) status.textContent = "Select and copy the text manually.";
+          fallback.remove();
           return;
         }
+        fallback.remove();
       }
 
+      const originalLabel = button.textContent;
       button.textContent = "Copied";
-      if (status) status.textContent = "Prompt copied.";
+      if (status) status.textContent = "Copied to clipboard.";
       window.setTimeout(() => {
-        button.textContent = "Copy prompt";
+        button.textContent = originalLabel;
       }, 1600);
     });
   }

@@ -11,6 +11,11 @@ database, runtime, and deployment target.
 ```bash
 cp .env.example .env
 uv sync --all-groups
+uv run ruff check .
+uv run pytest
+npm ci
+npm run typecheck
+npm test
 uv run alembic upgrade head
 uv run uvicorn reachsocial.main:app --reload
 ```
@@ -115,8 +120,8 @@ Set `REACHSOCIAL_ADDRESS` to the production hostname for normal HTTPS. During
 an IP-only deployment, set it to `http://<public-ip>` until DNS is connected.
 
 Production MCP is enabled as an authenticated B2B surface; public REST uses the
-CDP x402 facilitator on Base mainnet (`eip155:8453`) for Instagram profile and
-post. B2B Bearer-key calls bypass x402. The public payment path enforces a $5 UTC-day paid-provider cost cap, per-IP
+CDP x402 facilitator on Base mainnet (`eip155:8453`) for the eight services
+marked available in `GET /v1/services`. B2B Bearer-key calls bypass x402. The public payment path enforces a $5 UTC-day paid-provider cost cap, per-IP
 and per-payer limits, and shared concurrency bounds. Provider costs are recorded
 in integer micro-USD.
 
@@ -177,8 +182,9 @@ uv run python scripts/x402_mainnet_canary.py \
   --confirm-mainnet-canary
 ```
 
-Base mainnet is active for Person News, Instagram profile and post, and the X
-and TikTok profile, post, and feed services. Startup still blocks `eip155:8453`
+Base mainnet is active for Instagram profile and post and the X and TikTok
+profile, post or video, and feed services. Person News and LinkedIn are on
+hold. Startup still blocks `eip155:8453`
 unless every public service has verified margins,
 `ALLOW_MAINNET_X402=true`, and encrypted external recovery is enabled. Nightly
 encrypted Restic backups and weekly DigitalOcean volume snapshots are configured.
@@ -206,3 +212,10 @@ publicly supported. Catalog availability is not a live provider-health measureme
 Templates live in `templates/`, styling in `static/site.css`. Bump the CSS query
 version in `templates/base.html` after stylesheet changes. Check narrow and desktop
 viewports and keep the clickable platform links pointing to `/catalog#<platform>`.
+
+The developer onboarding source is `examples/browser/reachsocial-client.ts`.
+`/docs/api` renders that file directly so the documented browser helper cannot
+drift from the typechecked and tested source. `static/wallet.js` provides the
+read-only EIP-6963 readiness panel; it may request account connection, network
+switching, and `eth_call`, but never a signature or payment. Browser CORS is
+limited to public discovery, synchronous execution, and paid-result recovery.

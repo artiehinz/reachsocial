@@ -78,7 +78,7 @@ REST is the current agent-ready surface:
 - an honest MCP Server Card at `/.well-known/mcp.json` when MCP is enabled;
 - explicit available, private, planned, and paused catalog states;
 - B2B Bearer authentication and Base-mainnet x402 challenges for the current
-  nine-service batch;
+  eight-service batch;
 - durable async job submission/polling and replacement credits; and
 - idempotency, replay protection, entitlements, limits, cost accounting, and
   owner metrics.
@@ -144,5 +144,22 @@ is recorded separately. No purchase is required for existing-credit tests.
    observe and reconcile each stage for 24 hours.
 
 Public x402 MCP, prepaid balances, and broad directory submissions remain later
-gates. The two-service Base-mainnet release is active; later promotions still
-need their own release decision and evidence.
+gates. Eight synchronous services are active on Base mainnet; private services
+still need their own release decision and evidence.
+
+## Browser developer onboarding
+
+The minimal browser onboarding flow is implemented in code: the homepage shows
+a stored sanitized URL-to-JSON example, `/docs/api` renders one tested
+TypeScript x402 helper, and an EIP-6963 readiness panel checks account, Base
+network, and native Base-USDC balance without signing or sending an address to
+ReachSocial. `/status.json` publishes non-secret x402 version, chain, asset,
+decimals, and receiver metadata. The helper still verifies those facts against
+the actual payment challenge before signing.
+
+Cross-origin access is intentionally limited to status and executable-service
+discovery, public synchronous execution, and paid-result recovery. Bearer,
+admin, job-token, cookie, and service-credit surfaces do not receive CORS
+permission. Production acceptance requires one bounded $0.05 Instagram profile
+payment, stored-result recovery with the same key, and reconciliation showing
+one transfer and one provider execution.

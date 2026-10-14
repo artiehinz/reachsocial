@@ -9,6 +9,7 @@ COPY src ./src
 COPY config ./config
 COPY templates ./templates
 COPY static ./static
+COPY examples ./examples
 COPY alembic.ini ./
 COPY migrations ./migrations
 COPY scripts ./scripts

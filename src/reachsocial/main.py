@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -16,6 +17,7 @@ from .alerts import alert_loop
 from .api import router as api_router
 from .catalog import get_catalog
 from .config import get_settings, x402_network_label
+from .cors import PublicApiCorsMiddleware
 from .credit_budget import reconcile_pending as reconcile_credit_reservations
 from .db import init_db
 from .discovery import (
@@ -36,6 +38,7 @@ from .observability import (
     RequestLoggingMiddleware,
     configure_logging,
 )
+from .payment_metadata import public_payment_metadata
 from .payments import (
     MainnetAcceptanceX402Middleware,
     MainnetCanaryX402Middleware,
@@ -50,6 +53,17 @@ from .services import ExecutionService, sync_service_records
 
 ROOT = Path(__file__).resolve().parents[2]
 templates = Jinja2Templates(directory=str(ROOT / "templates"))
+
+EXAMPLE_RESPONSE = json.loads((ROOT / "examples" / "instagram-profile.json").read_text())
+EXAMPLE_RESPONSE_JSON = json.dumps(EXAMPLE_RESPONSE, indent=2)
+BROWSER_EXAMPLE = (ROOT / "examples" / "browser" / "reachsocial-client.ts").read_text()
+AGENT_SETUP_PROMPT = (
+    "Read https://reachsocial.dev/agent.txt and help me set up ReachSocial. "
+    "Fetch https://reachsocial.dev/v1/services and https://reachsocial.dev/status.json for "
+    "current prices, availability, and payment network; do not rely on search snippets. "
+    "Help me connect an x402-compatible wallet and ask for a spending limit. Verify the "
+    "payment challenge before signing. Keep wallet secrets out of chat."
+)
 
 DISCOVERY_CACHE_PATHS = {
     "/openapi.json",
@@ -218,6 +232,8 @@ def create_app() -> FastAPI:
         max_body_bytes=settings.max_request_body_bytes,
         max_payment_header_bytes=settings.max_payment_header_bytes,
     )
+    # This is intentionally last so preflights are answered before payment middleware.
+    app.add_middleware(PublicApiCorsMiddleware, catalog=get_catalog())
     app.mount("/static", StaticFiles(directory=str(ROOT / "static")), name="static")
     app.include_router(api_router)
 
@@ -366,6 +382,7 @@ def create_app() -> FastAPI:
             "catalog_services": len(catalog.discoverable_services()),
             "mcp": "available" if settings.mcp_enabled else "disabled",
             "network": settings.x402_network if settings.x402_enabled else "payments-disabled",
+            "payment": public_payment_metadata(settings),
             "degraded_services": degraded_services,
         }
 
@@ -416,6 +433,8 @@ def create_app() -> FastAPI:
             context={
                 "catalog": request.app.state.catalog,
                 "payment_network": x402_network_label(request.app.state.settings.x402_network),
+                "example_response": EXAMPLE_RESPONSE_JSON,
+                "agent_setup_prompt": AGENT_SETUP_PROMPT,
             },
             headers={
                 "Link": (
@@ -460,6 +479,14 @@ def create_app() -> FastAPI:
             name="docs.html",
             context={
                 "payment_network": x402_network_label(request.app.state.settings.x402_network),
+                "payment": public_payment_metadata(request.app.state.settings),
+                "browser_example": BROWSER_EXAMPLE,
+                "example_response": EXAMPLE_RESPONSE_JSON,
+                "agent_setup_prompt": AGENT_SETUP_PROMPT,
+                "minimum_payment_atomic": min(
+                    service.price_cents for service in request.app.state.catalog.public_services()
+                )
+                * 10_000,
             },
         )
 

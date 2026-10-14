@@ -1,0 +1,32 @@
+{
+  "request_id": "req_example",
+  "service": "instagram.profile",
+  "status": "success",
+  "cached": false,
+  "data": {
+    "profile": {
+      "platform": "Instagram",
+      "canonical_url": "https://www.instagram.com/instagram/",
+      "platform_id": "25025320",
+      "handle": "instagram",
+      "display_name": "Instagram",
+      "biography": "Example public biography",
+      "avatar_url": null,
+      "verified": true,
+      "private": false,
+      "counts": {
+        "followers": 690000000,
+        "following": 100,
+        "content": 8000
+      },
+      "links": [],
+      "fields": {}
+    }
+  },
+  "meta": {
+    "schema_version": "1.0",
+    "normalization_version": "v1",
+    "response_shape": "profile",
+    "latency_ms": 184
+  }
+}

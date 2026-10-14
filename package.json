@@ -1,0 +1,19 @@
+{
+  "name": "reachsocial-browser-example",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@x402/core": "2.28.0",
+    "@x402/evm": "2.28.0",
+    "@x402/fetch": "2.28.0"
+  },
+  "devDependencies": {
+    "jsdom": "27.0.0",
+    "typescript": "5.9.3",
+    "vitest": "4.1.11"
+  }
+}

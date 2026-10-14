@@ -76,7 +76,7 @@ def test_health_and_mcp_gate() -> None:
         assert "artie_hinz" not in client.get("/docs/api").text
         copy_script = client.get("/static/site.js").text
         assert "navigator.clipboard.writeText" in copy_script
-        assert "Select and copy the prompt manually." in copy_script
+        assert "Select and copy the text manually." in copy_script
         assert 'href="/static/favicon.ico?v=20261011-1"' in home
         assert 'class="brand-logo"' in home
         assert 'class="footer-logo"' in home
