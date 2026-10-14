@@ -11,12 +11,33 @@
     <link rel="service-desc" type="application/openapi+json" href="/openapi.json">
     <link rel="icon" href="/static/favicon.ico?v=20261011-1" sizes="128x128">
     <title>{% block title %}ReachSocial{% endblock %}</title>
-    <link rel="stylesheet" href="/static/site.css?v=20261014-2">
+    <link rel="stylesheet" href="/static/site.css?v=20261014-3">
     <script src="/static/site.js?v=20261014-2" defer></script>
+    <script type="module" src="/static/wallet.js?v=20261014-3"></script>
     {% block scripts %}{% endblock %}
   </head>
   <body>
-    <header><a class="brand" href="/"><img class="brand-logo" src="/static/reachsocial-logo.svg" alt="" width="30" height="30">ReachSocial</a><nav><a href="/catalog">Catalog</a><a href="/pricing">Pricing</a><a href="/docs/api">Docs</a><a href="/agent.md">Agents</a><a href="/status">Status</a><a class="button" href="/docs/api#wallet-readiness">Connect wallet</a></nav></header>
+    <header class="site-header"><a class="brand" href="/"><img class="brand-logo" src="/static/reachsocial-logo.svg" alt="" width="30" height="30">ReachSocial</a><nav class="primary-nav" aria-label="Main navigation"><div class="nav-links"><a href="/catalog">Catalog</a><a href="/pricing">Pricing</a><a href="/docs/api">Docs</a><a href="/agent.md">Agents</a><a href="/status">Status</a></div><a class="button nav-wallet" data-wallet-open aria-haspopup="dialog" href="/docs/api#wallet-readiness"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 8V6a2 2 0 0 0-2-2H6a3 3 0 0 0 0 6h14v10H6a3 3 0 0 1-3-3V7"/><path d="M20 12h-4v4h4"/></svg><span>Connect wallet</span></a></nav></header>
+    <dialog class="wallet-dialog" data-wallet-dialog aria-labelledby="wallet-dialog-title">
+      <div class="wallet-dialog-heading"><h2 id="wallet-dialog-title">Connect your wallet</h2><form method="dialog"><button class="copy-button" aria-label="Close wallet connection">Close</button></form></div>
+      <p class="muted">Check your native USDC balance on Base.</p>
+  <div class="wallet-panel" data-wallet-readiness data-minimum-atomic="50000">
+    <div class="wallet-controls">
+      <label for="header-wallet-provider">Browser wallet</label>
+      <select id="header-wallet-provider" data-wallet-select disabled><option>No wallet connected</option></select>
+      <button class="button secondary" type="button" data-wallet-connect disabled>Connect wallet</button>
+      <button class="button secondary" type="button" data-wallet-switch hidden>Switch to Base</button>
+    </div>
+    <dl class="wallet-facts">
+      <div><dt>Address</dt><dd data-wallet-address>Not connected</dd></div>
+      <div><dt>Network</dt><dd data-wallet-network>Not checked</dd></div>
+      <div><dt>Base-USDC</dt><dd data-wallet-balance>Not checked</dd></div>
+    </dl>
+    <p class="wallet-status muted" data-wallet-status role="status" aria-live="polite">Enable JavaScript to check your wallet.</p>
+    <div class="wallet-actions"><button class="copy-button" type="button" data-wallet-refresh hidden>Refresh balance</button><button class="copy-button" type="button" data-wallet-disconnect hidden>Disconnect from this page</button></div>
+    <p class="wallet-privacy">This check does not authorize a payment. Your application connects to the wallet separately.</p>
+  </div>
+    </dialog>
     <main>{% block content %}{% endblock %}</main>
     <footer><div class="footer-brand"><img class="footer-logo" src="/static/reachsocial-logo.svg" alt="" width="64" height="64"><div><strong>ReachSocial</strong><p>One API for public social media data. Pay per request with USDC.</p></div></div><nav aria-label="Footer"><a href="/openapi.json">OpenAPI</a><a href="/llms.txt">llms.txt</a><a href="/.well-known/api-catalog">API catalog</a><a href="/contact">Contact</a><a href="/legal/terms">Terms</a><a href="/legal/privacy">Privacy</a><a href="/legal/acceptable-use">Acceptable use</a><a href="/legal/refunds">Refunds</a></nav></footer>
   </body>
