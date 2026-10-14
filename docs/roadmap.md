@@ -3,8 +3,9 @@
 ## Paid MVP catalog completion — current state
 
 Eight services are publicly available: Instagram profile/post, X profile/post/feed,
-and TikTok profile/video/feed. Seven integrations remain private. Person News
-(GDELT rate limits), LinkedIn (unreliable provider results), and Instagram current
+and TikTok profile/video/feed. Eight integrations remain private, including
+Person News restored for approved API clients on 2026-10-14. LinkedIn
+(unreliable provider results) and Instagram current
 stories (missing provider contract) are on hold and disabled for new execution.
 
 The shared release foundation is complete in code: maximum provider units are

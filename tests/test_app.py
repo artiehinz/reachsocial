@@ -60,10 +60,10 @@ def test_health_and_mcp_gate() -> None:
         roadmap = client.get("/v1/catalog").json()
         assert roadmap["summary"] == {
             "available": 8,
-            "private": 7,
+            "private": 8,
             "validation": 0,
             "planned": 0,
-            "paused": 3,
+            "paused": 2,
             "platforms": 8,
         }
         assert client.get("/services/x.feed").status_code == 200

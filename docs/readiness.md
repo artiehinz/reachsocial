@@ -1,14 +1,14 @@
 # ReachSocial readiness and next release gates
 
-Updated: 2026-10-13
+Updated: 2026-10-14
 
 ## Current catalog truth
 
 | State | Services |
 | --- | --- |
 | Available | `instagram.profile`, `instagram.post`, `x.profile`, `x.post`, `x.feed`, `tiktok.profile`, `tiktok.feed`, `tiktok.video` |
-| Private | `instagram.feed`, `instagram.highlight`, `youtube.channel`, `youtube.feed`, `youtube.video`, `facebook.profile`, `reddit.post` |
-| On hold | `news.person`, `linkedin.profile`, `instagram.stories` |
+| Private | `news.person`, `instagram.feed`, `instagram.highlight`, `youtube.channel`, `youtube.feed`, `youtube.video`, `facebook.profile`, `reddit.post` |
+| On hold | `linkedin.profile`, `instagram.stories` |
 
 `GET /v1/services` is intentionally the executable subset. `GET /v1/catalog`
 is the reviewed product roadmap. The ScrapeCreators engineering inventory has
@@ -29,8 +29,10 @@ sample passed. The protected ledger now records 33 conservative ScrapeCreators
 units out of its 100-credit allowance; the live balance was 6,799 credits, with
 the 1,000-credit InstaGet reserve intact.
 
-Person News and LinkedIn are disabled for new public and API-key requests by
-owner decision. Production GDELT calls returned HTTP 429 before settlement;
+Person News is enabled for approved API-key clients, including InstaGet-Herald,
+by owner request on 2026-10-14. Anonymous paid execution remains disabled.
+LinkedIn remains disabled for new public and API-key requests.
+Production GDELT calls previously returned HTTP 429 before settlement;
 ScrapeCreators LinkedIn samples returned `not_found`. Historical recovery and
 accepted jobs remain separate from new-service availability.
 
