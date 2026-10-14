@@ -41,11 +41,18 @@ class PublicApiCorsMiddleware:
         self.public_sync_services = frozenset(
             service.id for service in catalog.public_services() if not service.is_async
         )
+        # Retained paid results remain recoverable after a service is paused/private.
+        self.sync_recovery_services = frozenset(
+            service.id for service in catalog.services if not service.is_async
+        )
 
     def _allowed_method(self, path: str) -> str | None:
         if path in {"/status.json", "/v1/services"}:
             return "GET"
-        match = _SERVICE_PATH.fullmatch(path) or _RECOVERY_PATH.fullmatch(path)
+        recovery = _RECOVERY_PATH.fullmatch(path)
+        if recovery and recovery.group(1) in self.sync_recovery_services:
+            return "POST"
+        match = _SERVICE_PATH.fullmatch(path)
         if match and match.group(1) in self.public_sync_services:
             return "POST"
         return None
@@ -56,9 +63,10 @@ class PublicApiCorsMiddleware:
             return
 
         headers = Headers(scope=scope)
-        origin = headers.get("origin")
         allowed_method = self._allowed_method(scope["path"])
-        if not origin or allowed_method is None:
+        # Wildcard CORS on this public subset is independent of Origin so a cached
+        # discovery response without Origin cannot break a later browser request.
+        if allowed_method is None:
             await self.app(scope, receive, send)
             return
 

@@ -8,7 +8,7 @@
     <h1>One API for social media data.</h1>
     <p>Get public profiles, posts, and feeds from Instagram, X, and TikTok through ReachSocial. Connect once and get JSON your app or agent can use.</p>
     <p>Pay for each successful request in USDC. No subscription or prepaid credit pack.</p>
-    <div class="actions"><a class="button" href="#agent-setup">Set up with your agent</a><a class="button secondary" href="/catalog">View available APIs</a></div>
+    <div class="actions"><a class="button" href="/docs/api#public-request">Start building</a><a class="button secondary" href="#agent-setup">Set up with your agent</a></div>
     <p class="availability">{{ catalog.public_services()|length }} public APIs · <a href="/pricing">{% if prices|length == 1 %}${{ '%.2f'|format(prices[0] / 100) }} per request{% else %}See prices{% endif %}</a> · {{ payment_network }}</p>
     {% if request.app.state.settings.x402_network == "eip155:84532" %}<p class="notice">Payments are currently on testnet. Real-USDC sales are not open.</p>{% endif %}
   </div>
@@ -19,8 +19,13 @@
       <li class="flow-step flow-request"><span>2</span><div><small>API request · $0.05</small><code>POST /v1/services/instagram.profile/execute</code></div></li>
       <li class="flow-step flow-result"><span>3</span><div><small>Normalized result</small><strong>JSON your application can use</strong></div></li>
     </ol>
-    <div class="example-response"><div class="example-label"><span>Example response — live values may differ.</span><button class="copy-button" type="button" data-copy-target="home-example-response" data-copy-status="home-example-status">Copy JSON</button></div><pre id="home-example-response"><code>{{ example_response }}</code></pre><span id="home-example-status" class="sr-only" role="status" aria-live="polite"></span></div>
-    <p class="muted">The page uses this stored example and makes no provider request. <a href="/docs/api">Copy working browser code →</a></p>
+    <div class="example-response">
+      <div class="example-label"><span>Example response — live values may differ.</span><button class="copy-button" type="button" data-copy-target="home-example-response" data-copy-status="home-example-status">Copy JSON</button></div>
+      <pre class="profile-preview" tabindex="0" aria-label="Profile fields excerpt"><code>{{ example_preview }}</code></pre>
+      <details class="plain-details"><summary>View complete response</summary><pre id="home-example-response" tabindex="0"><code>{{ example_response }}</code></pre></details>
+      <span id="home-example-status" class="copy-status" role="status" aria-live="polite"></span>
+    </div>
+    <p class="muted"><a href="/docs/api#response">Response fields and integration guide →</a></p>
   </aside>
 </section>
 

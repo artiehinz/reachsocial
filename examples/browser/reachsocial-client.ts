@@ -41,8 +41,9 @@ export class ReachSocialRequestError extends Error {
 }
 
 export async function connectBrowserWallet(provider: BrowserProvider): Promise<`0x${string}`> {
+  if (!provider?.request) throw new Error("No browser wallet found. Install or select a wallet first.");
   const accounts = await provider.request({ method: "eth_requestAccounts" });
-  if (!Array.isArray(accounts) || typeof accounts[0] !== "string") {
+  if (!Array.isArray(accounts) || !validAddress(accounts[0])) {
     throw new Error("The browser wallet did not return an account");
   }
   const chainId = await provider.request({ method: "eth_chainId" });
@@ -52,8 +53,19 @@ export async function connectBrowserWallet(provider: BrowserProvider): Promise<`
   return accounts[0] as `0x${string}`;
 }
 
+function validAddress(value: unknown): value is `0x${string}` {
+  return typeof value === "string" && /^0x[0-9a-fA-F]{40}$/.test(value);
+}
+
 function sameAddress(left: string, right: string): boolean {
-  return left.toLowerCase() === right.toLowerCase();
+  return validAddress(left) && validAddress(right) && left.toLowerCase() === right.toLowerCase();
+}
+
+function checkedBaseUrl(baseUrl: string): string {
+  if (baseUrl.replace(/\/$/, "") !== BASE_URL) {
+    throw new Error("This example only sends requests to https://reachsocial.dev");
+  }
+  return BASE_URL;
 }
 
 export function acceptsRequirement(
@@ -67,10 +79,15 @@ export function acceptsRequirement(
     requirement.scheme === "exact" &&
     requirement.network === BASE_NETWORK &&
     requirement.network === expected.metadata.network &&
+    sameAddress(requirement.asset, BASE_USDC) &&
     sameAddress(requirement.asset, expected.metadata.asset.address) &&
     sameAddress(requirement.payTo, expected.metadata.receiver) &&
+    /^[1-9][0-9]*$/.test(requirement.amount) &&
     BigInt(requirement.amount) === expected.amountAtomic &&
-    BigInt(requirement.amount) <= MAX_PAYMENT_ATOMIC
+    BigInt(requirement.amount) <= MAX_PAYMENT_ATOMIC &&
+    (requirement.extra?.assetTransferMethod ?? "eip3009") === "eip3009" &&
+    requirement.extra?.name === "USD Coin" &&
+    requirement.extra?.version === "2"
   );
 }
 
@@ -94,6 +111,7 @@ export function buildPaymentClient(
   expected: ExpectedPayment,
 ): x402Client {
   let approvedDeclaration: PaymentRequired | undefined;
+  let signatureRequested = false;
   const signer = {
     address: account,
     signTypedData: async (message: {
@@ -103,9 +121,30 @@ export function buildPaymentClient(
       message: Record<string, unknown>;
     }): Promise<`0x${string}`> => {
       if (!approvedDeclaration) throw new Error("Payment challenge was not approved");
+      if (signatureRequested) throw new Error("Payment already attempted; recover with the original key");
+      const [chainId, accounts] = await Promise.all([
+        provider.request({ method: "eth_chainId" }),
+        provider.request({ method: "eth_accounts" }),
+      ]);
+      if (String(chainId).toLowerCase() !== "0x2105" ||
+          !Array.isArray(accounts) || !sameAddress(accounts[0], account)) {
+        throw new Error("Wallet account or network changed. Reconnect before starting a new request.");
+      }
+      signatureRequested = true;
       return (await provider.request({
         method: "eth_signTypedData_v4",
-        params: [account, typedDataJson(message)],
+        params: [account, typedDataJson({
+          ...message,
+          types: {
+            EIP712Domain: [
+              { name: "name", type: "string" },
+              { name: "version", type: "string" },
+              { name: "chainId", type: "uint256" },
+              { name: "verifyingContract", type: "address" },
+            ],
+            ...message.types,
+          },
+        })],
       })) as `0x${string}`;
     },
   };
@@ -133,28 +172,35 @@ export function buildPaymentClient(
 
 async function readConfiguration(baseUrl: string, serviceId: string) {
   const [statusResponse, servicesResponse] = await Promise.all([
-    fetch(`${baseUrl}/status.json`),
-    fetch(`${baseUrl}/v1/services`),
+    fetch(`${baseUrl}/status.json`, { credentials: "omit", redirect: "error", cache: "no-store" }),
+    fetch(`${baseUrl}/v1/services`, { credentials: "omit", redirect: "error", cache: "no-store" }),
   ]);
   if (!statusResponse.ok || !servicesResponse.ok) {
     throw new Error("ReachSocial discovery is unavailable");
   }
-  const status = (await statusResponse.json()) as { payment: PaymentMetadata };
+  const status = (await statusResponse.json()) as {
+    payment: PaymentMetadata; status: string; degraded_services?: string[];
+  };
   const catalog = (await servicesResponse.json()) as { services: ServiceSummary[] };
   const service = catalog.services.find((item) => item.id === serviceId);
-  if (!service?.available || service.execution !== "sync" || service.price_cents > 5) {
+  if (!service?.available || service.execution !== "sync" ||
+      !Number.isInteger(service.price_cents) || service.price_cents < 1 || service.price_cents > 5) {
     throw new Error("The requested service is not available within the $0.05 limit");
   }
   if (
-    !status.payment.enabled ||
+    !status.payment?.enabled ||
     status.payment.version !== 2 ||
     status.payment.network !== BASE_NETWORK ||
     status.payment.chain_id !== 8453 ||
-    !sameAddress(status.payment.asset.address, BASE_USDC) ||
+    !sameAddress(status.payment.asset?.address, BASE_USDC) ||
     status.payment.asset.decimals !== 6 ||
-    status.payment.asset.symbol !== "USDC"
+    status.payment.asset.symbol !== "USDC" ||
+    !validAddress(status.payment.receiver)
   ) {
     throw new Error("ReachSocial payment metadata did not match Base mainnet USDC");
+  }
+  if (status.status === "payments_paused" || status.degraded_services?.includes(serviceId)) {
+    throw new Error("This service is temporarily unavailable. No payment was requested.");
   }
   return { metadata: status.payment, service };
 }
@@ -165,14 +211,21 @@ export async function executeReachSocial(
   serviceId: string,
   input: Record<string, unknown>,
   baseUrl = BASE_URL,
+  idempotencyKey: string = crypto.randomUUID(),
 ) {
+  baseUrl = checkedBaseUrl(baseUrl);
+  if (!/^[a-z0-9]+(?:[._-][a-z0-9]+)*$/.test(serviceId) ||
+      !/^[A-Za-z0-9_-]{32,255}$/.test(idempotencyKey)) {
+    throw new Error("Use a valid service ID and a random 32–255 character request key");
+  }
+  // Snapshot the input before any asynchronous work.
+  const body = JSON.stringify({ input });
   const chainId = await provider.request({ method: "eth_chainId" });
   if (String(chainId).toLowerCase() !== "0x2105") {
     throw new Error("Switch the browser wallet to Base mainnet before paying");
   }
   const endpoint = `${baseUrl}/v1/services/${encodeURIComponent(serviceId)}/execute`;
   const { metadata, service } = await readConfiguration(baseUrl, serviceId);
-  const idempotencyKey = crypto.randomUUID();
   const client = buildPaymentClient(provider, account, {
     endpoint,
     metadata,
@@ -183,8 +236,10 @@ export async function executeReachSocial(
   try {
     const response = await paidFetch(endpoint, {
       method: "POST",
+      credentials: "omit",
+      redirect: "error",
       headers: { "Content-Type": "application/json", "Idempotency-Key": idempotencyKey },
-      body: JSON.stringify({ input }),
+      body,
     });
     if (!response.ok) throw new Error(`ReachSocial returned HTTP ${response.status}`);
     return {
@@ -204,11 +259,14 @@ export async function recoverReachSocial(
   idempotencyKey: string,
   baseUrl = BASE_URL,
 ) {
+  baseUrl = checkedBaseUrl(baseUrl);
   // Deliberately use ordinary fetch: recovery must never create or sign a payment.
   const response = await fetch(
     `${baseUrl}/v1/payments/recover/${encodeURIComponent(serviceId)}`,
     {
       method: "POST",
+      credentials: "omit",
+      redirect: "error",
       headers: { "Content-Type": "application/json", "Idempotency-Key": idempotencyKey },
       body: JSON.stringify({ input }),
     },

@@ -1,36 +1,49 @@
 (() => {
   for (const button of document.querySelectorAll("[data-copy-target]")) {
+    const originalLabel = button.textContent;
+    let resetTimer;
     button.addEventListener("click", async () => {
+      if (button.disabled) return;
       const target = document.getElementById(button.dataset.copyTarget);
       const status = document.getElementById(button.dataset.copyStatus);
       if (!target) return;
       const text = target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement
         ? target.value
         : target.textContent || "";
-
+      button.disabled = true;
+      clearTimeout(resetTimer);
+      let copied = false;
       try {
         await navigator.clipboard.writeText(text);
+        copied = true;
       } catch {
         const fallback = document.createElement("textarea");
         fallback.value = text;
         fallback.setAttribute("readonly", "");
         fallback.className = "copy-fallback";
         document.body.append(fallback);
-        fallback.select();
-        if (!document.execCommand("copy")) {
-          if (status) status.textContent = "Select and copy the text manually.";
+        try {
+          fallback.select();
+          copied = document.execCommand("copy");
+        } catch {
+          copied = false;
+        } finally {
           fallback.remove();
-          return;
+          button.focus({ preventScroll: true });
         }
-        fallback.remove();
+      } finally {
+        button.disabled = false;
       }
-
-      const originalLabel = button.textContent;
+      if (!copied) {
+        button.textContent = originalLabel;
+        if (status) status.textContent = "Select and copy the text manually.";
+        const details = target.closest("details");
+        if (details) details.open = true;
+        return;
+      }
       button.textContent = "Copied";
       if (status) status.textContent = "Copied to clipboard.";
-      window.setTimeout(() => {
-        button.textContent = originalLabel;
-      }, 1600);
+      resetTimer = window.setTimeout(() => { button.textContent = originalLabel; }, 1600);
     });
   }
 })();

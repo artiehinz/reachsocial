@@ -36,6 +36,9 @@ Use Python 3.12 and the locked `uv` environment:
 uv sync --all-groups --frozen
 uv run ruff check .
 uv run pytest
+npm ci
+npm run typecheck
+npm test
 ```
 
 Live provider tests are skipped by default. Run paid or credentialed provider
@@ -51,6 +54,12 @@ uv run uvicorn reachsocial.main:app --reload
 
 The health endpoint is `/healthz`. Public discovery starts at `/agent.md`,
 `/llms.txt`, `/openapi.json`, and `/.well-known/api-catalog`.
+
+Browser onboarding lives in `examples/browser/reachsocial-client.ts` and
+`quickstart.ts`; the docs render those tested sources directly. Keep the
+wallet-readiness panel read-only, preserve request keys before payment, and
+never replace recovery with a new paid execution. See
+`docs/onboarding-audit-2026-10-14.md` for its checks and outstanding live gate.
 
 ## Production and deployment
 

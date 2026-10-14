@@ -213,9 +213,14 @@ Templates live in `templates/`, styling in `static/site.css`. Bump the CSS query
 version in `templates/base.html` after stylesheet changes. Check narrow and desktop
 viewports and keep the clickable platform links pointing to `/catalog#<platform>`.
 
-The developer onboarding source is `examples/browser/reachsocial-client.ts`.
-`/docs/api` renders that file directly so the documented browser helper cannot
-drift from the typechecked and tested source. `static/wallet.js` provides the
+The developer onboarding sources are `examples/browser/reachsocial-client.ts`
+and `examples/browser/quickstart.ts`. `/docs/api` renders those files directly
+so the copyable code cannot drift from the typechecked and tested source.
+The quick start saves its key in session storage before any payment request;
+production clients should persist keys and input in their own request records.
+`static/wallet.js` provides the
 read-only EIP-6963 readiness panel; it may request account connection, network
 switching, and `eth_call`, but never a signature or payment. Browser CORS is
-limited to public discovery, synchronous execution, and paid-result recovery.
+limited to public discovery, public synchronous execution, and paid-result
+recovery. Sync recovery stays browser-readable if a service later becomes
+private or paused. See [the onboarding audit](onboarding-audit-2026-10-14.md).

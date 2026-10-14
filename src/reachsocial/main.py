@@ -57,6 +57,7 @@ templates = Jinja2Templates(directory=str(ROOT / "templates"))
 EXAMPLE_RESPONSE = json.loads((ROOT / "examples" / "instagram-profile.json").read_text())
 EXAMPLE_RESPONSE_JSON = json.dumps(EXAMPLE_RESPONSE, indent=2)
 BROWSER_EXAMPLE = (ROOT / "examples" / "browser" / "reachsocial-client.ts").read_text()
+QUICKSTART_EXAMPLE = (ROOT / "examples" / "browser" / "quickstart.ts").read_text()
 AGENT_SETUP_PROMPT = (
     "Read https://reachsocial.dev/agent.txt and help me set up ReachSocial. "
     "Fetch https://reachsocial.dev/v1/services and https://reachsocial.dev/status.json for "
@@ -434,6 +435,17 @@ def create_app() -> FastAPI:
                 "catalog": request.app.state.catalog,
                 "payment_network": x402_network_label(request.app.state.settings.x402_network),
                 "example_response": EXAMPLE_RESPONSE_JSON,
+                "example_preview": json.dumps(
+                    {
+                        "data": {
+                            "profile": {
+                                key: EXAMPLE_RESPONSE["data"]["profile"][key]
+                                for key in ("handle", "display_name", "verified", "counts")
+                            }
+                        }
+                    },
+                    indent=2,
+                ),
                 "agent_setup_prompt": AGENT_SETUP_PROMPT,
             },
             headers={
@@ -481,10 +493,12 @@ def create_app() -> FastAPI:
                 "payment_network": x402_network_label(request.app.state.settings.x402_network),
                 "payment": public_payment_metadata(request.app.state.settings),
                 "browser_example": BROWSER_EXAMPLE,
+                "quickstart_example": QUICKSTART_EXAMPLE,
                 "example_response": EXAMPLE_RESPONSE_JSON,
                 "agent_setup_prompt": AGENT_SETUP_PROMPT,
                 "minimum_payment_atomic": min(
-                    service.price_cents for service in request.app.state.catalog.public_services()
+                    (service.price_cents for service in request.app.state.catalog.public_services()),
+                    default=5,
                 )
                 * 10_000,
             },

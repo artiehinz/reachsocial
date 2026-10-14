@@ -1,15 +1,18 @@
 // @vitest-environment jsdom
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   formatUsdc,
-  initializeWalletReadiness,
+  initializeWalletReadiness as initialize,
   requestAccounts,
   shortAddress,
   switchToBase,
 } from "../../static/wallet.js";
 
 const ADDRESS = "0xcf8fD9bd415C36326597E8079fCb3125FE2dB369";
+let cleanups = [];
+function initializeWalletReadiness(root) { cleanups.push(initialize(root)); }
+afterEach(() => { cleanups.forEach((cleanup) => cleanup()); cleanups = []; });
 
 function panel() {
   document.body.innerHTML = `<div data-wallet-readiness
@@ -18,6 +21,8 @@ function panel() {
     <select data-wallet-select disabled><option>Looking</option></select>
     <button data-wallet-connect disabled>Connect</button>
     <button data-wallet-switch hidden>Switch</button>
+    <button data-wallet-refresh hidden>Refresh</button>
+    <button data-wallet-disconnect hidden>Disconnect</button>
     <span data-wallet-address>Not connected</span>
     <span data-wallet-network>Not checked</span>
     <span data-wallet-balance>Not checked</span>
@@ -43,7 +48,7 @@ describe("wallet readiness", () => {
   it("reports a missing wallet", () => {
     const root = panel();
     initializeWalletReadiness(root);
-    expect(root.querySelector("[data-wallet-select]").textContent).toContain("No injected wallet");
+    expect(root.querySelector("[data-wallet-select]").textContent).toContain("No browser wallet");
     expect(root.querySelector("[data-wallet-connect]").disabled).toBe(true);
   });
 
@@ -117,5 +122,83 @@ describe("wallet readiness", () => {
     await expect(requestAccounts({ request: vi.fn().mockResolvedValue([]) })).rejects.toThrow(
       "did not return an account",
     );
+  });
+
+  it("deduplicates the legacy provider and preserves wallet selection on late discovery", () => {
+    const provider = { request: vi.fn() };
+    Object.defineProperty(window, "ethereum", { value: provider, configurable: true });
+    const root = panel();
+    initializeWalletReadiness(root);
+    announce("primary", "Primary", provider);
+    expect(root.querySelector("select").options).toHaveLength(1);
+    announce("second", "Second", { request: vi.fn() });
+    root.querySelector("select").value = "second";
+    announce("third", "Third", { request: vi.fn() });
+    expect(root.querySelector("select").value).toBe("second");
+  });
+
+  it("clears state and listeners when the user disconnects", async () => {
+    const events = new Map();
+    const provider = {
+      request: vi.fn(async ({ method }) => {
+        if (method === "eth_requestAccounts") return [ADDRESS];
+        if (method === "eth_chainId") return "0x2105";
+        if (method === "eth_call") return "0x186a0";
+        throw new Error("Unexpected wallet request");
+      }),
+      on: (name, handler) => events.set(name, handler),
+      removeListener: (name) => events.delete(name),
+    };
+    const root = panel();
+    initializeWalletReadiness(root);
+    announce("primary", "Primary", provider);
+    root.querySelector("[data-wallet-connect]").click();
+    await settle();
+    expect(events.size).toBe(3);
+    expect(root.querySelector("[data-wallet-balance]").textContent).toBe("0.1 USDC");
+    events.get("chainChanged")();
+    await settle();
+    events.get("accountsChanged")([]);
+    expect(events.size).toBe(0);
+    expect(root.querySelector("[data-wallet-address]").textContent).toBe("Not connected");
+    expect(root.querySelector("[data-wallet-network]").textContent).toBe("Not checked");
+    expect(root.querySelector("[data-wallet-balance]").textContent).toBe("Not checked");
+    expect(root.querySelector("[data-wallet-switch]").hidden).toBe(true);
+  });
+
+  it("ignores a late balance result after switching wallets", async () => {
+    let resolveBalance;
+    const oldProvider = { request: vi.fn(async ({ method }) => {
+      if (method === "eth_requestAccounts") return [ADDRESS];
+      if (method === "eth_chainId") return "0x2105";
+      return new Promise((resolve) => { resolveBalance = resolve; });
+    }) };
+    const root = panel();
+    initializeWalletReadiness(root);
+    announce("old", "Old", oldProvider);
+    announce("new", "New", { request: vi.fn() });
+    root.querySelector("[data-wallet-connect]").click();
+    await settle();
+    root.querySelector("select").value = "new";
+    root.querySelector("select").dispatchEvent(new Event("change"));
+    resolveBalance("0x186a0");
+    await settle();
+    expect(root.querySelector("[data-wallet-address]").textContent).toBe("Not connected");
+    expect(root.querySelector("[data-wallet-balance]").textContent).toBe("Not checked");
+  });
+
+  it("handles an unavailable balance without leaving Checking forever", async () => {
+    const request = vi.fn(async ({ method }) => {
+      if (method === "eth_requestAccounts") return [ADDRESS];
+      if (method === "eth_chainId") return "0x2105";
+      throw new Error("RPC offline");
+    });
+    const root = panel();
+    initializeWalletReadiness(root);
+    announce("offline", "Offline", { request });
+    root.querySelector("[data-wallet-connect]").click();
+    await settle();
+    expect(root.querySelector("[data-wallet-balance]").textContent).toBe("Unavailable");
+    expect(root.querySelector("[data-wallet-status]").textContent).toContain("refresh");
   });
 });

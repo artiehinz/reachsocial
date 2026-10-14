@@ -1,4 +1,6 @@
 const BASE_CHAIN_ID = "0x2105";
+const BASE_USDC = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
+const validAddress = (value) => typeof value === "string" && /^0x[0-9a-fA-F]{40}$/.test(value);
 
 export function shortAddress(address) {
   return `${address.slice(0, 6)}…${address.slice(-4)}`;
@@ -7,14 +9,13 @@ export function shortAddress(address) {
 export function formatUsdc(value, decimals = 6) {
   const atomic = BigInt(value);
   const scale = 10n ** BigInt(decimals);
-  const whole = atomic / scale;
   const fraction = (atomic % scale).toString().padStart(decimals, "0").replace(/0+$/, "");
-  return fraction ? `${whole}.${fraction}` : whole.toString();
+  return `${atomic / scale}${fraction ? "." + fraction : ""}`;
 }
 
 export async function requestAccounts(provider) {
   const accounts = await provider.request({ method: "eth_requestAccounts" });
-  if (!Array.isArray(accounts) || typeof accounts[0] !== "string") {
+  if (!Array.isArray(accounts) || !validAddress(accounts[0])) {
     throw new Error("The wallet did not return an account.");
   }
   return accounts[0];
@@ -24,32 +25,24 @@ export async function switchToBase(provider) {
   try {
     await provider.request({ method: "wallet_switchEthereumChain", params: [{ chainId: BASE_CHAIN_ID }] });
   } catch (error) {
-    if (error && (error.code === 4902 || error.code === -32603)) {
-      await provider.request({
-        method: "wallet_addEthereumChain",
-        params: [{
-          chainId: BASE_CHAIN_ID,
-          chainName: "Base",
-          nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
-          rpcUrls: ["https://mainnet.base.org"],
-          blockExplorerUrls: ["https://basescan.org"],
-        }],
-      });
-      return;
-    }
-    throw error;
+    if (error?.code !== 4902) throw error;
+    await provider.request({
+      method: "wallet_addEthereumChain",
+      params: [{
+        chainId: BASE_CHAIN_ID,
+        chainName: "Base",
+        nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
+        rpcUrls: ["https://mainnet.base.org"],
+        blockExplorerUrls: ["https://basescan.org"],
+      }],
+    });
   }
 }
 
 export async function readUsdcBalance(provider, token, address) {
-  if (!/^0x[0-9a-fA-F]{40}$/.test(token) || !/^0x[0-9a-fA-F]{40}$/.test(address)) {
-    throw new Error("Invalid USDC or wallet address.");
-  }
+  if (!validAddress(token) || !validAddress(address)) throw new Error("Invalid USDC or wallet address.");
   const data = `0x70a08231${address.slice(2).toLowerCase().padStart(64, "0")}`;
-  const result = await provider.request({
-    method: "eth_call",
-    params: [{ to: token, data }, "latest"],
-  });
+  const result = await provider.request({ method: "eth_call", params: [{ to: token, data }, "latest"] });
   if (typeof result !== "string" || !/^0x[0-9a-fA-F]+$/.test(result)) {
     throw new Error("The wallet could not read the USDC balance.");
   }
@@ -60,17 +53,19 @@ export function collectWallets(onChange) {
   const wallets = new Map();
   const announce = (event) => {
     const detail = event.detail;
-    if (!detail?.info?.uuid || !detail.provider?.request) return;
+    if (typeof detail?.info?.uuid !== "string" || typeof detail.info.name !== "string" ||
+        typeof detail.provider?.request !== "function") return;
+    for (const [id, wallet] of wallets) {
+      if (wallet.provider === detail.provider) wallets.delete(id);
+    }
     wallets.set(detail.info.uuid, detail);
     onChange(wallets);
   };
   window.addEventListener("eip6963:announceProvider", announce);
   window.dispatchEvent(new Event("eip6963:requestProvider"));
-  if (window.ethereum?.request) {
-    wallets.set("window.ethereum", {
-      info: { uuid: "window.ethereum", name: "Browser wallet", icon: "", rdns: "legacy" },
-      provider: window.ethereum,
-    });
+  if (typeof window.ethereum?.request === "function" &&
+      ![...wallets.values()].some((wallet) => wallet.provider === window.ethereum)) {
+    wallets.set("window.ethereum", { info: { uuid: "window.ethereum", name: "Browser wallet" }, provider: window.ethereum });
   }
   onChange(wallets);
   return () => window.removeEventListener("eip6963:announceProvider", announce);
@@ -80,84 +75,169 @@ export function initializeWalletReadiness(root) {
   const select = root.querySelector("[data-wallet-select]");
   const connect = root.querySelector("[data-wallet-connect]");
   const switchButton = root.querySelector("[data-wallet-switch]");
+  const disconnect = root.querySelector("[data-wallet-disconnect]");
+  const refreshButton = root.querySelector("[data-wallet-refresh]");
   const addressNode = root.querySelector("[data-wallet-address]");
   const networkNode = root.querySelector("[data-wallet-network]");
   const balanceNode = root.querySelector("[data-wallet-balance]");
   const statusNode = root.querySelector("[data-wallet-status]");
-  const wallets = new Map();
+  let wallets = new Map();
   let provider;
   let account;
+  let generation = 0;
+  let readVersion = 0;
+  let busy = false;
+  let removeProviderListeners = () => {};
 
-  const renderWallets = (found) => {
-    for (const [id, wallet] of found) wallets.set(id, wallet);
-    select.replaceChildren();
-    if (!wallets.size) {
-      select.add(new Option("No injected wallet found", ""));
-      select.disabled = true;
-      connect.disabled = true;
-      statusNode.textContent = "Install or open an EIP-6963 compatible browser wallet.";
-      return;
-    }
-    for (const [id, wallet] of wallets) select.add(new Option(wallet.info.name, id));
-    select.disabled = false;
-    connect.disabled = false;
-    statusNode.textContent = wallets.size > 1 ? "Choose a wallet, then connect." : "Wallet found. Connect to check readiness.";
+  const controls = () => {
+    connect.disabled = busy || !wallets.size;
+    select.disabled = busy || !wallets.size;
+    connect.textContent = busy ? "Waiting for wallet…" : account ? "Reconnect" : "Connect wallet";
+    if (disconnect) disconnect.hidden = !provider;
+    if (refreshButton) refreshButton.hidden = !account;
+    switchButton.disabled = busy;
+  };
+  const reset = (message = "Wallet disconnected from this page.") => {
+    generation++;
+    readVersion++;
+    removeProviderListeners();
+    removeProviderListeners = () => {};
+    provider = undefined;
+    account = undefined;
+    busy = false;
+    addressNode.textContent = "Not connected";
+    addressNode.removeAttribute("title");
+    networkNode.textContent = "Not checked";
+    balanceNode.textContent = "Not checked";
+    switchButton.hidden = true;
+    statusNode.textContent = message;
+    controls();
   };
 
   const refresh = async () => {
     if (!provider || !account) return;
-    const chainId = await provider.request({ method: "eth_chainId" });
-    const onBase = String(chainId).toLowerCase() === BASE_CHAIN_ID;
-    networkNode.textContent = onBase ? "Base mainnet" : `Wrong network (${chainId})`;
-    switchButton.hidden = onBase;
-    balanceNode.textContent = onBase ? "Checking…" : "Switch to Base first";
-    if (!onBase) return;
-    const balance = await readUsdcBalance(provider, root.dataset.usdcAddress, account);
-    const formatted = formatUsdc(balance, Number(root.dataset.usdcDecimals));
-    balanceNode.textContent = `${formatted} USDC`;
-    statusNode.textContent = balance >= BigInt(root.dataset.minimumAtomic)
-      ? "Ready for at least one current request."
-      : "USDC balance is below the current minimum request price.";
+    const selectedProvider = provider;
+    const selectedAccount = account;
+    const version = ++readVersion;
+    const current = () => version === readVersion && selectedProvider === provider && selectedAccount === account;
+    balanceNode.textContent = "Checking…";
+    statusNode.textContent = "Checking network and balance…";
+    try {
+      const chainId = await selectedProvider.request({ method: "eth_chainId" });
+      if (!current()) return;
+      const onBase = String(chainId).toLowerCase() === BASE_CHAIN_ID;
+      networkNode.textContent = onBase ? "Base mainnet" : "Wrong network";
+      switchButton.hidden = onBase;
+      if (!onBase) {
+        balanceNode.textContent = "Not checked";
+        statusNode.textContent = "Switch to Base to check your USDC balance.";
+        return;
+      }
+      const balance = await readUsdcBalance(selectedProvider, BASE_USDC, selectedAccount);
+      if (!current()) return;
+      balanceNode.textContent = `${formatUsdc(balance)} USDC`;
+      statusNode.textContent = balance >= BigInt(root.dataset.minimumAtomic || "50000")
+        ? "Balance is enough for a $0.05 request. Payment still needs wallet approval."
+        : "USDC balance is below $0.05. Add native USDC on Base, then refresh.";
+    } catch {
+      if (current()) {
+        balanceNode.textContent = "Unavailable";
+        statusNode.textContent = "Could not read the wallet. Unlock it and refresh.";
+      }
+    }
+  };
+  const accountsChanged = (accounts) => {
+    readVersion++;
+    if (!Array.isArray(accounts) || !validAddress(accounts[0])) {
+      reset("No account connected. Connect your wallet to check again.");
+      return;
+    }
+    account = accounts[0];
+    addressNode.textContent = shortAddress(account);
+    addressNode.title = account;
+    controls();
+    void refresh();
   };
 
-  connect.addEventListener("click", async () => {
+  const connectWallet = async () => {
+    if (busy) return;
     const wallet = wallets.get(select.value);
     if (!wallet) return;
+    reset("Approve the connection in your wallet.");
     provider = wallet.provider;
+    const selectedProvider = provider;
+    const version = generation;
+    busy = true;
+    controls();
     try {
-      account = await requestAccounts(provider);
-      addressNode.textContent = shortAddress(account);
-      statusNode.textContent = "Connected for this readiness check.";
-      provider.on?.("accountsChanged", async (accounts) => {
-        if (!Array.isArray(accounts) || !accounts.length) {
-          account = undefined;
-          addressNode.textContent = "Not connected";
-          balanceNode.textContent = "Not checked";
-          return;
-        }
-        account = accounts[0];
-        addressNode.textContent = shortAddress(account);
-        await refresh();
-      });
-      provider.on?.("chainChanged", refresh);
-      await refresh();
+      const address = await requestAccounts(selectedProvider);
+      if (version !== generation) return;
+      const onDisconnect = () => reset();
+      selectedProvider.on?.("accountsChanged", accountsChanged);
+      selectedProvider.on?.("chainChanged", refresh);
+      selectedProvider.on?.("disconnect", onDisconnect);
+      removeProviderListeners = () => {
+        selectedProvider.removeListener?.("accountsChanged", accountsChanged);
+        selectedProvider.removeListener?.("chainChanged", refresh);
+        selectedProvider.removeListener?.("disconnect", onDisconnect);
+      };
+      accountsChanged([address]);
     } catch (error) {
-      statusNode.textContent = error?.code === 4001 ? "Wallet connection was rejected." : "Wallet connection failed.";
+      if (version === generation) reset(error?.code === 4001
+        ? "Wallet connection was rejected. You can try again."
+        : "Could not connect. Unlock your wallet and try again.");
+    } finally {
+      if (provider === selectedProvider) { busy = false; controls(); }
     }
-  });
+  };
 
-  switchButton.addEventListener("click", async () => {
+  const switchNetwork = async () => {
+    if (!provider || busy) return;
+    const selectedProvider = provider;
+    busy = true;
+    controls();
     try {
-      await switchToBase(provider);
-      await refresh();
+      await switchToBase(selectedProvider);
+      if (provider === selectedProvider) await refresh();
     } catch (error) {
-      statusNode.textContent = error?.code === 4001 ? "Network switch was rejected." : "Could not switch this wallet to Base.";
+      if (provider === selectedProvider) statusNode.textContent = error?.code === 4001
+        ? "Network switch was rejected."
+        : "Could not switch to Base. Select Base in your wallet, then refresh.";
+    } finally {
+      if (provider === selectedProvider) { busy = false; controls(); }
     }
+  };
+  const selectionChanged = () => reset("Wallet selected. Connect to check it.");
+  const clearConnection = () => reset();
+  connect.addEventListener("click", connectWallet);
+  select.addEventListener("change", selectionChanged);
+  switchButton.addEventListener("click", switchNetwork);
+  disconnect?.addEventListener("click", clearConnection);
+  refreshButton?.addEventListener("click", refresh);
+  const stopDiscovery = collectWallets((found) => {
+    const oldValue = select.value;
+    wallets = new Map(found);
+    select.replaceChildren();
+    if (!wallets.size) {
+      select.add(new Option("No browser wallet found", ""));
+      statusNode.textContent = "Open this page in a browser with a wallet extension installed.";
+    } else {
+      for (const [id, wallet] of wallets) select.add(new Option(wallet.info.name.slice(0, 80), id));
+      if (wallets.has(oldValue)) select.value = oldValue;
+      else if (provider) select.value = [...wallets].find(([, wallet]) => wallet.provider === provider)?.[0] || select.value;
+      if (!provider) statusNode.textContent = "Choose your wallet, then connect.";
+    }
+    controls();
   });
-
-  return collectWallets(renderWallets);
+  return () => {
+    stopDiscovery();
+    reset();
+    connect.removeEventListener("click", connectWallet);
+    select.removeEventListener("change", selectionChanged);
+    switchButton.removeEventListener("click", switchNetwork);
+    disconnect?.removeEventListener("click", clearConnection);
+    refreshButton?.removeEventListener("click", refresh);
+  };
 }
 
-for (const root of document.querySelectorAll("[data-wallet-readiness]")) {
-  initializeWalletReadiness(root);
-}
+for (const root of document.querySelectorAll("[data-wallet-readiness]")) initializeWalletReadiness(root);

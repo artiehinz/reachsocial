@@ -1,31 +1,85 @@
 {% extends "base.html" %}
 {% block title %}API docs — ReachSocial{% endblock %}
-{% block scripts %}<script type="module" src="/static/wallet.js?v=20261013-1"></script>{% endblock %}
+{% block scripts %}<script type="module" src="/static/wallet.js?v=20261014-2"></script>{% endblock %}
 {% block content %}
-<section class="page-intro"><p class="eyebrow">DEVELOPER DOCUMENTATION</p><h1>Integrate one paid request.</h1><p>Use one browser wallet and one tested TypeScript helper. ReachSocial checks the public URL before settlement, returns normalized JSON, and keeps the result recoverable for 30 days.</p></section>
+<section class="page-intro docs-intro">
+  <p class="eyebrow">DEVELOPER GUIDE</p>
+  <h1>From a public URL to JSON.</h1>
+  <p>Add social data to your app with a browser wallet and a small TypeScript helper. Public requests cost $0.05 in USDC on Base. No ReachSocial account or API key.</p>
+  <nav class="docs-nav" aria-label="On this page">
+    <a href="#public-request">Quick start</a><a href="#response">Example result</a><a href="#wallet-readiness">Check wallet</a><a href="#recovery">Recover a result</a>
+  </nav>
+</section>
 
-<section class="integration-steps" aria-labelledby="integration-heading"><div class="section-heading"><div><p class="eyebrow">THREE STEPS</p><h2 id="integration-heading">From setup to response.</h2></div></div><ol class="steps steps-horizontal"><li><span>1</span><div><strong>Install the x402 client</strong><p>Add the official packages below and copy the helper.</p></div></li><li><span>2</span><div><strong>Connect your browser wallet</strong><p>Pass its provider and selected address to the helper.</p></div></li><li><span>3</span><div><strong>Call and keep the key</strong><p>Each payment needs approval. Store the returned idempotency key for recovery.</p></div></li></ol></section>
+<section id="public-request" class="docs-section">
+  <h2>Start with one request.</h2>
+  <p>Use a TypeScript project with a browser bundler, such as Vite. These are the official x402 client packages:</p>
+  <div class="code-toolbar"><span>1. Install dependencies</span><button class="copy-button" type="button" data-copy-target="npm-install" data-copy-status="npm-install-status">Copy command</button></div>
+  <pre id="npm-install"><code>npm install @x402/core@2.28.0 @x402/evm@2.28.0 @x402/fetch@2.28.0</code></pre>
+  <span id="npm-install-status" class="copy-status" role="status" aria-live="polite"></span>
 
-<section id="public-request"><div class="section-heading"><div><p class="eyebrow">BROWSER TYPESCRIPT</p><h2>Copy the working client.</h2></div><button class="copy-button" type="button" data-copy-target="browser-client-source" data-copy-status="browser-client-status">Copy TypeScript</button></div><p>Install the official x402 packages:</p><div class="copy-code"><pre id="npm-install"><code>npm install @x402/core@2.28.0 @x402/evm@2.28.0 @x402/fetch@2.28.0</code></pre><button class="copy-button" type="button" data-copy-target="npm-install" data-copy-status="npm-install-status">Copy command</button></div><span id="npm-install-status" class="sr-only" role="status" aria-live="polite"></span><p>The helper accepts only x402 v2, Base mainnet, native USDC, the receiver published by ReachSocial, the exact request URL, and at most $0.05. It asks the wallet to approve every paid request.</p><details class="code-details"><summary>Show TypeScript helper</summary><pre id="browser-client-source"><code>{{ browser_example }}</code></pre></details><span id="browser-client-status" class="sr-only" role="status" aria-live="polite"></span><p>Call it with an injected wallet provider:</p><pre><code>const provider = (window as Window &amp; { ethereum: BrowserProvider }).ethereum;\nconst account = await connectBrowserWallet(provider);\nconst input = { url: "https://www.instagram.com/instagram/" };
-const paid = await executeReachSocial(provider, account, "instagram.profile", input);
+  <div class="code-toolbar"><span>2. Save the helper as <code>reachsocial-client.ts</code></span><button class="copy-button" type="button" data-copy-target="browser-client-source" data-copy-status="browser-client-status">Copy helper</button></div>
+  <details class="code-details"><summary>View the payment and recovery helper</summary><pre id="browser-client-source" tabindex="0" aria-label="TypeScript payment helper"><code>{{ browser_example }}</code></pre></details>
+  <span id="browser-client-status" class="copy-status" role="status" aria-live="polite"></span>
+  <p class="muted">It checks the network, native USDC token, current ReachSocial receiver, request URL, and $0.05 maximum before asking the wallet to sign.</p>
 
-// Save paid.idempotencyKey beside your own request record.
-console.log(paid.result);
+  <div class="code-toolbar"><span>3. Call it from your application</span><button class="copy-button" type="button" data-copy-target="quickstart-source" data-copy-status="quickstart-status">Copy example</button></div>
+  <pre id="quickstart-source" tabindex="0" aria-label="Browser integration example"><code>{{ quickstart_example }}</code></pre>
+  <span id="quickstart-status" class="copy-status" role="status" aria-live="polite"></span>
+  <p>Import <code>loadInstagramProfile</code> in your app and call it from a button handler. It connects your installed wallet, requests approval for one payment, and returns the result. If your app already selects a wallet, pass that provider to the helper instead.</p>
+  <p class="muted">This example retains the request key in this browser tab. In your application, save the key and original input with your request record before payment.</p>
+</section>
 
-// If the paid response was lost, recovery uses ordinary fetch and never signs again.
-const recovered = await recoverReachSocial(
-  "instagram.profile", input, paid.idempotencyKey
-);</code></pre></section>
+<section id="response" class="docs-section">
+  <div class="section-heading"><div><h2>What your app receives.</h2><p class="muted">Example response — live values may differ.</p></div><button class="copy-button" type="button" data-copy-target="docs-example-response" data-copy-status="docs-example-status">Copy JSON</button></div>
+  <div class="split docs-contract">
+    <div>
+      <p>Send the profile URL in the request body:</p>
+      <pre><code>{"input":{"url":"https://www.instagram.com/instagram/"}}</code></pre>
+      <dl class="response-fields">
+        <div><dt>data.profile</dt><dd>Public profile fields and counts. Missing values can be null.</dd></div>
+        <div><dt>request_id</dt><dd>A reference for troubleshooting this request.</dd></div>
+        <div><dt>cached</dt><dd>Whether ReachSocial served a cached result. A new paid request still costs $0.05.</dd></div>
+        <div><dt>meta</dt><dd>Schema version and timing for your client.</dd></div>
+      </dl>
+      <p class="muted">Media fields contain source links. ReachSocial does not download or host the original files. <a href="/catalog">Browse available services</a>.</p>
+    </div>
+    <div><pre id="docs-example-response" class="output-example" tabindex="0" aria-label="Complete example JSON response"><code>{{ example_response }}</code></pre><span id="docs-example-status" class="copy-status" role="status" aria-live="polite"></span></div>
+  </div>
+</section>
 
-<section class="split docs-contract"><div><h2>Request input</h2><pre><code>POST /v1/services/instagram.profile/execute
-Content-Type: application/json
-Idempotency-Key: 5d714f31-41f6-4bbb-a692-f54e0a2babdc
+<section id="wallet-readiness" class="docs-section">
+  <div class="section-heading"><div><p class="eyebrow">OPTIONAL</p><h2>Is your wallet ready?</h2></div></div>
+  <p>Check your installed browser wallet and native USDC balance on Base. Your address stays in this browser; balance reads go through your wallet.</p>
+  <div class="wallet-panel" data-wallet-readiness data-minimum-atomic="{{ minimum_payment_atomic }}">
+    <div class="wallet-controls">
+      <label for="wallet-provider">Browser wallet</label>
+      <select id="wallet-provider" data-wallet-select disabled><option>No wallet connected</option></select>
+      <button class="button secondary" type="button" data-wallet-connect disabled>Connect wallet</button>
+      <button class="button secondary" type="button" data-wallet-switch hidden>Switch to Base</button>
+    </div>
+    <dl class="wallet-facts">
+      <div><dt>Address</dt><dd data-wallet-address>Not connected</dd></div>
+      <div><dt>Network</dt><dd data-wallet-network>Not checked</dd></div>
+      <div><dt>Base-USDC</dt><dd data-wallet-balance>Not checked</dd></div>
+    </dl>
+    <p class="wallet-status muted" data-wallet-status role="status" aria-live="polite">Enable JavaScript to check your wallet.</p>
+    <div class="wallet-actions"><button class="copy-button" type="button" data-wallet-refresh hidden>Refresh balance</button><button class="copy-button" type="button" data-wallet-disconnect hidden>Disconnect from this page</button></div>
+    <p class="wallet-privacy">This check does not authorize a payment. Your application connects to the wallet separately.</p>
+  </div>
+  <details class="plain-details"><summary>Need USDC?</summary><p>Receive native USDC on the <strong>Base</strong> network at your wallet address. USDC on a different network will not appear here. After funding, refresh the balance.</p><p>Native Base-USDC contract: <code class="wrap-code">0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913</code>. Verify the network and token in your wallet before sending.</p></details>
+</section>
 
-{"input":{"url":"https://www.instagram.com/instagram/"}}</code></pre><p>The idempotency key must be random and 32–255 characters. Reuse it only for the exact same service and input.</p></div><div><h2>Normalized output</h2><pre class="output-example"><code>{{ example_response }}</code></pre><p>Example response — live values may differ. Provider-specific fields stay behind the stable ReachSocial envelope.</p></div></section>
+<section id="recovery" class="docs-section">
+  <h2>Lost the response? Recover it.</h2>
+  <p>Use <code>recoverInstagramProfile()</code> from the example, or call <code>recoverReachSocial(service, originalInput, originalKey)</code>. Recovery returns the stored result and payment state for 30 days. It never asks for another signature or provider request.</p>
+  <p>A request key identifies one purchase. Keep it private and reuse it only with the exact same service and input. A fresh key starts a new purchase.</p>
+  <details class="plain-details"><summary>Errors and uncertain outcomes</summary><p><code>ReachSocialRequestError.idempotencyKey</code> retains the key after a failed execution response. Keep the key even if the request times out. A failed recovery or HTTP 404 does not prove that no payment occurred; check again or contact support before starting a fresh purchase.</p><p>HTTP 429 means a request limit was reached. HTTP 503 means the service or payment path is temporarily unavailable. Use <a href="/status">service status</a> and the original recovery key; do not automatically create another payment.</p></details>
+  <details class="plain-details"><summary>API-key clients and background jobs</summary><p>Approved API-key and MCP integrations belong on your server. Bearer keys, job tokens, and replacement credits are not supported by this public browser helper. Existing accepted jobs retain their protected polling and recovery routes. See <a href="/openapi.json">OpenAPI</a> for those contracts.</p></details>
+</section>
 
-<section id="wallet-readiness"><div class="section-heading"><div><p class="eyebrow">OPTIONAL READINESS CHECK</p><h2>Check a browser wallet.</h2></div></div><p>This panel finds injected wallets, checks Base mainnet, and reads native Base-USDC balance. It does not sign or execute a request.</p><div class="wallet-panel" data-wallet-readiness data-chain-id="0x2105" data-usdc-address="{{ payment.asset.address if payment.asset else '' }}" data-usdc-decimals="{{ payment.asset.decimals if payment.asset else 6 }}" data-minimum-atomic="{{ minimum_payment_atomic }}"><div class="wallet-controls"><label for="wallet-provider">Browser wallet</label><select id="wallet-provider" data-wallet-select disabled><option>Looking for wallets…</option></select><button class="button secondary" type="button" data-wallet-connect disabled>Connect wallet</button><button class="button secondary" type="button" data-wallet-switch hidden>Switch to Base</button></div><dl class="wallet-facts"><div><dt>Address</dt><dd data-wallet-address>Not connected</dd></div><div><dt>Network</dt><dd data-wallet-network>Not checked</dd></div><div><dt>Base-USDC</dt><dd data-wallet-balance>Not checked</dd></div></dl><p class="wallet-status muted" data-wallet-status role="status" aria-live="polite">Wallet discovery stays in this browser.</p><p class="wallet-privacy"><strong>This check does not authorize a payment. Your application connects to the wallet separately.</strong></p></div></section>
-
-<section id="recovery"><div class="section-heading"><div><p class="eyebrow">SAFE RETRIES</p><h2>Keep the request key.</h2></div></div><p>A fresh key identifies one intended purchase. A retry with the same key and input returns the stored result instead of charging or calling the provider again. If the response was lost, call <code>POST /v1/payments/recover/{service_id}</code> with that original key and input. The TypeScript helper’s <code>recoverReachSocial</code> method uses ordinary <code>fetch</code>, so recovery cannot request a wallet signature.</p><p>Keep the key private while the result is retained: the key and original input grant access to that result.</p></section>
-
-<section class="split"><div class="agent-prompt"><div class="prompt-label"><label for="docs-agent-prompt">Set up with an AI agent</label><button class="copy-button" type="button" data-copy-target="docs-agent-prompt" data-copy-status="docs-agent-status">Copy prompt</button></div><textarea id="docs-agent-prompt" readonly rows="8">{{ agent_setup_prompt }}</textarea><span id="docs-agent-status" class="sr-only" role="status" aria-live="polite"></span><p class="muted">The guide cannot access a wallet or approve spending by itself.</p></div><div><h2>Machine-readable references</h2><div class="link-grid"><a href="/v1/services"><strong>Executable catalog</strong><span>/v1/services</span></a><a href="/openapi.json"><strong>Typed OpenAPI</strong><span>/openapi.json</span></a><a href="/agent.txt"><strong>Agent instructions</strong><span>/agent.txt</span></a><a href="/status.json"><strong>Live payment metadata</strong><span>/status.json</span></a></div></div></section>
+<section class="split docs-section docs-resources">
+  <div class="agent-prompt"><div class="prompt-label"><label for="docs-agent-prompt">Prefer to set up with your agent?</label><button class="copy-button" type="button" data-copy-target="docs-agent-prompt" data-copy-status="docs-agent-status">Copy prompt</button></div><textarea id="docs-agent-prompt" readonly rows="8">{{ agent_setup_prompt }}</textarea><span id="docs-agent-status" class="copy-status" role="status" aria-live="polite"></span><p class="muted">Your agent needs HTTP tools and a compatible wallet integration.</p></div>
+  <div><h2>API references</h2><ul class="reference-links"><li><a href="/v1/services">Available services and prices</a></li><li><a href="/openapi.json">OpenAPI schema</a></li><li><a href="/agent.txt">Agent instructions</a></li><li><a href="/status.json">Live status and payment metadata</a></li></ul></div>
+</section>
 {% endblock %}

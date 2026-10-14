@@ -162,4 +162,7 @@ discovery, public synchronous execution, and paid-result recovery. Bearer,
 admin, job-token, cookie, and service-credit surfaces do not receive CORS
 permission. Production acceptance requires one bounded $0.05 Instagram profile
 payment, stored-result recovery with the same key, and reconciliation showing
-one transfer and one provider execution.
+one transfer and one provider execution. This new browser acceptance has not
+been completed; the older Python-client acceptance does not establish browser
+wallet compatibility. The [onboarding audit](onboarding-audit-2026-10-14.md)
+records UI, simulated payment, recovery, and CORS checks without spending.

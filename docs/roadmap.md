@@ -32,7 +32,8 @@ than a releasable service.
 
 The owner reported successful payment and recovery for all six X/TikTok
 services ($0.30 total). Those services are now in the public executable set;
-their operating evidence still needs ongoing reconciliation. The seven private
+their 24-hour observation and receipt/provider reconciliation are still not
+recorded as complete here. The seven private
 services need paid acceptance before promotion. Person News
 and LinkedIn are explicitly deferred by owner decision; do not retry or promote
 them without resolving their provider dependencies.

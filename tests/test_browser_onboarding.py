@@ -34,7 +34,7 @@ def test_home_and_docs_publish_static_example_copy_controls_and_reduced_motion()
 
     assert "FROM URL TO USEFUL JSON" in home
     assert "Example response — live values may differ." in home
-    assert "The page uses this stored example and makes no provider request." in home
+    assert "View complete response" in home
     assert 'id="home-example-response"' in home
     assert "@media (prefers-reduced-motion: reduce)" in styles
     assert ".flow-step { animation: none; }" in styles
@@ -43,6 +43,8 @@ def test_home_and_docs_publish_static_example_copy_controls_and_reduced_motion()
     assert "This check does not authorize a payment." in docs
     assert "document.createElement(\"textarea\")" in script
     assert "artie_hinz" not in home + docs
+    assert "\\nconst account" not in docs
+    assert "sessionStorage.setItem" in docs
 
 
 def test_payment_metadata_has_only_public_protocol_facts() -> None:
@@ -130,3 +132,20 @@ def test_bearer_catalog_and_admin_routes_do_not_get_cors() -> None:
         for path in ("/v1/catalog", "/v1/admin/clients", "/v1/jobs/unknown"):
             response = client.get(path, headers={"Origin": "https://example.dev"})
             assert "access-control-allow-origin" not in response.headers
+
+
+def test_recovery_cors_survives_a_private_service_and_discovery_cache_has_cors() -> None:
+    with TestClient(app) as client:
+        # A response first requested without Origin must still be browser-readable
+        # if the public cache serves it to a later cross-origin consumer.
+        assert client.get("/v1/services").headers["access-control-allow-origin"] == "*"
+        headers = {
+            "Origin": "https://client.example",
+            "Access-Control-Request-Method": "POST",
+            "Access-Control-Request-Headers": "content-type,idempotency-key",
+        }
+        recovery = client.options("/v1/payments/recover/instagram.feed", headers=headers)
+        assert recovery.status_code == 204
+        assert recovery.headers["access-control-allow-origin"] == "*"
+        execution = client.options("/v1/services/instagram.feed/execute", headers=headers)
+        assert "access-control-allow-origin" not in execution.headers
