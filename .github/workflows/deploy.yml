@@ -71,7 +71,13 @@ jobs:
           ssh -i ~/.ssh/reachsocial_deploy -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes "$SSH_USER@$SSH_HOST" \
             "REACHSOCIAL_IMAGE_REPOSITORY='$DOCR_REGISTRY/reachsocial' bash -s" < scripts/prune_deploy_images.sh
       - name: Verify the Cloudflare-served release
-        run: curl --fail --retry 6 --retry-delay 2 --silent --show-error https://reachsocial.dev/healthz > /dev/null
+        env:
+          SSH_HOST: ${{ secrets.REACHSOCIAL_DEPLOY_HOST }}
+          SSH_USER: ${{ secrets.REACHSOCIAL_DEPLOY_USER }}
+        run: |
+          ssh -i ~/.ssh/reachsocial_deploy -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes "$SSH_USER@$SSH_HOST" \
+            "curl --fail --retry 6 --retry-all-errors --retry-delay 2 --silent --show-error \
+            https://reachsocial.dev/healthz > /dev/null"
       - name: Provision the scoped InstaGet Herald client
         env:
           SSH_HOST: ${{ secrets.REACHSOCIAL_DEPLOY_HOST }}
