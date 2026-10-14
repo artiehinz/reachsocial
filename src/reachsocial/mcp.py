@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import contextvars
 from typing import Any, Awaitable, Callable
+from urllib.parse import urlsplit
 
 from mcp.server import MCPServer
+from mcp.server.transport_security import TransportSecuritySettings
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -12,6 +14,7 @@ from starlette.responses import JSONResponse
 
 from .api import _api_key_from_header, client_for_api_key
 from .catalog import Catalog, ServiceDefinition
+from .config import get_settings
 from .db import SessionLocal
 from .jobs import authorize_job, job_payload, submit_job
 from .models import AsyncJob, Client
@@ -26,12 +29,27 @@ current_mcp_client_id: contextvars.ContextVar[int | None] = contextvars.ContextV
 class MCPB2BAuthMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):  # type: ignore[no-untyped-def]
         api_key = _api_key_from_header(request.headers.get("authorization"))
+        settings = get_settings()
+        auth_headers = {}
+        if settings.oauth_enabled:
+            from .oauth_provider import origin
+            auth_headers = {"WWW-Authenticate": f'Bearer resource_metadata="{origin()}/.well-known/oauth-protected-resource/mcp/", scope="reachsocial:requests"'}
+            if api_key:
+                from .mcp_requests import current_principal
+                from .oauth_routes import provider
+                access = await provider.load_access_token(api_key)
+                if access and access.subject and "reachsocial:requests" in access.scopes:
+                    context = current_principal.set({"subject": access.subject, "client_id": access.client_id})
+                    try:
+                        return await call_next(request)
+                    finally:
+                        current_principal.reset(context)
         if not api_key:
-            return JSONResponse({"error": {"code": "unauthenticated"}}, status_code=401)
+            return JSONResponse({"error": {"code": "unauthenticated"}}, status_code=401, headers=auth_headers)
         with SessionLocal() as session:
             client = client_for_api_key(session, api_key)
             if client is None:
-                return JSONResponse({"error": {"code": "unauthenticated"}}, status_code=401)
+                return JSONResponse({"error": {"code": "unauthenticated"}}, status_code=401, headers=auth_headers)
             token = current_mcp_client_id.set(client.id)
         try:
             return await call_next(request)
@@ -76,6 +94,9 @@ async def _execute_sync(
     input_data: dict[str, Any],
     idempotency_key: str,
 ) -> dict[str, Any]:
+    from .mcp_requests import create_request, current_principal
+    if current_principal.get() is not None:
+        return create_request(service, input_data, idempotency_key)
     with SessionLocal() as session:
         return await executor.execute(
             session,
@@ -241,12 +262,18 @@ def make_mcp_server(catalog: Catalog, executor: ExecutionService | None = None) 
         description="Provider-neutral social data tools for authenticated B2B clients.",
         instructions=(
             "Choose the smallest available service. Supply the documented service input and a stable "
-            "idempotency key. Poll asynchronous jobs; never recreate pending work."
+            "idempotency key. Poll asynchronous jobs; never recreate pending work. "
+            "For OAuth access, a tool returns a browser payment link. After owner approval, "
+            "use get_reachsocial_request with the returned request ID; never create a new payment to recover a result."
         ),
         website_url="https://reachsocial.dev",
         version="0.2.0",
     )
     active_executor = executor or ExecutionService(catalog, RuntimeState())
+    if get_settings().oauth_enabled:
+        from .mcp_requests import retrieve_request
+        server.add_tool(retrieve_request, name="get_reachsocial_request",
+                        description="Retrieve your request by ID without a payment or provider call.", structured_output=True)
     has_async = False
     for service in catalog.public_services():
         if service.is_async:
@@ -275,8 +302,14 @@ def make_mcp_server(catalog: Catalog, executor: ExecutionService | None = None) 
 
 
 def make_mcp_app(catalog: Catalog):
+    base = str(get_settings().public_base_url).rstrip("/")
+    authority = urlsplit(base).netloc
     app = make_mcp_server(catalog).streamable_http_app(
-        streamable_http_path="/", json_response=True, stateless_http=True
+        streamable_http_path="/", json_response=True, stateless_http=True,
+        transport_security=TransportSecuritySettings(
+            enable_dns_rebinding_protection=True,
+            allowed_hosts=[authority], allowed_origins=[base],
+        ),
     )
     app.add_middleware(MCPB2BAuthMiddleware)
     return app

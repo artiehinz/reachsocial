@@ -286,7 +286,10 @@ class ExecutionService:
     ) -> ProviderResult:
         adapter = adapter_for(service)
         last_error: ReachSocialError | None = None
-        for attempt_number in range(service.retries + 1):
+        max_attempts = service.retries + 1
+        if public_test:
+            max_attempts = min(max_attempts, get_settings().public_provider_max_attempts)
+        for attempt_number in range(max_attempts):
             started = time.perf_counter()
             try:
                 if provider_context is None:
@@ -314,7 +317,7 @@ class ExecutionService:
                     error=error,
                     public_test=public_test,
                 )
-                if not error.retryable or attempt_number >= service.retries:
+                if not error.retryable or attempt_number >= max_attempts - 1:
                     raise
         assert last_error is not None
         raise last_error

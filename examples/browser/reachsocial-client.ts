@@ -212,6 +212,7 @@ export async function executeReachSocial(
   input: Record<string, unknown>,
   baseUrl = BASE_URL,
   idempotencyKey: string = crypto.randomUUID(),
+  approvalToken?: string,
 ) {
   baseUrl = checkedBaseUrl(baseUrl);
   if (!/^[a-z0-9]+(?:[._-][a-z0-9]+)*$/.test(serviceId) ||
@@ -238,7 +239,9 @@ export async function executeReachSocial(
       method: "POST",
       credentials: "omit",
       redirect: "error",
-      headers: { "Content-Type": "application/json", "Idempotency-Key": idempotencyKey },
+      headers: { "Content-Type": "application/json", "Idempotency-Key": idempotencyKey,
+        ...(approvalToken ? { "X-ReachSocial-Approval": approvalToken } : {}),
+      },
       body,
     });
     if (!response.ok) throw new Error(`ReachSocial returned HTTP ${response.status}`);

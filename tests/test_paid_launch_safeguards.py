@@ -270,3 +270,28 @@ def test_paid_async_recovery_survives_a_lost_job_token(session, client) -> None:
         input_data=input_data,
     )
     assert recovered and recovered[0].job_id == "job_paid"
+
+
+@pytest.mark.asyncio
+async def test_public_acceptance_can_enforce_one_provider_attempt(session, catalog, monkeypatch):
+    from reachsocial.config import get_settings
+    from reachsocial.errors import ProviderTimeout
+    from reachsocial.runtime import RuntimeState
+    monkeypatch.setenv('PUBLIC_PROVIDER_MAX_ATTEMPTS', '1')
+    get_settings.cache_clear()
+    calls = []
+    class Adapter:
+        async def execute(self, service, input_data):
+            calls.append(service.id)
+            raise ProviderTimeout('simulated timeout')
+    monkeypatch.setattr('reachsocial.services.adapter_for', lambda _: Adapter())
+    executor = ExecutionService(catalog, RuntimeState())
+    monkeypatch.setattr(executor, '_record_attempt', lambda *args, **kwargs: None)
+    service = catalog.by_id('instagram.profile').model_copy(update={'retries': 2})
+    try:
+        with pytest.raises(ProviderTimeout):
+            await executor._provider_call(session, request_id='acceptance-test', service=service,
+                                          input_data={}, public_test=True)
+        assert calls == ['instagram.profile']
+    finally:
+        get_settings.cache_clear()

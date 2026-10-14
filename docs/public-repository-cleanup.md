@@ -44,3 +44,11 @@ historical objects and cached views before we reopen this documentation repo.
 
 GitHub determines eligibility for support-assisted removal; its documentation
 says non-sensitive data is not eligible. This draft has not been sent.
+
+## Recheck — 2026-10-14
+
+The repository was found public again during the self-service release audit.
+The historical commit above was still resolvable. Under the owner's explicit
+instruction to keep the repository private until cleanup is verified, visibility
+was restored to private and confirmed through GitHub's API. Historical-object
+removal is still unresolved. This does not recall previously downloaded copies.

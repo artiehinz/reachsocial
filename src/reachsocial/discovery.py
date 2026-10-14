@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from copy import deepcopy
 from html import escape
 from typing import Any
 
@@ -7,7 +8,7 @@ from fastapi import FastAPI
 from fastapi.openapi.utils import get_openapi
 
 from .catalog import Catalog, InputField, ServiceDefinition
-from .config import Settings, x402_network_label
+from .config import Settings, get_settings, x402_network_label
 
 
 def _schema_name(service: ServiceDefinition) -> str:
@@ -234,6 +235,15 @@ def build_openapi_schema(app: FastAPI, catalog: Catalog) -> dict[str, Any]:
         servers=app.servers,
     )
     components = schema.setdefault("components", {})
+    schema["info"]["contact"] = {"email": get_settings().public_contact_email, "url": str(get_settings().public_base_url).rstrip("/") + "/contact"}
+    schema["info"]["x-guidance"] = (
+        "Read /v1/services and /status.json for current availability and payment metadata. "
+        "Public execution needs no ReachSocial API key. Send JSON {input: {...}} and a random "
+        "32–255 character Idempotency-Key, saved before payment. Verify the actual x402 v2 "
+        "challenge's network, native USDC asset, receiver, resource, and price before signing. "
+        "On a lost response, POST the same input and key to /v1/payments/recover/{service_id}; "
+        "recovery never requires another payment. Never generate a new key to retry an uncertain payment."
+    )
     components.setdefault("schemas", {}).update(_base_schemas())
     components["securitySchemes"] = {
         "bearerAuth": {
@@ -366,7 +376,63 @@ def build_openapi_schema(app: FastAPI, catalog: Catalog) -> dict[str, Any]:
         }
         for service in catalog.discoverable_services()
     ]
+    # Concrete operations describe the existing parameterized runtime route. Only
+    # reviewed public services belong in paid discovery; private adapters do not.
+    for service in sync_services:
+        if not execute:
+            break
+        operation = deepcopy(execute)
+        operation["operationId"] = "execute_" + service.id.replace(".", "_")
+        operation["summary"] = service.title
+        operation["description"] = service.description + " Save your idempotency key before paying."
+        operation["parameters"] = [
+            parameter for parameter in operation.get("parameters", [])
+            if parameter.get("in") == "header"
+            and parameter.get("name", "").lower() == "idempotency-key"
+        ]
+        for parameter in operation["parameters"]:
+            parameter.update(required=True, schema={"type": "string", "minLength": 32, "maxLength": 255})
+        operation["security"] = [{"x402Payment": []}]
+        operation["requestBody"]["content"]["application/json"]["schema"] = {
+            "$ref": f"#/components/schemas/{_schema_name(service)}"
+        }
+        examples = {
+            "instagram.profile": "https://www.instagram.com/instagram/",
+            "instagram.post": "https://www.instagram.com/p/EXAMPLE/",
+            "instagram.feed": "https://www.instagram.com/instagram/",
+            "instagram.highlight": "https://www.instagram.com/stories/highlights/12345678901234567/",
+            "x.profile": "https://x.com/example", "x.feed": "https://x.com/example",
+            "x.post": "https://x.com/example/status/1234567890",
+            "tiktok.profile": "https://www.tiktok.com/@example", "tiktok.feed": "https://www.tiktok.com/@example",
+            "tiktok.video": "https://www.tiktok.com/@example/video/1234567890",
+            "youtube.channel": "https://www.youtube.com/@YouTube", "youtube.feed": "https://www.youtube.com/@YouTube",
+            "youtube.video": "https://www.youtube.com/watch?v=EXAMPLE1234",
+            "facebook.profile": "https://www.facebook.com/example", "reddit.post": "https://www.reddit.com/comments/abc123/",
+        }
+        if service.id in examples:
+            operation["requestBody"]["content"]["application/json"]["examples"] = {
+                "request": {"summary": "Illustrative input; example content IDs may not exist", "value": {"input": {"url": examples[service.id]}}}
+            }
+        operation["x-payment-info"] = {
+            "protocols": [{"x402": {}}],
+            "price": {"mode": "fixed", "currency": "USD", "amount": f"{service.price_cents / 100:.6f}"},
+        }
+        operation["responses"]["200"]["headers"] = {
+            "PAYMENT-RESPONSE": {"description": "Base64-encoded x402 settlement response.", "schema": {"type": "string"}}
+        }
+        paths[f"/v1/services/{service.id}/execute"] = {"post": operation}
     return schema
+
+
+def mcp_access_guidance(settings: Settings) -> str:
+    if settings.oauth_enabled and settings.mcp_payment_approval_enabled and not settings.oauth_validation_wallets:
+        return (
+            "Connect to /mcp/ using OAuth, sign in with your wallet, and approve agent access. "
+            "A service tool returns a payment_required request and browser payment link. "
+            "Approve that exact request, then use get_reachsocial_request with its request ID. "
+            "Login is not payment authorization; result retrieval never creates a payment."
+        )
+    return "MCP currently requires approved B2B Bearer access. Self-service OAuth/payment access is not publicly released. Use public REST with an x402-compatible client."
 
 
 def llms_text(catalog: Catalog, settings: Settings) -> str:
@@ -415,6 +481,7 @@ def llms_text(catalog: Catalog, settings: Settings) -> str:
             "- Anonymous public calls require a random 32–255 character `Idempotency-Key`, then receive an x402 v2 `402 Payment Required` challenge on "
             f"{x402_network_label(settings.x402_network)}. Sign the exact requirement and retry once with `PAYMENT-SIGNATURE`.",
             "- Never submit a wallet private key, provider token, or B2B API key as service input.",
+            mcp_access_guidance(settings),
             "",
             "## Execution rule",
             "",
@@ -465,7 +532,8 @@ def agent_text(catalog: Catalog, settings: Settings) -> str:
             f"- MCP server card: {base}/.well-known/mcp.json",
             "",
             f"Currently available services: {', '.join(service.id for service in catalog.public_services())}.",
-            "MCP is an authenticated B2B surface and may be disabled. A 503 server-card or MCP response means use REST, not that a public unauthenticated MCP endpoint exists.",
+            mcp_access_guidance(settings),
+            "A 503 MCP response is not permission to bypass authentication or retry a payment.",
         ]
     )
 
@@ -507,13 +575,17 @@ def mcp_server_card(settings: Settings) -> dict[str, Any]:
         "$schema": "https://static.modelcontextprotocol.io/schemas/v1/server-card.schema.json",
         "name": "dev.reachsocial/social-data",
         "title": "ReachSocial",
-        "description": "Provider-neutral social data tools for approved B2B clients.",
+        "description": (
+            "Public social data with wallet login and per-request browser payment approval."
+            if settings.oauth_enabled and settings.mcp_payment_approval_enabled and not settings.oauth_validation_wallets
+            else "Provider-neutral social data tools for approved B2B clients."
+        ),
         "version": "0.2.0",
         "websiteUrl": base,
         "remotes": [
             {
                 "type": "streamable-http",
-                "url": f"{base}/mcp",
+                "url": f"{base}/mcp/",
                 "supportedProtocolVersions": ["2025-06-18", "2025-03-26"],
             }
         ],

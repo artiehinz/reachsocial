@@ -5,7 +5,10 @@ from logging.config import fileConfig
 from alembic import context
 from sqlalchemy import engine_from_config, pool
 
-from reachsocial import models  # noqa: F401
+from reachsocial import (
+    models,  # noqa: F401
+    oauth_store,  # noqa: F401
+)
 from reachsocial.config import get_settings
 from reachsocial.db import Base
 

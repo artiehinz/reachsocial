@@ -1,5 +1,7 @@
 # ReachSocial readiness and next release gates
 
+Current self-service implementation and remaining release gates: [self-service release](self-service-release.md).
+
 Updated: 2026-10-14
 
 ## Current catalog truth
@@ -145,8 +147,8 @@ is recorded separately. No purchase is required for existing-credit tests.
 5. Promote only services that complete their paid recovery acceptance, then
    observe and reconcile each stage for 24 hours.
 
-Public x402 MCP, prepaid balances, and broad directory submissions remain later
-gates. Eight synchronous services are active on Base mainnet; private services
+Self-service OAuth/MCP payment approval and directory publication are now tracked
+in the self-service release plan. Prepaid balances remain out of scope. Eight synchronous services are active on Base mainnet; private services
 still need their own release decision and evidence.
 
 ## Browser developer onboarding

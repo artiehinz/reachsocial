@@ -39,6 +39,26 @@ def test_health_and_mcp_gate() -> None:
             "headers"
         ]["PAYMENT-REQUIRED"]
         assert len(openapi["x-reachsocial-services"]) == 18
+        assert "recover" in openapi["info"]["x-guidance"]
+        paid_operations = {
+            path: item["post"] for path, item in openapi["paths"].items()
+            if "post" in item and "x-payment-info" in item["post"]
+        }
+        assert len(paid_operations) == 8
+        assert "/v1/services/youtube.video/execute" not in paid_operations
+        assert "/v1/services/linkedin.profile/execute" not in paid_operations
+        for path, operation in paid_operations.items():
+            assert "{" not in path
+            assert operation["x-payment-info"] == {
+                "protocols": [{"x402": {}}],
+                "price": {"mode": "fixed", "currency": "USD", "amount": "0.050000"},
+            }
+            assert operation["parameters"] == [{
+                "name": "Idempotency-Key", "in": "header", "required": True,
+                "schema": {"type": "string", "minLength": 32, "maxLength": 255},
+            }]
+            assert "PAYMENT-REQUIRED" in operation["responses"]["402"]["headers"]
+            assert "PAYMENT-RESPONSE" in operation["responses"]["200"]["headers"]
         assert client.get("/healthz").json() == {"status": "ok"}
         assert client.get("/readyz").json()["status"] == "ready"
         assert client.post("/mcp").status_code == 503

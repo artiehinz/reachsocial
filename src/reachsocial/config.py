@@ -24,6 +24,10 @@ class Settings(BaseSettings):
     catalog_path: Path = Path("config/services.yaml")
     scrapecreators_api_key: str = ""
     mcp_enabled: bool = False
+    oauth_enabled: bool = False
+    mcp_payment_approval_enabled: bool = False
+    # Optional temporary owner-only validation gate; empty permits self-service.
+    oauth_validation_wallets: str = ""
     admin_api_token: str = ""
     x402_enabled: bool = False
     x402_network: str = "eip155:84532"
@@ -32,6 +36,7 @@ class Settings(BaseSettings):
     cdp_api_key_id: str = ""
     cdp_api_key_secret: str = ""
     support_email: str = "hello@artiehinz.com"
+    public_contact_email: str = "artemhinz2@gmail.com"
     external_backup_enabled: bool = False
     allow_mainnet_x402: bool = False
     mainnet_x402_canary_enabled: bool = False
@@ -51,6 +56,7 @@ class Settings(BaseSettings):
     scrapecreators_credit_reserve: int = Field(default=0, ge=0)
     public_payments_paused: bool = False
     public_test_rate_limit_per_minute: int = Field(default=5, ge=1, le=1000)
+    public_provider_max_attempts: int = Field(default=3, ge=1, le=3)
     public_test_daily_requests_per_identity: int = Field(default=20, ge=1, le=10000)
     max_request_body_bytes: int = Field(default=65_536, ge=1_024, le=1_048_576)
     max_payment_header_bytes: int = Field(default=16_384, ge=1_024, le=65_536)
