@@ -66,6 +66,7 @@ h3 { margin: 0 0 .55rem; letter-spacing: -.025em; }
 .button { display: inline-flex; align-items: center; justify-content: center; background: var(--accent); color: #07100d; padding: 11px 18px; border-radius: 6px; font-weight: 800; }
 .button:hover { transform: translateY(-1px); }
 .button.secondary { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+header nav .button { color: #07100d; }
 .machine-links { display: flex; flex-wrap: wrap; gap: 18px; margin-top: 28px; color: var(--muted); font: .82rem ui-monospace, SFMono-Regular, Menlo, monospace; }
 
 
