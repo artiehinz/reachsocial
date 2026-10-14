@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { beforeEach, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => ({ provider: { request: vi.fn() }, execute: vi.fn(), connect: vi.fn() }));
-vi.mock('../../static/wallet.js', () => ({ collectWallets: callback => callback(new Map([
+vi.mock('../../static/wallet.js?v=20261014-4', () => ({ collectWallets: callback => callback(new Map([
   ['wallet', { info: { name: 'Test wallet' }, provider: mocks.provider }],
 ])) }));
 vi.mock('../../static/reachsocial-client.js', () => ({ executeReachSocial: mocks.execute, connectBrowserWallet: mocks.connect }));
@@ -42,7 +42,7 @@ it('payment page refresh never signs and approval executes only once', async () 
     if (url === '/auth/session') return { address: ADDRESS, csrf: 'csrf' };
     if (url === '/status.json') return { payment: { receiver: ADDRESS } };
     if (url.endsWith('/approve')) return { service: 'instagram.profile', input: { url: 'https://www.instagram.com/instagram/' }, payment_key: 'mcp_key', authorization: 'approval', owner: ADDRESS };
-    return { status: paid ? 'succeeded' : 'payment_required', owner: ADDRESS, service: 'instagram.profile', input: {}, ...(paid ? { result: { status: 'success' } } : {}) };
+    return { status: paid ? 'succeeded' : 'payment_required', price_cents: 5, owner: ADDRESS, service: 'instagram.profile', input: {}, ...(paid ? { result: { status: 'success' } } : {}) };
   } }));
   mocks.connect.mockResolvedValue(ADDRESS);
   mocks.execute.mockImplementation(async () => { paid = true; });
@@ -57,4 +57,29 @@ it('payment page refresh never signs and approval executes only once', async () 
   document.querySelector('[data-payment-refresh]').click(); await tick();
   expect(mocks.execute).toHaveBeenCalledTimes(1);
   expect(approve.disabled).toBe(true);
+});
+
+it('shows the rejected account and the actual access restriction without requesting a signature', async () => {
+  document.body.innerHTML = `<div data-account><select data-account-wallet></select><button data-account-login></button>
+    <span data-account-address></span><p data-account-status></p><div data-account-details hidden></div>
+    <button data-account-approve></button><button data-account-deny></button><button data-account-logout></button></div>`;
+  global.fetch = vi.fn(async url => ({ ok: false, status: url === '/auth/session' ? 401 : 403,
+    json: async () => ({ error: { message: url === '/auth/session' ? 'Sign in with your wallet' : 'Self-service access is in limited validation' } }) }));
+  mocks.provider.request.mockResolvedValue([ADDRESS]);
+  await import('../../static/account.js'); await tick();
+  document.querySelector('[data-account-login]').click(); await tick(); await tick();
+  expect(document.querySelector('[data-account-address]').textContent).toBe(ADDRESS);
+  expect(document.querySelector('[data-account-status]').textContent).toContain('site permissions');
+  expect(document.querySelector('[data-account-status]').textContent).not.toContain('session expired');
+  expect(mocks.provider.request.mock.calls.map(([args]) => args.method)).toEqual(['eth_requestAccounts']);
+});
+
+it('distinguishes origin rejection, expired session, and pending settlement', async () => {
+  const { responseError, requestStatus } = await import('../../static/self-service-ui.js');
+  const error = await responseError({ status: 403, json: async () => ({ error: { message: 'A same-origin browser request is required' } }) });
+  expect(error.message).toContain('origin');
+  const expired = await responseError({ status: 401, json: async () => { throw new Error('not JSON'); } });
+  expect(expired.message).toContain('session');
+  expect(requestStatus({ status: 'reconciliation_required' })).toContain('do not pay again');
+  expect(requestStatus({ status: 'succeeded' })).toContain('without paying');
 });

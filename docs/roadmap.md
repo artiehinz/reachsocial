@@ -1,5 +1,7 @@
 # ReachSocial roadmap
 
+Remaining work after owner acceptance: [onboarding and release plan](onboarding-remaining-plan.md).
+
 Current self-service implementation and remaining release gates: [self-service release](self-service-release.md).
 
 ## Paid MVP catalog completion — current state

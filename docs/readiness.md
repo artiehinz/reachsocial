@@ -1,5 +1,7 @@
 # ReachSocial readiness and next release gates
 
+Remaining work after owner acceptance: [onboarding and release plan](onboarding-remaining-plan.md).
+
 Current self-service implementation and remaining release gates: [self-service release](self-service-release.md).
 
 Updated: 2026-10-14

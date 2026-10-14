@@ -1,18 +1,23 @@
 {% extends "base.html" %}
-{% block title %}Approve a request — ReachSocial{% endblock %}
+{% block title %}Review your request — ReachSocial{% endblock %}
 {% block content %}
-<section class="page-intro"><h1>Approve one request.</h1>
-<p>Pay $0.05 in native USDC on Base. Your wallet approves this request only.</p></section>
-<section class="docs-section" data-payment-request="{{ request_id }}">
-<p><a href="/account">Sign in with your wallet</a> first, then return to this page.</p>
-<pre data-payment-summary>Loading request…</pre>
-<label for="payment-wallet">Browser wallet</label><select id="payment-wallet" data-payment-wallet></select>
+<div class="access-page">
+<section class="page-intro"><h1>Review your request.</h1>
+<p>Check the target and price before approving a payment. Your agent can retrieve the result when it is ready.</p></section>
+<section class="access-panel" data-payment-request="{{ request_id }}">
+<p><a href="/account" target="_blank" rel="noopener noreferrer">Sign in with the wallet that created this request</a> if needed, then return here and refresh.</p>
+<div data-payment-summary>Loading request details…</div>
+<div class="wallet-controls">
+<label for="payment-wallet">Wallet extension</label><select id="payment-wallet" data-payment-wallet></select>
 <button class="button primary" data-payment-approve disabled>Approve $0.05 payment</button>
 <button class="button secondary" data-payment-refresh>Refresh result</button>
-<p data-payment-status role="status" aria-live="polite"></p>
-<pre data-payment-result hidden></pre>
-<p>Your agent can retrieve the result with the original request ID. Refreshing never starts another payment.</p>
+</div>
+<p class="access-status" data-payment-status role="status" aria-live="polite"></p>
+<p class="muted">Use the account that created this request. Refreshing only retrieves its status or saved result; it never starts another payment.</p>
+<pre class="access-result" data-payment-result hidden></pre>
+<details class="access-help"><summary>Request reference</summary><code class="wrap-code" data-payment-reference>{{ request_id }}</code><p>Keep this reference if a payment or result needs review.</p></details>
 <noscript>Enable JavaScript and use an installed browser wallet to approve this request.</noscript>
 </section>
-<script type="module" src="/static/payment.js?v=20261014-1"></script>
+</div>
+<script type="module" src="/static/payment.js?v=20261014-2"></script>
 {% endblock %}

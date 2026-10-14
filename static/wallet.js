@@ -97,7 +97,7 @@ export function initializeWalletReadiness(root) {
     if (refreshButton) refreshButton.hidden = !account;
     switchButton.disabled = busy;
   };
-  const reset = (message = "Wallet disconnected from this page.") => {
+  const reset = (message = "Disconnected from this page. Your wallet still remembers its site permissions; change connected accounts in the wallet extension.") => {
     generation++;
     readVersion++;
     removeProviderListeners();
