@@ -123,11 +123,24 @@ settlement states, stuck jobs, provider units, available public credits, and
 receipt/provider reconciliation differences. Pause new payments on any
 unexplained difference while preserving retrieval and accepted-job completion.
 
-Critical payment, provider, capacity, job, memory, or disk alerts also latch a
-runtime payment pause and make `/readyz` return 503. DigitalOcean checks that
-endpoint from three regions and emails the verified account after a two-minute
-global outage; a separate policy warns 14 days before TLS expiry. Fix the cause
-and recreate only the app container with the current image to clear the latch.
+System-wide payment, capacity, job, memory, or disk alerts latch a runtime pause
+for all new payments and make `/readyz` return 503. A failed live provider-balance
+check remains system-wide because every ScrapeCreators settlement depends on it.
+
+Repeated retryable provider failures are isolated by service. Three distinct
+logical requests for one service within ten minutes open that service's circuit;
+provider retries for one request count once, and terminal content results such as
+`not_found` do not count. The affected route returns 503 before issuing a payment
+challenge, while unrelated services remain available. `/readyz` returns 200 with
+`status=degraded` and the affected service IDs. A later provider success, or a
+clean rolling-window check, closes the circuit automatically. Stored-result
+recovery bypasses both service and global payment pauses. Replacement credits
+remain valid but wait for the affected service circuit to close before execution.
+
+DigitalOcean checks `/readyz` from three regions and emails the verified account
+after a two-minute global outage; a separate policy warns 14 days before TLS
+expiry. Investigate every global pause before resuming it. Automatic service
+circuits need no container restart.
 
 ## Wallet custody and launch release
 

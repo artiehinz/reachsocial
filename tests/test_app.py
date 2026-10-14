@@ -1,6 +1,6 @@
 from fastapi.testclient import TestClient
 
-from reachsocial.alerts import apply_payment_pause
+from reachsocial.alerts import OperationalAlert, apply_payment_pause
 from reachsocial.api import ExecuteRequest, resolve
 from reachsocial.config import x402_network_label
 from reachsocial.main import app
@@ -115,12 +115,12 @@ def test_x402_network_label_tracks_the_selected_network() -> None:
 
 def test_readiness_reports_an_automatic_payment_pause() -> None:
     with TestClient(app) as client:
-        app.state.runtime.pause_public_payments("provider_failures")
+        app.state.runtime.pause_public_payments("payment_failures")
         response = client.get("/readyz")
         assert response.status_code == 503
         assert response.json() == {
             "status": "payments_paused",
-            "reason": "provider_failures",
+            "reason": "payment_failures",
         }
         app.state.runtime.public_payments_paused_reason = None
 
@@ -132,6 +132,34 @@ def test_clean_alert_recheck_resumes_an_automatic_payment_pause() -> None:
     apply_payment_pause(runtime, [])
 
     assert runtime.public_payments_paused_reason is None
+
+
+def test_provider_alert_degrades_only_its_public_service() -> None:
+    with TestClient(app) as client:
+        apply_payment_pause(
+            app.state.runtime,
+            [
+                OperationalAlert(
+                    "provider_failures",
+                    "count_10m=3 service=instagram.profile",
+                    service_id="instagram.profile",
+                )
+            ],
+            frozenset({"instagram.profile", "instagram.post"}),
+        )
+
+        readiness = client.get("/readyz")
+        status = client.get("/status.json")
+
+        assert readiness.status_code == 200
+        assert readiness.json() == {
+            "status": "degraded",
+            "services": 18,
+            "degraded_services": ["instagram.profile"],
+        }
+        assert status.json()["status"] == "degraded"
+        assert status.json()["degraded_services"] == ["instagram.profile"]
+        apply_payment_pause(app.state.runtime, [])
 
 
 def test_cache_headers_only_allow_public_get_routes() -> None:

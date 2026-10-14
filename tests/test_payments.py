@@ -611,6 +611,101 @@ async def test_runtime_alert_pause_blocks_new_payment_challenges(catalog) -> Non
 
 
 @pytest.mark.asyncio
+async def test_service_alert_pause_blocks_only_affected_payment_challenge(catalog) -> None:
+    other_service = catalog.by_id("instagram.profile").model_copy(
+        update={"id": "x.profile", "title": "X Profile"}
+    )
+    scoped_catalog = Catalog(services=[catalog.by_id("instagram.profile"), other_service])
+    middleware = object.__new__(ReachSocialX402Middleware)
+    middleware._catalog = scoped_catalog
+    payment_calls = []
+
+    async def payment_handler(request, call_next):
+        del call_next
+        payment_calls.append(request.url.path)
+        return JSONResponse({"payment": "required"}, status_code=402)
+
+    middleware._payment_handler = payment_handler
+    runtime = RuntimeState()
+    runtime.replace_public_service_payment_pauses(
+        {"instagram.profile": "provider_failures"}
+    )
+
+    def request_for(service_id: str) -> Request:
+        return Request(
+            {
+                "type": "http",
+                "method": "POST",
+                "path": f"/v1/services/{service_id}/execute",
+                "headers": [(b"idempotency-key", b"a" * 32)],
+                "query_string": b"",
+                "scheme": "https",
+                "server": ("reachsocial.test", 443),
+                "app": SimpleNamespace(
+                    state=SimpleNamespace(settings=Settings(), runtime=runtime)
+                ),
+            }
+        )
+
+    affected = await middleware.dispatch(request_for("instagram.profile"), lambda _request: None)
+    unaffected = await middleware.dispatch(request_for("x.profile"), lambda _request: None)
+
+    assert affected.status_code == 503
+    assert affected.body == (
+        b'{"error":{"code":"service_temporarily_unavailable",'
+        b'"message":"This service is temporarily unavailable before payment",'
+        b'"retryable":true}}'
+    )
+    assert unaffected.status_code == 402
+    assert payment_calls == ["/v1/services/x.profile/execute"]
+
+
+@pytest.mark.asyncio
+async def test_paid_recovery_bypasses_a_service_alert_pause(catalog, monkeypatch) -> None:
+    middleware = object.__new__(ReachSocialX402Middleware)
+    middleware._catalog = catalog
+    payment_calls = []
+
+    async def payment_handler(request, call_next):
+        del request, call_next
+        payment_calls.append(True)
+        return JSONResponse({"payment": "required"}, status_code=402)
+
+    async def recovered_result(request):
+        del request
+        return JSONResponse({"result": "stored"})
+
+    monkeypatch.setattr(
+        "reachsocial.payments._has_paid_idempotency_recovery", lambda *_args: True
+    )
+    middleware._payment_handler = payment_handler
+    runtime = RuntimeState()
+    runtime.replace_public_service_payment_pauses(
+        {"instagram.profile": "provider_failures"}
+    )
+    request = Request(
+        {
+            "type": "http",
+            "method": "POST",
+            "path": "/v1/services/instagram.profile/execute",
+            "headers": [(b"idempotency-key", b"a" * 32)],
+            "query_string": b"",
+            "scheme": "https",
+            "server": ("reachsocial.test", 443),
+            "app": SimpleNamespace(
+                state=SimpleNamespace(settings=Settings(), runtime=runtime)
+            ),
+        }
+    )
+
+    response = await middleware.dispatch(request, recovered_result)
+
+    assert response.status_code == 200
+    assert response.body == b'{"result":"stored"}'
+    assert payment_calls == []
+
+
+@pytest.mark.asyncio
 async def test_signed_payment_is_rate_limited_before_x402_handler(catalog, monkeypatch) -> None:
     middleware = object.__new__(ReachSocialX402Middleware)
     middleware._catalog = catalog

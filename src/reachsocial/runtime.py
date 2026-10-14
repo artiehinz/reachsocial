@@ -46,6 +46,7 @@ class RuntimeState:
         self.public_upstream_reserved_microusd = 0
         self.idempotency_locks: dict[str, IdempotencyLock] = {}
         self.public_payments_paused_reason: str | None = None
+        self.public_service_payment_pauses: dict[str, str] = {}
         self._lock = asyncio.Lock()
 
     def pause_public_payments(self, reason: str) -> None:
@@ -54,6 +55,16 @@ class RuntimeState:
     def resume_public_payments(self) -> None:
         """Clear an automatic pause after every launch guard has passed again."""
         self.public_payments_paused_reason = None
+
+    def replace_public_service_payment_pauses(self, pauses: dict[str, str]) -> None:
+        """Replace service-level circuit breakers after a fresh alert check."""
+        self.public_service_payment_pauses = dict(pauses)
+
+    def public_service_payment_pause_reason(self, service_id: str) -> str | None:
+        return self.public_service_payment_pauses.get(service_id)
+
+    def degraded_public_services(self) -> list[str]:
+        return sorted(self.public_service_payment_pauses)
 
     async def acquire(
         self,

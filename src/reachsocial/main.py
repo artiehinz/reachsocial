@@ -120,7 +120,12 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
     maintenance_task = asyncio.create_task(maintenance_loop())
     job_task = asyncio.create_task(app.state.job_worker.run())
-    alert_task = asyncio.create_task(alert_loop(app.state.runtime))
+    alert_task = asyncio.create_task(
+        alert_loop(
+            app.state.runtime,
+            frozenset(service.id for service in catalog.public_services()),
+        )
+    )
     logging.getLogger("reachsocial").info(
         "ReachSocial started with %s services", len(catalog.services)
     )
@@ -327,6 +332,15 @@ def create_app() -> FastAPI:
                 status_code=503,
                 content={"status": "payments_paused", "reason": pause_reason},
             )
+        degraded_services = request.app.state.runtime.degraded_public_services()
+        if degraded_services:
+            return JSONResponse(
+                {
+                    "status": "degraded",
+                    "services": len(request.app.state.catalog.services),
+                    "degraded_services": degraded_services,
+                }
+            )
         return JSONResponse(
             {"status": "ready", "services": len(request.app.state.catalog.services)}
         )
@@ -335,12 +349,24 @@ def create_app() -> FastAPI:
     async def status_json(request: Request) -> dict[str, object]:
         settings = request.app.state.settings
         catalog = request.app.state.catalog
+        degraded_services = request.app.state.runtime.degraded_public_services()
+        globally_paused = bool(
+            settings.public_payments_paused
+            or request.app.state.runtime.public_payments_paused_reason
+        )
         return {
-            "status": "operational",
+            "status": (
+                "payments_paused"
+                if globally_paused
+                else "degraded"
+                if degraded_services
+                else "operational"
+            ),
             "services": len(catalog.public_services()),
             "catalog_services": len(catalog.discoverable_services()),
             "mcp": "available" if settings.mcp_enabled else "disabled",
             "network": settings.x402_network if settings.x402_enabled else "payments-disabled",
+            "degraded_services": degraded_services,
         }
 
     @app.get("/llms.txt", include_in_schema=False)

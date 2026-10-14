@@ -50,12 +50,13 @@ catalog service uses Apify, and production has no queued or running Apify jobs.
    before their payment challenge unless the idempotency key is 32–255
    characters. Existing paid records remain recoverable with their original
    key and matching input. Bundled buyer scripts now generate 128 random bits.
-4. **Monitoring — resolved.** Critical application alerts latch an in-process
-   pause for new payment challenges and make `/readyz` return 503. Paid recovery
-   and accepted background jobs remain available. A three-region DigitalOcean
+4. **Monitoring — resolved.** System-wide application alerts latch an in-process
+   pause for every new payment challenge and make `/readyz` return 503. Repeated
+   retryable failures in one provider route isolate that service before payment;
+   `/readyz` remains 200 and reports the degraded service. Paid recovery and
+   accepted background jobs remain available. A three-region DigitalOcean
    uptime check watches `/readyz`; global failure and TLS-expiry policies notify
-   the verified DigitalOcean account email. Resume after investigation by
-   recreating the app with healthy conditions and the existing image.
+   the verified DigitalOcean account email.
 
 ## Security review scope and observations
 

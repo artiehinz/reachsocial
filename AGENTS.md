@@ -98,10 +98,11 @@ The health endpoint is `/healthz`. Public discovery starts at `/agent.md`,
 
 ## Payments and provider safety
 
-- Normal public x402 uses Base mainnet for `instagram.profile` and
-  `instagram.post`. The canary and independent acceptance handlers are
-  disarmed. All other catalog services remain private until their individual
-  provider, paid-recovery, and observation gates in `docs/roadmap.md` pass.
+- Normal public x402 uses Base mainnet for services marked available in the
+  reviewed catalog. The canary and independent acceptance handlers are
+  disarmed. See `docs/readiness.md` for the current executable set; private
+  services still require their individual provider, paid-recovery, and
+  observation gates in `docs/roadmap.md` before promotion.
 - The CDP credential was rotated before the two-service mainnet release. Do
   not expose another public service merely because its adapter works.
 - The public Instagram routes use the documented 1,880 micro-USD
@@ -123,8 +124,9 @@ The health endpoint is `/healthz`. Public discovery starts at `/agent.md`,
   `reconciliation_required`, never an automatic retry or assumed cancellation.
   See `docs/public-payment-operations.md`.
 - New anonymous paid calls require a random 32–255 character idempotency key.
-  Critical operational alerts latch new payments off and surface through
-  `/readyz` to the DigitalOcean uptime alert; recovery and accepted jobs remain
-  available.
+  System-wide operational alerts latch all new payments off and make `/readyz`
+  return 503. Repeated retryable failures in one provider route open only that
+  public service's circuit before payment; `/readyz` remains 200 with a degraded
+  service list. Recovery and accepted jobs remain available in both cases.
 - Never log raw provider payloads, provider credentials, wallet secrets, B2B
   API keys, or unredacted environment files.

@@ -750,15 +750,31 @@ class ReachSocialX402Middleware(BaseHTTPMiddleware):
             definition = self._catalog.by_id(service)
             if definition is None or not (definition.enabled and definition.public):
                 return await call_next(request)
-            if (
-                request.app.state.settings.public_payments_paused
-                or request.app.state.runtime.public_payments_paused_reason
-            ):
+        idempotency_key = request.headers.get("idempotency-key")
+        if idempotency_key and service and _has_paid_idempotency_recovery(service, idempotency_key):
+            return await call_next(request)
+        if service:
+            global_pause = (
+                "operator_pause"
+                if request.app.state.settings.public_payments_paused
+                else request.app.state.runtime.public_payments_paused_reason
+            )
+            service_pause = request.app.state.runtime.public_service_payment_pause_reason(service)
+            if global_pause or service_pause:
+                service_scoped = global_pause is None
                 return JSONResponse(
                     {
                         "error": {
-                            "code": "payments_paused",
-                            "message": "New public payments are temporarily paused",
+                            "code": (
+                                "service_temporarily_unavailable"
+                                if service_scoped
+                                else "payments_paused"
+                            ),
+                            "message": (
+                                "This service is temporarily unavailable before payment"
+                                if service_scoped
+                                else "New public payments are temporarily paused"
+                            ),
                             "retryable": True,
                         }
                     },
@@ -769,9 +785,6 @@ class ReachSocialX402Middleware(BaseHTTPMiddleware):
 
             if definition and credit_is_valid(credit, service, definition.price_cents):
                 return await call_next(request)
-        idempotency_key = request.headers.get("idempotency-key")
-        if idempotency_key and service and _has_paid_idempotency_recovery(service, idempotency_key):
-            return await call_next(request)
         if service and not idempotency_key:
             return JSONResponse(
                 {

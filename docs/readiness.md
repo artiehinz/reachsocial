@@ -1,6 +1,6 @@
 # ReachSocial readiness and next release gates
 
-Updated: 2026-10-11
+Updated: 2026-10-13
 
 ## Current catalog truth
 
@@ -40,6 +40,15 @@ with Instagram profile/post, eight current services have paid acceptance.
 The new batch still needs its 24-hour observation and receipt/provider
 reconciliation. Seven private integrations still need paid acceptance before
 public promotion. No further paid tests were performed for this status update.
+
+On 2026-10-13, three logical `instagram.profile` requests produced six retry
+attempt failures while terminal `instagram.feed` lookups also returned
+`not_found`. The original aggregate provider alarm paused every public payment
+route for roughly fifteen minutes even though the host, website, proxy, and
+unrelated services remained healthy. Runtime isolation now counts distinct
+logical retryable failures, excludes terminal content results, and opens a
+pre-payment circuit only for the affected public service. Global credit,
+settlement, database, job, memory, and disk safeguards remain global.
 
 ## URL resolution contract
 
