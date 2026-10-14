@@ -203,6 +203,7 @@ async def consent_details(request: Request, flow: str):
         return {
             "client_name": row.payload["client_name"],
             "client_id": row.payload["client_id"],
+            "redirect_uri": row.payload["params"]["redirect_uri"],
             "scope": SCOPE,
             "message": "Access public tools and your requests. Each payment needs separate approval.",
         }
@@ -283,6 +284,14 @@ def install_oauth(app, settings):
     @app.middleware("http")
     async def auth_guard(request: Request, call_next):
         path = request.url.path
+        if path in {
+            "/.well-known/oauth-authorization-server",
+            "/.well-known/oauth-protected-resource/mcp",
+            "/.well-known/oauth-protected-resource/mcp/",
+        } and request.method == "GET":
+            response = await call_next(request)
+            response.headers["Access-Control-Allow-Origin"] = "*"
+            return response
         if path in {"/authorize", "/token", "/register", "/revoke"} or path.startswith("/auth/"):
             # Untrusted forwarded addresses are deliberately not used for quotas.
             identity = request.client.host if request.client else "unknown"

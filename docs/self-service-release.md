@@ -126,3 +126,34 @@ Transport host/origin checks now use the configured public origin explicitly.
 `OAUTH_VALIDATION_WALLETS` can restrict login/token use to the owner during live
 acceptance. Do not clear this gate or advertise general self-service until the
 browser, direct-MCP, and client payment checks pass.
+
+## Owner-only direct-MCP acceptance
+
+After deploying the tested commit, keep public self-service gated by
+`OAUTH_VALIDATION_WALLETS` and set `PUBLIC_PROVIDER_MAX_ATTEMPTS=1` before any
+owner approval. Confirm the current provider balance and batch ledger first.
+The browser and AgentCash cases remain separate gates.
+
+Run on the owner's desktop computer with its injected wallet installed (not a
+remote shell whose loopback callback the browser cannot reach):
+
+```bash
+cd /mnt/instaget-nvme/herald-work/reachsocial
+uv run python scripts/mcp_browser_acceptance.py \
+  --expected-pay-to 0x76bCc44696A4c67579A6aF2F25CF953BE0931E38 \
+  --max-total-atomic 50000 \
+  --confirm-mainnet-payments
+```
+
+The browser signs a non-payment login, grants the named client access, then
+separately asks for one $0.05 Instagram-profile payment. The script never asks
+for a recovery phrase. It saves the original client and request identifiers in
+`data/mcp-browser-acceptance.json` with mode 0600 before opening payment approval.
+If interrupted, rerun with the same checkpoint. Do not delete it or replace its
+key to retry an uncertain charge. Tokens remain in memory; no wallet secrets,
+payment signatures, or profile results are written to the checkpoint.
+
+Success requires a settled receipt plus two matching request retrievals. After
+owner acceptance, independently reconcile the transaction and provider-attempt
+count before recording a pass. A successful script alone does not prove the
+provider-credit delta or complete the fresh-client directory acceptance gates.

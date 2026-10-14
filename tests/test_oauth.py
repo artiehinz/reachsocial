@@ -179,6 +179,11 @@ def test_oauth_exchange_rotation_reuse_and_hashes(oauth_app):
 
 def test_metadata_and_registration(oauth_app):
     client, _ = oauth_app
+    for path in [
+        "/.well-known/oauth-authorization-server",
+        "/.well-known/oauth-protected-resource/mcp/",
+    ]:
+        assert client.get(path).headers["access-control-allow-origin"] == "*"
     metadata = client.get("/.well-known/oauth-protected-resource/mcp/").json()
     assert metadata["resource"] == "http://localhost:8000/mcp/"
     assert metadata["authorization_servers"] == ["http://localhost:8000"]
@@ -313,6 +318,11 @@ def test_mcp_guard_rejects_changed_input_and_replayed_approval(oauth_app):
             )
         )
     correct = "https://www.instagram.com/instagram/"
+    with pytest.raises(HTTPException) as invalid:
+        asyncio.run(
+            guard_payment(request("not-a-url"), "instagram.profile", approval["payment_key"])
+        )
+    assert invalid.value.status_code == 422
     assert (
         asyncio.run(
             guard_payment(request(correct, False), "instagram.profile", approval["payment_key"])
@@ -558,3 +568,42 @@ def test_validation_wallet_gate(oauth_app, monkeypatch):
         headers={"Origin": "http://localhost:8000"},
     )
     assert response.status_code == 403
+
+
+@pytest.mark.parametrize("ttl", [0, 120])
+def test_cimd_public_client_default_and_cache(oauth_app, monkeypatch, ttl):
+    _, factory = oauth_app
+    client_id = "https://client.example/oauth.json"
+    calls = []
+
+    def document(_):
+        calls.append(True)
+        return {
+            "client_id": client_id,
+            "client_name": "Document Client",
+            "redirect_uris": ["https://client.example/callback"],
+            "_reachsocial_cache_seconds": ttl,
+        }
+
+    monkeypatch.setattr(oauth_provider, "_metadata_document", document)
+    for _ in range(2):
+        client = asyncio.run(oauth_routes.provider.get_client(client_id))
+        assert client.token_endpoint_auth_method == "none"
+    assert len(calls) == (1 if ttl else 2)
+    with factory() as session:
+        assert bool(get(session, "client", client_id)) == bool(ttl)
+
+
+def test_cimd_rejects_confidential_only_client(oauth_app, monkeypatch):
+    client_id = "https://client.example/oauth.json"
+    monkeypatch.setattr(
+        oauth_provider,
+        "_metadata_document",
+        lambda _: {
+            "client_id": client_id,
+            "client_name": "Confidential client",
+            "redirect_uris": ["https://client.example/callback"],
+            "token_endpoint_auth_methods_supported": ["private_key_jwt"],
+        },
+    )
+    assert asyncio.run(oauth_routes.provider.get_client(client_id)) is None

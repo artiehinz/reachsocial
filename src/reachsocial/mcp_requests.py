@@ -13,6 +13,7 @@ from sqlalchemy.exc import IntegrityError
 from .catalog import ServiceDefinition, get_catalog
 from .config import get_settings
 from .db import SessionLocal
+from .errors import ReachSocialError
 from .oauth_provider import origin
 from .oauth_routes import browser_session
 from .oauth_store import OAuthState, consume, digest, get, put, rate_limit, secret
@@ -243,14 +244,20 @@ async def guard_payment(
             raise HTTPException(403, "Unknown MCP payment request")
         if service_id != row.payload["service"]:
             raise HTTPException(403, "MCP request service mismatch")
-        body = await request.json()
+        try:
+            body = await request.json()
+        except ValueError:
+            raise HTTPException(400, "Invalid JSON") from None
         if not isinstance(body, dict) or not isinstance(body.get("input"), dict):
             raise HTTPException(400, "Input must be an object")
         normalized = dict(body["input"])
         service = get_catalog().by_id(service_id)
         if not service:
             raise HTTPException(404, "Unknown service")
-        ExecutionService.validate_input(service, normalized)
+        try:
+            ExecutionService.validate_input(service, normalized)
+        except ReachSocialError as error:
+            raise HTTPException(error.status_code, error.message) from None
         if (
             stable_hash(normalized) != row.payload["input_hash"]
             or service.price_cents != row.payload["price_cents"]

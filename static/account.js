@@ -54,7 +54,7 @@ if (root) {
     if (!requests.requests.length) requestList.textContent = 'No requests yet.';
     if (flow) {
       const consent = await api('/auth/consent?flow=' + encodeURIComponent(flow));
-      root.querySelector('[data-account-client]').textContent = `${consent.client_name} (${consent.client_id})`;
+      root.querySelector('[data-account-client]').textContent = `${consent.client_name} (${consent.client_id}). Return address: ${consent.redirect_uri}. Only allow a connection you started; a localhost address refers to an application on your computer.`;
       root.querySelector('[data-account-consent]').hidden = false;
     }
   }

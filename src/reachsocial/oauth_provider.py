@@ -6,6 +6,7 @@ import asyncio
 import http.client
 import ipaddress
 import json
+import re
 import socket
 import ssl
 import time
@@ -21,10 +22,11 @@ from mcp.server.auth.provider import (
     TokenError,
 )
 from mcp.shared.auth import OAuthClientInformationFull, OAuthToken
+from sqlalchemy.dialects.sqlite import insert
 
 from .config import get_settings
 from .db import SessionLocal
-from .oauth_store import consume, get, put, rate_limit, revoke_family, secret
+from .oauth_store import OAuthState, consume, digest, get, put, rate_limit, revoke_family, secret
 
 SCOPE = "reachsocial:requests"
 
@@ -89,6 +91,12 @@ def _metadata_document(client_id: str) -> dict:
         document = json.loads(raw)
         if not isinstance(document, dict) or document.get("client_id") != client_id:
             raise ValueError("Client metadata identifier mismatch")
+        cache_control = response.getheader("Cache-Control", "").lower()
+        match = re.search(r"(?:^|,)\s*max-age=(\d+)", cache_control)
+        ttl = min(int(match.group(1)), 300) if match else 300
+        if "no-store" in cache_control or "no-cache" in cache_control:
+            ttl = 0
+        document["_reachsocial_cache_seconds"] = ttl
         return document
     finally:
         conn.close()
@@ -145,22 +153,37 @@ class ReachSocialOAuthProvider:
             document = await asyncio.wait_for(
                 asyncio.to_thread(_metadata_document, client_id), timeout=6
             )
+            ttl = document.pop("_reachsocial_cache_seconds", 300)
+            if not document.get("client_name"):
+                return None
+            methods = document.get("token_endpoint_auth_methods_supported")
+            if "token_endpoint_auth_method" not in document:
+                if methods and "none" not in methods:
+                    return None
+                document["token_endpoint_auth_method"] = "none"
             client = OAuthClientInformationFull.model_validate(document)
             validate_client(client)
+            if not ttl:
+                return client
             # Cache only public metadata. Clients cannot use secrets or remote keys.
             with SessionLocal() as session:
-                existing = get(session, "client", client_id, used=True)
-                if existing:
-                    existing.payload = client.model_dump(mode="json")
-                    existing.expires_at = time.time() + 300
-                else:
-                    from .oauth_store import OAuthState, digest
-
-                    expired = session.get(OAuthState, digest(client_id))
-                    if expired:
-                        session.delete(expired)
-                        session.flush()
-                    put(session, "client", client_id, client.model_dump(mode="json"), 300)
+                values = {
+                    "key": digest(client_id),
+                    "kind": "client",
+                    "owner": "",
+                    "family": "",
+                    "payload": client.model_dump(mode="json"),
+                    "expires_at": time.time() + ttl,
+                    "consumed": False,
+                }
+                session.execute(
+                    insert(OAuthState)
+                    .values(**values)
+                    .on_conflict_do_update(
+                        index_elements=[OAuthState.key],
+                        set_=values,
+                    )
+                )
                 session.commit()
             return client
         except (ValueError, OSError, TimeoutError, RegistrationError, http.client.HTTPException):
