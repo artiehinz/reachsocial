@@ -1,21 +1,29 @@
 {% extends "base.html" %}
 {% block title %}Your connections — ReachSocial{% endblock %}
 {% block content %}
-<section class="page-intro"><h1>Your ReachSocial connections.</h1>
-<p>Sign in with your wallet to connect an agent and manage requests. Login never authorizes a payment.</p></section>
-<section class="docs-section" data-account>
-<label for="account-wallet">Browser wallet</label>
+<div class="access-page">
+<section class="page-intro"><h1>Connect your agent.</h1>
+<p>Sign in with your wallet, then choose which agent to connect. Each paid request needs a separate approval.</p></section>
+<section class="access-panel" data-account>
+<h2>Sign in</h2>
+{% if settings.oauth_validation_wallets %}<p class="access-notice">Pilot access is limited to approved wallets. Public REST payments remain available separately.</p>{% endif %}
+<div class="wallet-controls">
+<label for="account-wallet">Wallet extension</label>
 <select id="account-wallet" data-account-wallet></select>
 <button class="button primary" data-account-login>Sign in with wallet</button>
-<p data-account-status role="status" aria-live="polite">Choose an installed wallet. Externally owned accounts are supported.</p>
-<div data-account-consent hidden><h2>Connect your agent</h2><p data-account-client></p>
-<p>Allow access to public tools and requests created through this connection. Every payment requires separate approval.</p>
-<button class="button primary" data-account-approve>Allow connection</button>
-<button class="button secondary" data-account-deny>Decline</button></div>
-<div data-account-details hidden><h2>Connected agents</h2><ul data-account-connections></ul>
-<h2>Recent requests</h2><ul data-account-requests></ul>
-<button class="button secondary" data-account-logout>Sign out</button></div>
-<noscript>Enable JavaScript to sign in using your browser wallet.</noscript>
+</div>
+<p class="access-address">Account shared by your wallet: <span data-account-address>Shown when you connect</span></p>
+<p class="access-status" data-account-status role="status" aria-live="polite">Choose your wallet extension. Signing in does not authorize a payment.</p>
+<details class="access-help"><summary>Seeing the wrong account?</summary><p>The account your wallet shares with a website can differ from the account selected in its extension. Open the wallet’s site permissions for reachsocial.dev, disconnect the old account, then reconnect the account you want to use. Select the same wallet extension here and in the navigation panel.</p><p>“Disconnect from this page” clears the readiness panel only. “Sign out” ends your ReachSocial session. Neither removes the wallet’s saved site permissions.</p></details>
+<div class="access-section" data-account-consent hidden><h2>Allow this connection?</h2><p class="wrap-code" data-account-client></p>
+<p>The agent can create requests and retrieve their results. It cannot approve a payment for you.</p>
+<div class="wallet-actions"><button class="button primary" data-account-approve>Allow connection</button>
+<button class="button secondary" data-account-deny>Decline</button></div></div>
+<div class="access-section" data-account-details hidden><h2>Connected agents</h2><ul class="access-list" data-account-connections></ul>
+<h2>Recent requests</h2><ul class="access-list" data-account-requests></ul>
+<button class="copy-button" data-account-logout>Sign out of ReachSocial</button></div>
+<noscript>Enable JavaScript and use an installed browser wallet to sign in. Smart-account login is not supported yet.</noscript>
 </section>
-<script type="module" src="/static/account.js?v=20261014-1"></script>
+</div>
+<script type="module" src="/static/account.js?v=20261014-2"></script>
 {% endblock %}

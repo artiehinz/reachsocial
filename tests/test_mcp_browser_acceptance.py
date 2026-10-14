@@ -47,3 +47,15 @@ def test_acceptance_requires_exact_bounded_confirmation(acceptance, monkeypatch,
     with pytest.raises(SystemExit) as error:
         acceptance.main()
     assert error.value.code == 2
+
+
+def test_os_error_diagnostic_does_not_expose_exception_text(acceptance):
+    import errno
+
+    message = acceptance.failure_message(OSError(errno.EADDRINUSE, "sensitive exception details"))
+    assert "callback port is busy" in message
+    assert "Keep the checkpoint" in message
+    assert "sensitive exception details" not in message
+    permission = acceptance.failure_message(PermissionError(errno.EACCES, "sensitive path"))
+    assert "checkpoint ownership" in permission
+    assert "sensitive path" not in permission

@@ -1,4 +1,5 @@
-import { collectWallets } from './wallet.js';
+import { collectWallets } from './wallet.js?v=20261014-4';
+import { responseError, walletError, requestStatus } from './self-service-ui.js';
 import { connectBrowserWallet, executeReachSocial } from './reachsocial-client.js';
 
 const root = document.querySelector('[data-payment-request]');
@@ -17,14 +18,16 @@ if (root) {
       headers: { 'Content-Type': 'application/json', ...(identity ? { 'X-ReachSocial-CSRF': identity.csrf } : {}) },
       ...(body === undefined ? {} : { body: JSON.stringify(body) }),
     });
-    if (!response.ok) throw new Error(`Request failed (${response.status}). Sign in with the wallet that created this request.`);
+    if (!response.ok) throw await responseError(response);
     return response.json();
   }
-  const controls = () => { approve.disabled = busy || !wallets.size || request?.status !== 'payment_required'; };
+  const controls = () => { approve.disabled = busy || !wallets.size || request?.status !== 'payment_required' || request?.price_cents !== 5; };
   collectWallets(items => {
     wallets = items;
     const selected = select.value;
     select.replaceChildren(...[...items].map(([id, wallet]) => new Option(wallet.info.name, id)));
+    if (!items.size) select.add(new Option('No browser wallet detected', ''));
+    select.disabled = !items.size;
     if (items.has(selected)) select.value = selected;
     controls();
   });
@@ -32,11 +35,24 @@ if (root) {
     identity = await api('/auth/session');
     request = await api(path);
     const metadata = await api('/status.json');
-    root.querySelector('[data-payment-summary]').textContent = JSON.stringify({
-      service: request.service, input: request.input, price: '$0.05 USDC', network: 'Base mainnet',
-      receiver: metadata.payment?.receiver, request_id: id,
-    }, null, 2);
-    status.textContent = request.message || request.status;
+    const summary = root.querySelector('[data-payment-summary]');
+    const facts = document.createElement('dl');
+    facts.className = 'request-facts';
+    for (const [label, value] of [
+      ['Service', request.service], ['Target', request.input?.url || JSON.stringify(request.input || {})],
+      ['Price', typeof request.price_cents === 'number' ? `$${(request.price_cents / 100).toFixed(2)} USDC` : 'Unavailable'],
+      ['Network', 'Base mainnet'], ['Receiving wallet', metadata.payment?.receiver || 'Unavailable'],
+    ]) {
+      const row = document.createElement('div');
+      const term = document.createElement('dt'); term.textContent = label;
+      const definition = document.createElement('dd'); definition.textContent = value;
+      row.append(term, definition); facts.append(row);
+    }
+    summary.replaceChildren(facts);
+    status.textContent = requestStatus(request);
+    status.dataset.state = ['failed', 'reconciliation_required'].includes(request.status) ? 'error' : '';
+    const reference = root.querySelector('[data-payment-reference]');
+    if (reference) reference.textContent = id;
     const result = root.querySelector('[data-payment-result]');
     result.hidden = !request.result;
     result.textContent = request.result ? JSON.stringify(request.result, null, 2) : '';
@@ -49,7 +65,7 @@ if (root) {
       const provider = wallets.get(select.value)?.provider;
       const account = await connectBrowserWallet(provider);
       if (account.toLowerCase() !== request.owner || account.toLowerCase() !== identity.address) {
-        throw new Error('Select the wallet that owns this request.');
+        throw new Error(`Your wallet shared ${account}. This request belongs to ${request.owner}. Change the account allowed for reachsocial.dev in your wallet’s site permissions.`);
       }
       const approval = await api(path + '/approve', {});
       status.textContent = 'Waiting for your wallet approval…';
@@ -57,10 +73,11 @@ if (root) {
         'https://reachsocial.dev', approval.payment_key, approval.authorization);
       await refresh();
     } catch (error) {
-      status.textContent = error.message + ' Use Refresh result before taking another action.';
+      status.dataset.state = 'error';
+      status.textContent = walletError(error) + ' Use Refresh result before taking another action.';
       request = undefined;
     } finally { busy = false; controls(); }
   };
-  root.querySelector('[data-payment-refresh]').onclick = () => refresh().catch(error => { status.textContent = error.message; });
-  refresh().catch(error => { status.textContent = error.message; });
+  root.querySelector('[data-payment-refresh]').onclick = () => refresh().catch(error => { status.dataset.state = 'error'; status.textContent = walletError(error); });
+  refresh().catch(error => { status.dataset.state = 'error'; status.textContent = walletError(error); });
 }
