@@ -1,0 +1,3 @@
+# Public example UUIDs detected as generic keys in retained history.
+b265daee91842105295130712aa6ad23e3c37bc8:tests/test_browser_onboarding.py:generic-api-key:121
+b265daee91842105295130712aa6ad23e3c37bc8:templates/docs.html:generic-api-key:22

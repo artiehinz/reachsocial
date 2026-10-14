@@ -24,14 +24,17 @@
 	}
 }
 
+(security_headers) {
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+	}
+}
+
 {$REACHSOCIAL_ADDRESS} {
 	import cloudflare_origin_pull
+	import security_headers
 	encode zstd gzip
-
-	@owner path /v1/owner/*
-	basic_auth @owner {
-		{$REACHSOCIAL_ADMIN_USER} {$REACHSOCIAL_ADMIN_PASSWORD_HASH}
-	}
 
 	reverse_proxy app:8000 {
 		import client_ip_headers
@@ -40,6 +43,7 @@
 
 {$LIBERATED_ADDRESS:liberated.site} {
 	import cloudflare_origin_pull
+	import security_headers
 	encode zstd gzip
 
 	reverse_proxy aeu:3000 {

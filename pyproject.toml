@@ -8,6 +8,7 @@ dependencies = [
   "uvicorn[standard]>=0.30,<1",
   "sqlalchemy>=2.0,<3",
   "alembic>=1.14,<2",
+  "mako>=1.4.2,<2",
   "pydantic-settings>=2.6,<3",
   "httpx>=0.27,<1",
   "jinja2>=3.1,<4",

@@ -1,5 +1,5 @@
-FROM python:3.12-slim-bookworm AS builder
-COPY --from=ghcr.io/astral-sh/uv:0.11.29 /uv /uvx /bin/
+FROM python:3.12-slim-bookworm@sha256:34386ef0cb081344d7ec1c103ba398e6e9f64e9ab3a1509accc92a4e24a07258 AS builder
+COPY --from=ghcr.io/astral-sh/uv:0.11.29@sha256:eb2843a1e56fd9e30c7276ce1a52cba86e64c7b385f5e3279a0e08e02dd058fc /uv /uvx /bin/
 
 WORKDIR /app
 ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy
@@ -15,11 +15,13 @@ COPY migrations ./migrations
 COPY scripts ./scripts
 RUN uv sync --frozen --no-dev
 
-FROM python:3.12-slim-bookworm
+FROM python:3.12-slim-bookworm@sha256:34386ef0cb081344d7ec1c103ba398e6e9f64e9ab3a1509accc92a4e24a07258
 WORKDIR /app
 ENV PATH="/app/.venv/bin:$PATH" PYTHONUNBUFFERED=1
 COPY --from=builder /app /app
-RUN useradd --create-home --uid 10001 appuser && mkdir -p /data && chown appuser:appuser /data
+RUN /usr/local/bin/python -m pip uninstall -y pip setuptools wheel \
+    && useradd --create-home --uid 10001 appuser \
+    && install -d -o appuser -g appuser -m 0700 /data
 USER appuser
 EXPOSE 8000
-CMD ["sh", "-c", "alembic upgrade head && exec uvicorn reachsocial.main:app --host 0.0.0.0 --port 8000 --proxy-headers --forwarded-allow-ips='*'"]
+CMD ["sh", "-c", "umask 077; chmod 700 /data; if [ -f /data/reachsocial.db ]; then chmod 600 /data/reachsocial.db; fi; alembic upgrade head && exec uvicorn reachsocial.main:app --host 0.0.0.0 --port 8000 --proxy-headers --forwarded-allow-ips='*'"]

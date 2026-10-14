@@ -125,31 +125,18 @@ def _expired(value: datetime | None) -> bool:
 
 
 def client_for_api_key(session: Session, api_key: str) -> Client | None:
-    """Authenticate indexed keys in one lookup while retaining legacy-key support."""
+    """Authenticate a structured API key with one indexed database lookup."""
     if not api_key or len(api_key) > 512:
         return None
     key_id = api_key_id(api_key)
-    candidates: list[Client]
-    if key_id:
-        row = session.scalar(
-            select(Client).where(Client.key_id == key_id, Client.status == "active")
-        )
-        candidates = [row] if row else []
-    else:
-        candidates = list(
-            session.scalars(
-                select(Client).where(Client.status == "active", Client.key_id.is_(None))
-            )
-        )
-    return next(
-        (
-            client
-            for client in candidates
-            if not _expired(client.api_key_expires_at)
-            and verify_api_key(api_key, client.api_key_hash)
-        ),
-        None,
+    if key_id is None:
+        return None
+    client = session.scalar(
+        select(Client).where(Client.key_id == key_id, Client.status == "active")
     )
+    if client is None or _expired(client.api_key_expires_at):
+        return None
+    return client if verify_api_key(api_key, client.api_key_hash) else None
 
 
 def optional_client(

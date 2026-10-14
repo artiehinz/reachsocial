@@ -19,7 +19,7 @@ class RequestBodyTooLarge(Exception):
 class RequestBodyLimitMiddleware:
     """Reject oversized request bodies before payment middleware parses them."""
 
-    payment_headers = {b"payment-signature", b"payment-required"}
+    payment_headers = {b"payment-signature", b"x-payment", b"payment-required"}
 
     def __init__(self, app: ASGIApp, *, max_body_bytes: int, max_payment_header_bytes: int) -> None:
         self.app = app
