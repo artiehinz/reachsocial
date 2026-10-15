@@ -12,26 +12,55 @@ jobs:
   probe:
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    env:
+      SSH_HOST: ${{ secrets.REACHSOCIAL_DEPLOY_HOST }}
+      SSH_USER: ${{ secrets.REACHSOCIAL_DEPLOY_USER }}
+      SSH_PRIVATE_KEY: ${{ secrets.REACHSOCIAL_DEPLOY_SSH_KEY }}
+      SSH_KNOWN_HOSTS: ${{ secrets.REACHSOCIAL_DEPLOY_KNOWN_HOSTS }}
+      DEPLOY_PATH: ${{ vars.REACHSOCIAL_DEPLOY_PATH }}
     steps:
-      - name: Check unpaid discovery and readiness surfaces
+      - name: Configure the trusted deployment connection
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/reachsocial_deploy
+          chmod 600 ~/.ssh/reachsocial_deploy
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+      - name: Check Cloudflare-served public health from the trusted host
         run: |
           set -euo pipefail
-          base='https://reachsocial.dev'
-          curl --fail --silent --show-error --max-time 15 "$base/healthz" > /dev/null
-          curl --fail --silent --show-error --max-time 15 "$base/readyz" > /dev/null
-          curl --fail --silent --show-error --max-time 15 "$base/status.json" > /dev/null
-          curl --fail --silent --show-error --max-time 15 "$base/v1/services" > /dev/null
-          curl --fail --silent --show-error --max-time 15 \
-            "$base/.well-known/oauth-authorization-server" > /dev/null
-          curl --fail --silent --show-error --max-time 15 \
-            "$base/.well-known/oauth-protected-resource/mcp/" > /dev/null
-      - name: Check MCP authorization challenge without invoking a tool
+          ssh -i ~/.ssh/reachsocial_deploy -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes \
+            "$SSH_USER@$SSH_HOST" \
+            "curl --fail --silent --show-error --max-time 15 https://reachsocial.dev/healthz > /dev/null"
+      - name: Check unpaid application discovery and MCP authorization
         run: |
           set -euo pipefail
-          base='https://reachsocial.dev'
-          status="$(curl --silent --show-error --max-time 15 -o /tmp/mcp-body -D /tmp/mcp-headers \
-            -w '%{http_code}' -X POST "$base/mcp/" \
-            -H 'Content-Type: application/json' \
-            --data '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}')"
-          test "$status" = 401
-          grep -qi 'resource_metadata=' /tmp/mcp-headers
+          ssh -i ~/.ssh/reachsocial_deploy -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes \
+            "$SSH_USER@$SSH_HOST" "cd '$DEPLOY_PATH' && docker compose exec -T app python -" <<'PY'
+          from urllib.error import HTTPError
+          from urllib.request import Request, urlopen
+
+          base = "http://127.0.0.1:8000"
+          for path in [
+              "/healthz",
+              "/readyz",
+              "/status.json",
+              "/v1/services",
+              "/.well-known/oauth-authorization-server",
+              "/.well-known/oauth-protected-resource/mcp/",
+          ]:
+              with urlopen(base + path, timeout=15) as response:
+                  assert response.status == 200, (path, response.status)
+          request = Request(
+              base + "/mcp/",
+              data=b'{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}',
+              headers={"Content-Type": "application/json"},
+              method="POST",
+          )
+          try:
+              urlopen(request, timeout=15)
+              raise AssertionError("anonymous MCP initialization unexpectedly succeeded")
+          except HTTPError as error:
+              assert error.code == 401, error.code
+              assert "resource_metadata=" in error.headers.get("WWW-Authenticate", "")
+          PY
