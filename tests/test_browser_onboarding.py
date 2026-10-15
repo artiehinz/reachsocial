@@ -144,8 +144,8 @@ def test_recovery_cors_survives_a_private_service_and_discovery_cache_has_cors()
             "Access-Control-Request-Method": "POST",
             "Access-Control-Request-Headers": "content-type,idempotency-key",
         }
-        recovery = client.options("/v1/payments/recover/instagram.feed", headers=headers)
+        recovery = client.options("/v1/payments/recover/news.person", headers=headers)
         assert recovery.status_code == 204
         assert recovery.headers["access-control-allow-origin"] == "*"
-        execution = client.options("/v1/services/instagram.feed/execute", headers=headers)
+        execution = client.options("/v1/services/news.person/execute", headers=headers)
         assert "access-control-allow-origin" not in execution.headers

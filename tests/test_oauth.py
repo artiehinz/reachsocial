@@ -316,7 +316,7 @@ def test_private_mcp_validation_request_requires_the_owner_wallet(oauth_app, mon
     owner = current_principal.set({"subject": wallet.address.lower(), "client_id": "owner-agent"})
     try:
         request = create_request(
-            load_catalog().by_id("instagram.feed"),
+            load_catalog().by_id("instagram.feed").model_copy(update={"public": False, "catalog_status": "private"}),
             {"url": "https://www.instagram.com/instagram/", "max_items": 5},
             "p" * 32,
         )
@@ -330,7 +330,7 @@ def test_private_mcp_validation_request_requires_the_owner_wallet(oauth_app, mon
     try:
         with pytest.raises(HTTPException, match="limited validation") as denied:
             create_request(
-                load_catalog().by_id("instagram.feed"),
+                load_catalog().by_id("instagram.feed").model_copy(update={"public": False, "catalog_status": "private"}),
                 {"url": "https://www.instagram.com/instagram/", "max_items": 5},
                 "q" * 32,
             )
@@ -505,7 +505,8 @@ def test_real_mcp_transport_oauth_discovery_and_payment_intent(oauth_app, monkey
         assert tools.status_code == 200, tools.text
         names = {tool["name"] for tool in tools.json()["result"]["tools"]}
         assert "get_reachsocial_request" in names
-        assert "youtube_video" not in names
+        assert "youtube_video" in names
+        assert "news_person" not in names
         called = mcp_client.post(
             "/mcp/",
             headers=headers,

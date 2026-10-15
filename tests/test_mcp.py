@@ -13,6 +13,13 @@ def test_mcp_exposes_exact_sync_and_async_b2b_tools() -> None:
     assert set(by_name) == {
         "instagram_profile",
         "instagram_post",
+        "instagram_feed",
+        "instagram_highlight",
+        "youtube_channel",
+        "youtube_feed",
+        "youtube_video",
+        "facebook_profile",
+        "reddit_post",
         "x_profile",
         "x_post",
         "x_feed",
@@ -33,7 +40,9 @@ def test_owner_validation_tools_are_not_listed_in_the_public_server_card(monkeyp
         environment.setenv("MAINNET_PRIVATE_ACCEPTANCE_ENABLED", "true")
         environment.setenv("MAINNET_PRIVATE_ACCEPTANCE_SERVICES", "instagram.feed")
         get_settings.cache_clear()
-        catalog = load_catalog()
+        catalog = load_catalog().model_copy(deep=True)
+        catalog.by_id("instagram.feed").public = False
+        catalog.by_id("instagram.feed").catalog_status = "private"
         public_names = {
             tool.name for tool in asyncio.run(make_mcp_server(catalog).list_tools())
         }

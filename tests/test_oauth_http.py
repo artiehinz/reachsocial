@@ -151,7 +151,8 @@ def test_fresh_sdk_client_pkce_refresh_revocation_and_unpaid_recovery(isolated_h
                     tools = await session.list_tools()
                     names = {tool.name for tool in tools.tools}
                     assert {"instagram_profile", "get_reachsocial_request"} <= names
-                    assert "youtube_video" not in names
+                    assert "youtube_video" in names
+                    assert "news_person" not in names
                     if request_id:
                         result = await session.call_tool(
                             "get_reachsocial_request", {"request_id": request_id}

@@ -6,7 +6,7 @@
   <div>
     <p class="eyebrow">SOCIAL DATA FOR YOUR APP OR AI AGENT</p>
     <h1>One API for social media data.</h1>
-    <p>Get public profiles, posts, and feeds from Instagram, X, and TikTok through ReachSocial. Connect once and get JSON your app or agent can use.</p>
+    <p>Get public profiles, posts, and feeds from Instagram, X, TikTok, YouTube, Facebook, and Reddit through ReachSocial. Connect once and get JSON your app or agent can use.</p>
     <p>Pay for each successful request in USDC. No subscription or prepaid credit pack.</p>
     <div class="actions"><a class="button" href="/docs/api#public-request">Start building</a><a class="button secondary" href="#agent-setup">Set up with your agent</a></div>
     <p class="availability">{{ catalog.public_services()|length }} public APIs · <a href="/pricing">{% if prices|length == 1 %}${{ '%.2f'|format(prices[0] / 100) }} per request{% else %}See prices{% endif %}</a> · {{ payment_network }}</p>
@@ -46,7 +46,7 @@
     <a class="platform-card" href="/catalog#{{ platform|lower|replace(' ', '-') }}"><article><h3>{{ platform }}</h3><p>{{ services|length }} available APIs</p><ul>{% for service in services %}<li>{{ service.title }}</li>{% endfor %}</ul><span class="text-link">View APIs →</span></article></a>
   {% endfor %}
   </div>
-  <p class="coverage-note">Instagram feeds and saved highlights, YouTube channels, videos and feeds, Facebook profiles, and Reddit posts are in private access. Public access is pending release review. LinkedIn, Person News, and current Instagram stories remain on hold. <a href="/catalog">Check coverage and access</a>.</p>
+  <p class="coverage-note">LinkedIn, Person News, and current Instagram stories remain on hold. <a href="/catalog">Check coverage and access</a>.</p>
 </section>
 
 <section class="split">

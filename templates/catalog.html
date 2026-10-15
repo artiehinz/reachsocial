@@ -2,7 +2,6 @@
 {% block title %}Service catalog — ReachSocial{% endblock %}
 {% block content %}
 <section class="page-intro"><p class="eyebrow">SERVICE CATALOG</p><h1>Find the API for your task.</h1><p><strong>Available</strong> services accept public calls. <strong>Private</strong> integrations are live for approved API-key clients. Services on hold are not accepting requests. Public paid calls need no account or API key.</p><div class="legend"><span><i class="dot available"></i>Available</span><span><i class="dot private"></i>Private integration</span><span><i class="dot paused"></i>On hold</span></div></section>
-<section class="notice" aria-label="Public access update"><h2>More public APIs are being reviewed.</h2><p>Instagram feeds and saved highlights, YouTube channels, videos and feeds, Facebook profiles, and Reddit posts have completed private payment and result-recovery checks. They remain private while release review continues. Reddit author details need a correction before public release.</p><p>Only services marked <strong>Available</strong> accept public paid requests. <a href="/status">Check current availability</a>.</p></section>
 {% set groups = catalog.discoverable_services()|groupby('platform') %}
 {% for public_group in [true, false] %}
 {% for platform, services in groups %}

@@ -56,7 +56,9 @@ def test_public_endpoint_and_price_follow_the_service_contract() -> None:
 
 
 def test_private_acceptance_endpoint_is_distinct_from_public_execution() -> None:
-    service = load_catalog().by_id("instagram.feed")
+    service = load_catalog().by_id("instagram.feed").model_copy(
+        update={"public": False, "catalog_status": "private"}
+    )
 
     assert service is not None and not service.public
     assert acceptance.endpoint_for(

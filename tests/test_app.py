@@ -44,8 +44,8 @@ def test_health_and_mcp_gate() -> None:
             path: item["post"] for path, item in openapi["paths"].items()
             if "post" in item and "x-payment-info" in item["post"]
         }
-        assert len(paid_operations) == 8
-        assert "/v1/services/youtube.video/execute" not in paid_operations
+        assert len(paid_operations) == 15
+        assert "/v1/services/youtube.video/execute" in paid_operations
         assert "/v1/services/linkedin.profile/execute" not in paid_operations
         assert "/v1/acceptance/private/{service_id}/execute" not in openapi["paths"]
         for path, operation in paid_operations.items():
@@ -73,20 +73,27 @@ def test_health_and_mcp_gate() -> None:
         assert [item["id"] for item in client.get("/v1/services").json()["services"]] == [
             "instagram.profile",
             "instagram.post",
+            "instagram.feed",
+            "instagram.highlight",
             "x.profile",
             "x.post",
             "x.feed",
             "tiktok.profile",
             "tiktok.feed",
             "tiktok.video",
+            "youtube.channel",
+            "youtube.feed",
+            "youtube.video",
+            "facebook.profile",
+            "reddit.post",
         ]
         services = client.get("/v1/services").json()["services"]
         assert all(item["schema_version"] == "1.0" for item in services)
-        assert [item["execution"] for item in services] == ["sync"] * 8
+        assert [item["execution"] for item in services] == ["sync"] * 15
         roadmap = client.get("/v1/catalog").json()
         assert roadmap["summary"] == {
-            "available": 8,
-            "private": 8,
+            "available": 15,
+            "private": 1,
             "validation": 0,
             "planned": 0,
             "paused": 2,

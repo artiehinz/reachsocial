@@ -6,12 +6,17 @@ Current self-service implementation and remaining release gates: [self-service r
 
 Updated: 2026-10-15
 
+The owner explicitly waived the 24-hour public-release wait on 2026-10-15.
+The seven previously staged APIs are promoted after payment/recovery reconciliation
+and a fresh successful Reddit attribution check. See [release evidence](public-expansion-2026-10-15.md).
+Historical observation requirements below are superseded for this release.
+
 ## Current catalog truth
 
 | State | Services |
 | --- | --- |
-| Available | `instagram.profile`, `instagram.post`, `x.profile`, `x.post`, `x.feed`, `tiktok.profile`, `tiktok.feed`, `tiktok.video` |
-| Private | `news.person`, `instagram.feed`, `instagram.highlight`, `youtube.channel`, `youtube.feed`, `youtube.video`, `facebook.profile`, `reddit.post` |
+| Available | `instagram.profile`, `instagram.post`, `instagram.feed`, `instagram.highlight`, `x.profile`, `x.post`, `x.feed`, `tiktok.profile`, `tiktok.feed`, `tiktok.video`, `youtube.channel`, `youtube.feed`, `youtube.video`, `facebook.profile`, `reddit.post` |
+| Private | `news.person` |
 | On hold | `linkedin.profile`, `instagram.stories` |
 
 `GET /v1/services` is intentionally the executable subset. `GET /v1/catalog`
