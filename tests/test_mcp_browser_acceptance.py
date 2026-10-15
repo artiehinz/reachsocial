@@ -59,3 +59,17 @@ def test_os_error_diagnostic_does_not_expose_exception_text(acceptance):
     permission = acceptance.failure_message(PermissionError(errno.EACCES, "sensitive path"))
     assert "checkpoint ownership" in permission
     assert "sensitive path" not in permission
+
+
+def test_private_stage_requires_explicit_lane_and_reviewed_five_cent_sync_service(acceptance):
+    service = {"id": "instagram.feed", "price_cents": 5, "execution": "sync",
+               "status": "private", "available": False}
+    assert acceptance.acceptance_service([service], "instagram.feed", True)
+    assert acceptance.acceptance_service([{**service, "price_cents": None}], "instagram.feed", True)
+    assert not acceptance.acceptance_service([service], "instagram.feed", False)
+    for changed in [{"id": "news.person"}, {"price_cents": 10}, {"execution": "async"},
+                    {"status": "available"}, {"status": "paused"}]:
+        candidate = {**service, **changed}
+        assert not acceptance.acceptance_service([candidate], candidate["id"], True)
+    public = {**service, "status": "available", "available": True}
+    assert acceptance.acceptance_service([public], "instagram.feed", False)

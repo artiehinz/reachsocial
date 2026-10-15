@@ -153,7 +153,7 @@ is recorded separately. No purchase is required for existing-credit tests.
 3. Recheck authenticated MCP discovery, entitlement denial, execution, and
    protected job polling on the deployed image.
 4. Recheck the provider balance, retain the 1,000-credit reserve, and use the
-   remaining 19-credit/$0.45 acceptance allocation before each staged
+   remaining 18-credit/$0.40 acceptance allocation before each staged
    public-mainnet release.
 5. Promote only services that complete their paid recovery acceptance, then
    observe and reconcile each stage for 24 hours.

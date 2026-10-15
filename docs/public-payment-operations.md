@@ -288,7 +288,26 @@ uv run python scripts/x402_public_mainnet_acceptance.py \
 ```
 
 After the challenge, available credits, and cumulative ledger are reviewed,
-the owner may rerun the exact command with `--expected-buyer` and
+prefer the existing Firefox/MetaMask session for owner-controlled signing. Run
+one service at a time on Herald, using a distinct retained checkpoint:
+
+```bash
+BROWSER=firefox .venv/bin/python scripts/mcp_browser_acceptance.py \
+  --private-acceptance --service instagram.feed \
+  --target https://www.instagram.com/instagram/ --max-items 5 \
+  --state-file data/stage-a-instagram-feed.json \
+  --expected-pay-to <merchant-address> \
+  --max-total-atomic 50000 --confirm-mainnet-payments
+```
+
+The owner authorizes the OAuth connection and separately approves the five-cent
+payment in MetaMask. The runner checks the private intent's endpoint and price,
+retains the original request, verifies repeated retrieval, and saves only
+checkpoint metadata and a result hash. Private REST routes intentionally do not
+allow cross-origin browser calls; use the production payment page through this
+runner. A direct-MCP stage test does not prove Smithery compatibility.
+
+The alternative terminal-only procedure is to rerun the dry-run command with `--expected-buyer` and
 `--confirm-mainnet-payments`. The script reads the recovery phrase through
 hidden terminal input, validates the exact receiver/network/asset/amount, and
 uses the recovery endpoint with the same idempotency key. A lost response is
