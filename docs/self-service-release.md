@@ -41,17 +41,19 @@ The existing local provider ledger was read without printing targets or keys:
 100-credit original cap, 33 conservative credits consumed, 38 recorded events.
 This is historical provider evidence, not a fresh account-wide balance check.
 
-The new batch may consume at most $0.50 USDC and 20 provider credits, bounded
-further by the remaining original $2/100-credit allowance. Reconcile payment
-receipts before spending; count retries and failed charged calls. Ten payments
-are allocated: browser, direct MCP, AgentCash, and the seven additional services.
-Wallet signing remains local to the owner. No automatic top-ups.
+The direct-MCP case below already consumed one $0.05 payment and one provider
+credit. The remaining batch may consume at most **$0.45 USDC and 19 provider
+credits**, bounded further by the original $2/100-credit allowance. Reconcile
+payment receipts before spending; count retries and failed charged calls. The
+nine remaining allocations are standalone browser, AgentCash, and the seven
+additional services. Wallet signing remains local to the owner. No automatic
+top-ups.
 
 Release gates still requiring recorded evidence:
 
 - [x] Current budget reconciliation and live provider balance baseline (see below).
-- [ ] Isolated production-backup restore with the additive OAuth migration.
-- [ ] Full OAuth/MCP integration and browser security checks, including real client compatibility.
+- [ ] Root-protected nightly-backup restore with the additive OAuth/request tables.
+- [ ] Full OAuth/MCP integration and browser security checks, including Smithery compatibility.
 - [ ] One bounded browser payment and same-key recovery.
 - [x] One bounded owner direct-MCP approval/payment/recovery and initial OAuth authorization. Independent client compatibility remains open.
 - [ ] One bounded AgentCash payment/recovery, preserving the original key.
@@ -207,7 +209,7 @@ The live account balance decreased from 6,782 to 6,781. The script reported
 matching recovered results; the receipt and attempt counts show no duplicate
 charge or execution during recovery.
 
-This batch has consumed $0.05 of its $0.50 limit and one of its 20 provider
+This batch has consumed $0.05 of its original $0.50 allocation and one of its 20 provider
 credits. The local cumulative provider ledger now records 34 credits against
 its 100-credit cap. Production settled receipt totals are 12 / $0.65; the two
 canceled-before-settlement records remain unchanged. Count this flow once, not
@@ -224,3 +226,27 @@ actual auth rejection reason before general availability.
 Owner-only access remains enabled. This closes the direct-MCP paid-flow gate,
 not directory interoperability, standalone browser acceptance, staged catalog
 promotion, monitoring/retention work, or the required observation windows.
+
+## Restricted private-service acceptance lane — implemented, disabled
+
+The next seven services cannot be exercised through the public acceptance
+script while they remain private. The application now has a separate disabled
+lane for a single owner-controlled stage:
+
+- It accepts only explicitly configured private synchronous five-cent
+  ScrapeCreators services and one configured owner wallet.
+- It verifies Base mainnet, native Base-USDC, price, receiver, current
+  account-wide provider balance, the 1,000-credit reserve, margin, and a
+  one-provider-attempt limit before settlement.
+- It uses the ordinary receipt, execution, idempotency, and 30-day recovery
+  paths, but does not appear in public service discovery, OpenAPI paid
+  operations, or the static MCP card.
+- An opaque run ID permits one settled payment per service. Same-key recovery
+  returns the stored result; a second payment or B2B/service-credit bypass is
+  rejected.
+
+Set only one release stage in the protected runtime environment, run its
+dry-run challenge first, then make the owner-approved payment. Disable the
+lane immediately after the stage. The exact procedure is in
+[public payment operations](public-payment-operations.md#restricted-private-service-acceptance).
+No stage has passed merely because this lane is present in the deployed image.

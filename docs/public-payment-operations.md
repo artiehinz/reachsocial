@@ -249,6 +249,59 @@ uv run python scripts/x402_public_mainnet_acceptance.py \
   --confirm-mainnet-payments
 ```
 
+## Restricted private-service acceptance
+
+The seven reviewed private services use a separate, disabled-by-default release
+lane. It exists solely to prove a staged service through the normal x402,
+receipt, provider-dispatch, and same-key recovery path before that service is
+advertised or callable publicly.
+
+For one stage only, set these values in the protected production runtime file:
+
+```ini
+MAINNET_PRIVATE_ACCEPTANCE_ENABLED=true
+MAINNET_PRIVATE_ACCEPTANCE_BUYER=<owner-controlled-buyer-address>
+MAINNET_PRIVATE_ACCEPTANCE_SERVICES=<comma-separated-stage-service-ids>
+MAINNET_PRIVATE_ACCEPTANCE_RUN_ID=<new-opaque-12+-character-run-id>
+PUBLIC_PROVIDER_MAX_ATTEMPTS=1
+```
+
+The process refuses to start unless normal Base-mainnet safety gates are live:
+native Base-USDC, `ALLOW_MAINNET_X402`, external backup, verified costs and
+margins, a current account-wide ScrapeCreators balance above the 1,000-credit
+reserve, and no more than one provider attempt. It also rejects Bearer keys,
+service credits, unknown services, a different buyer, a different amount or
+asset, a reused signed payment, and a second payment for the same service/run.
+The hidden route does not appear in `/v1/services`, OpenAPI paid operations,
+or the public MCP server card.
+
+First check every stage endpoint without signing:
+
+```bash
+uv run python scripts/x402_public_mainnet_acceptance.py \
+  --private-acceptance \
+  --expected-pay-to <merchant-address> \
+  --target instagram.feed=<public-profile-url> \
+  --target instagram.highlight=<public-saved-highlight-url> \
+  --max-total-atomic 100000 \
+  --dry-run
+```
+
+After the challenge, available credits, and cumulative ledger are reviewed,
+the owner may rerun the exact command with `--expected-buyer` and
+`--confirm-mainnet-payments`. The script reads the recovery phrase through
+hidden terminal input, validates the exact receiver/network/asset/amount, and
+uses the recovery endpoint with the same idempotency key. A lost response is
+recovered, never retried with a new key.
+
+For the required Smithery compatibility case, include only `instagram.feed` in
+the configured stage, keep `OAUTH_VALIDATION_WALLETS` set to the owner wallet,
+and use the OAuth MCP payment link. The MCP tool carries the same hidden
+endpoint internally; it does not make the service public. Record the receipt,
+one provider attempt, and same-request recovery before promotion. Disable
+`MAINNET_PRIVATE_ACCEPTANCE_ENABLED` immediately after each stage, whether it
+passes or needs reconciliation.
+
 If a paid request has an unknown outcome, do not submit a new payment. Retain
 the locally printed idempotency key and use the standard paid-result recovery
 route with the original input.

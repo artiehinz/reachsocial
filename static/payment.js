@@ -11,6 +11,7 @@ if (root) {
   const status = root.querySelector('[data-payment-status]');
   let wallets = new Map();
   let identity, request, busy = false;
+  let removeWalletListeners = () => {};
   async function api(url, body) {
     const response = await fetch(url, {
       method: body === undefined ? 'GET' : 'POST', credentials: 'same-origin',
@@ -58,6 +59,29 @@ if (root) {
     result.textContent = request.result ? JSON.stringify(request.result, null, 2) : '';
     controls();
   }
+  async function invalidateWalletSession(message) {
+    removeWalletListeners();
+    removeWalletListeners = () => {};
+    if (identity) {
+      try { await api('/auth/logout', {}); } catch { /* The stale session is no longer usable here. */ }
+    }
+    identity = undefined;
+    request = undefined;
+    status.dataset.state = 'error';
+    status.textContent = message;
+    controls();
+  }
+  function watchWallet(provider) {
+    removeWalletListeners();
+    if (!provider?.on) { removeWalletListeners = () => {}; return; }
+    const changed = () => { void invalidateWalletSession('Your wallet account or network changed. Sign in again and refresh this request before approving anything.'); };
+    provider.on('accountsChanged', changed);
+    provider.on('chainChanged', changed);
+    removeWalletListeners = () => {
+      provider.removeListener?.('accountsChanged', changed);
+      provider.removeListener?.('chainChanged', changed);
+    };
+  }
   approve.onclick = async () => {
     if (busy || approve.disabled) return;
     busy = true; controls();
@@ -67,10 +91,12 @@ if (root) {
       if (account.toLowerCase() !== request.owner || account.toLowerCase() !== identity.address) {
         throw new Error(`Your wallet shared ${account}. This request belongs to ${request.owner}. Change the account allowed for reachsocial.dev in your wallet’s site permissions.`);
       }
+      watchWallet(provider);
       const approval = await api(path + '/approve', {});
       status.textContent = 'Waiting for your wallet approval…';
       await executeReachSocial(provider, account, approval.service, approval.input,
-        'https://reachsocial.dev', approval.payment_key, approval.authorization);
+        'https://reachsocial.dev', approval.payment_key, approval.authorization,
+        approval.payment_endpoint);
       await refresh();
     } catch (error) {
       status.dataset.state = 'error';

@@ -193,10 +193,28 @@ encrypted Restic backups and weekly DigitalOcean volume snapshots are configured
 Private services remain outside public payment until each completes its own
 provider, paid-recovery, and observation gates.
 
+### Staged private-service acceptance
+
+The disabled `MAINNET_PRIVATE_ACCEPTANCE_*` settings provide an owner-only
+release lane for one private synchronous $0.05 ScrapeCreators service at a time.
+They are not a feature flag for public availability. Set a new opaque run ID,
+the owner buyer address, and only the current stage's service IDs in the
+protected runtime environment. Startup rejects the lane unless mainnet, backup,
+cost, margin, live-balance, 1,000-credit reserve, and single-provider-attempt
+checks all pass. The hidden route accepts no Bearer key or service credit and
+permits one payment per service/run. Use the normal acceptance script with
+`--private-acceptance` for the dry run and owner-approved payment, then disable
+the lane before the 24-hour observation window. See
+[public payment operations](public-payment-operations.md#restricted-private-service-acceptance).
+
 The application runs retention maintenance daily. Deployments take a bounded
 same-volume SQLite snapshot before migration, wait for `/readyz`, automatically
 restore the previous image on failure, and retain the active plus immediately
 previous images. Same-volume snapshots do not satisfy the external-backup gate.
+The root-owned nightly backup script writes only a non-secret completion marker
+to `/data/backup-status.json` after Restic backup, retention, and repository
+verification succeed. The app reports an informational stale/missing marker
+alert; it does not turn an authentication or backup alert into a payment pause.
 
 InstaGet consumes the private Instagram, X, TikTok, and YouTube services through
 its separate server-only client; ReachSocial still never downloads media bytes.

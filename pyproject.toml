@@ -1,6 +1,6 @@
 [project]
 name = "reachsocial"
-version = "0.1.0"
+version = "0.3.0"
 description = "Provider-neutral social data API, MCP server, and website"
 requires-python = ">=3.12"
 dependencies = [

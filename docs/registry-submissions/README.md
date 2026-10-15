@@ -1,6 +1,6 @@
 # ReachSocial directory applications
 
-Updated 2026-10-14. The owner authorized submitting relevant listings on their behalf.
+Updated 2026-10-15. The owner authorized submitting relevant listings on their behalf.
 No listing fees, provider calls, or USDC payments were made in this application batch.
 Submitted does not mean approved or indexed.
 
@@ -24,9 +24,9 @@ Application text is stored beside this file. Do not repeat these submissions; up
 | Destination | Next action / requirement | Reference |
 | --- | --- | --- |
 | Official MCP Registry | Publish prepared server.json after domain HTTP/DNS verification or authorized publisher login. Draft uses dev.reachsocial namespace, so it needs domain verification; GitHub login instead requires io.github.artiehinz namespace. Existing gh login is not an MCP Registry publisher session. | https://github.com/modelcontextprotocol/registry/blob/main/docs/modelcontextprotocol-io/authentication.mdx |
-| AgentCash / x402scan | Add accurate per-operation payment metadata and guidance to OpenAPI; use concrete public routes, valid input examples, idempotency header documentation, and recovery instructions. x402scan registration POST returned HTTP 402 with accepts=[] and SIWX authentication required, not a paid fee challenge. Owner wallet sign-in is needed. AgentCash seller guide directs registration through x402scan; do not claim a separate application was accepted. | https://agentcash.dev/docs/discovery ; https://agentcash.dev/docs/quickstart-providers |
+| AgentCash / x402scan | OpenAPI now includes concrete public operations, payment metadata, idempotency, and recovery guidance. x402scan registration still requires owner SIWX sign-in; its earlier `402` had an empty accepts list and was not a fee challenge. Complete the owner sign-in and verify indexing before claiming an AgentCash listing. | https://agentcash.dev/docs/discovery ; https://agentcash.dev/docs/quickstart-providers |
 | x402 Bazaar | Check facilitator discovery support and current indexing; configure and validate Bazaar extension. Need evidence of listing, not merely presence of /openapi.json. | https://github.com/x402-foundation/x402/blob/main/docs/extensions/bazaar.mdx |
-| Smithery | Current URL publishing requires OAuth for authenticated servers. The prior auth_required error is a real compatibility gap. Publish only after OAuth and payment-backed tool acceptance; a static card alone does not fix runtime access. | https://smithery.ai/docs/build/publish |
+| Smithery | OAuth protected-resource metadata, authorization code with PKCE, dynamic registration, wallet login, browser payment approval, and result retrieval are implemented. Keep access owner-only while Stage A validates `instagram.feed` through Smithery; publish or update the listing only after that real flow passes. A static card does not replace runtime authorization. | https://smithery.ai/docs/build/publish |
 | Glama | Already submitted by owner. Verify review status, authenticated health checks, and domain/GitHub ownership claim. Do not submit the private app repository or use its public docs mirror as server source. | https://glama.ai/mcp/faq |
 | MCPservers.org | Owner confirmed submission. Follow up on the existing application and update auth metadata after release. The public form has no documented submission API located in this pass. | https://mcpservers.org/submit |
 | MCP Market | Owner confirmed free-queue submission. Track its review and update access details after acceptance. Do not select paid priority options. | https://mcpmarket.com/submit |
@@ -43,8 +43,10 @@ Application text is stored beside this file. Do not repeat these submissions; up
 ReachSocial provides one API for normalized public social profiles, posts, and feeds.
 Eight public REST services for Instagram, X, and TikTok accept $0.05 native Base-USDC
 payments via x402 v2. Authenticated MCP is available to approved clients, with
-service permissions. Do not advertise anonymous USDC-paid MCP, unrestricted
-catalog availability, OAuth login, or a published open-source backend.
+service permissions. OAuth MCP payment approval is under owner-only validation
+until all 15 services have acceptance and observation evidence. Do not advertise
+anonymous USDC-paid MCP, unrestricted catalog availability, general OAuth login,
+or a published open-source backend.
 
 Website: https://reachsocial.dev
 Docs: https://reachsocial.dev/docs/api

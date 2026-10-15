@@ -56,3 +56,19 @@ profile currently permits a provider retry. Arrange a server-enforced
 single-attempt acceptance before spending under the agreed one-credit limit,
 then reconcile the actual transfer, provider attempt, and key-bound recovery.
 Do not mark this live gate complete based on mocked tests.
+
+## Follow-up — 2026-10-15
+
+The account and payment pages now invalidate their local state when an injected
+wallet changes accounts or chains. They end the browser session where possible,
+clear the pending request, and require a fresh login before another signature.
+Consent shows the application name, stable client ID, callback address, and
+requested permission as separate facts. Long request values wrap, JSON stays in
+a scrollable result panel, and narrow layouts reduce those facts to one column.
+
+The browser suite now has 36 tests, including the wallet-change invalidation
+case. The full Python suite has 217 passing tests with 17 credential-gated live
+provider cases skipped. `npm audit --omit=dev` and a current HIGH/CRITICAL Trivy
+scan of the built production image found no vulnerabilities. These checks do
+not replace the remaining standalone browser or third-party-client payment
+acceptance gates.

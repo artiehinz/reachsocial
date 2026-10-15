@@ -9,6 +9,7 @@ if (root) {
   let wallets = new Map();
   let identity;
   let signingIn = false;
+  let removeWalletListeners = () => {};
   const flow = new URL(location.href).searchParams.get('authorize');
   async function api(path, body) {
     const response = await fetch(path, {
@@ -38,7 +39,9 @@ if (root) {
     for (const connection of identity.connections) {
       const item = document.createElement('li');
       const name = document.createElement('span');
-      name.textContent = connection.client_id + ' ';
+      const callback = Array.isArray(connection.redirect_uris) && connection.redirect_uris.length
+        ? ` · ${connection.redirect_uris[0]}` : '';
+      name.textContent = `${connection.client_name || connection.client_id}${callback} `;
       const button = document.createElement('button');
       button.className = 'copy-button'; button.textContent = 'Revoke';
       button.onclick = () => run(async () => { await api('/auth/connections/revoke', { id: connection.id }); await render(); });
@@ -58,12 +61,45 @@ if (root) {
     if (!requests.requests.length) requestList.textContent = 'No requests yet.';
     if (flow) {
       const consent = await api('/auth/consent?flow=' + encodeURIComponent(flow));
-      root.querySelector('[data-account-client]').textContent = `${consent.client_name} (${consent.client_id}). Return address: ${consent.redirect_uri}. Only allow a connection you started; a localhost address refers to an application on your computer.`;
+      const name = root.querySelector('[data-account-client-name]');
+      const clientId = root.querySelector('[data-account-client-id]');
+      const redirect = root.querySelector('[data-account-client-redirect]');
+      if (name) name.textContent = consent.client_name;
+      if (clientId) clientId.textContent = consent.client_id;
+      if (redirect) redirect.textContent = consent.redirect_uri;
+      const legacy = root.querySelector('[data-account-client]');
+      if (legacy) legacy.textContent = `${consent.client_name} (${consent.client_id}). Return address: ${consent.redirect_uri}.`;
       root.querySelector('[data-account-consent]').hidden = false;
     }
   }
   async function run(action) {
     try { status.dataset.state = ''; await action(); } catch (error) { status.dataset.state = 'error'; status.textContent = walletError(error); }
+  }
+  function clearSignedInState(message) {
+    identity = undefined;
+    root.querySelector('[data-account-details]').hidden = true;
+    root.querySelector('[data-account-consent]').hidden = true;
+    status.textContent = message;
+  }
+  async function invalidateWalletSession(message) {
+    const current = identity;
+    removeWalletListeners();
+    removeWalletListeners = () => {};
+    if (current) {
+      try { await api('/auth/logout', {}); } catch { /* The stale session is no longer usable here. */ }
+    }
+    clearSignedInState(message);
+  }
+  function watchWallet(provider) {
+    removeWalletListeners();
+    if (!provider?.on) { removeWalletListeners = () => {}; return; }
+    const changed = () => { void invalidateWalletSession('Your wallet account or network changed. Sign in again before allowing a connection.'); };
+    provider.on('accountsChanged', changed);
+    provider.on('chainChanged', changed);
+    removeWalletListeners = () => {
+      provider.removeListener?.('accountsChanged', changed);
+      provider.removeListener?.('chainChanged', changed);
+    };
   }
   login.onclick = () => run(async () => {
     if (signingIn) return;
@@ -82,6 +118,7 @@ if (root) {
       const hex = '0x' + [...bytes].map(b => b.toString(16).padStart(2, '0')).join('');
       const signature = await provider.request({ method: 'personal_sign', params: [hex, address] });
       identity = await api('/auth/verify', { signature });
+      watchWallet(provider);
       await render();
     } finally { signingIn = false; login.disabled = !wallets.size; }
   });
@@ -93,10 +130,10 @@ if (root) {
   root.querySelector('[data-account-approve]').onclick = () => run(() => consent(true));
   root.querySelector('[data-account-deny]').onclick = () => run(() => consent(false));
   root.querySelector('[data-account-logout]').onclick = () => run(async () => {
-    await api('/auth/logout', {}); identity = undefined;
-    root.querySelector('[data-account-details]').hidden = true;
-    root.querySelector('[data-account-consent]').hidden = true;
-    status.textContent = 'Signed out.';
+    await api('/auth/logout', {});
+    removeWalletListeners();
+    removeWalletListeners = () => {};
+    clearSignedInState('Signed out.');
   });
   render().catch(error => {
     status.textContent = error.status === 401

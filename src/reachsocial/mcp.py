@@ -14,7 +14,7 @@ from starlette.responses import JSONResponse
 
 from .api import _api_key_from_header, client_for_api_key
 from .catalog import Catalog, ServiceDefinition
-from .config import get_settings
+from .config import MCP_SERVER_VERSION, get_settings
 from .db import SessionLocal
 from .jobs import authorize_job, job_payload, submit_job
 from .models import AsyncJob, Client
@@ -255,7 +255,25 @@ async def get_reachsocial_job(job_id: str) -> dict[str, Any]:
         return payload
 
 
-def make_mcp_server(catalog: Catalog, executor: ExecutionService | None = None) -> MCPServer:
+def _mcp_services(catalog: Catalog, *, include_private_validation: bool) -> list[ServiceDefinition]:
+    services = list(catalog.public_services())
+    if not include_private_validation:
+        return services
+    from .mcp_requests import private_mcp_validation_service
+
+    return [
+        service
+        for service in catalog.services
+        if service.public or private_mcp_validation_service(service)
+    ]
+
+
+def make_mcp_server(
+    catalog: Catalog,
+    executor: ExecutionService | None = None,
+    *,
+    include_private_validation: bool = False,
+) -> MCPServer:
     server = MCPServer(
         name="ReachSocial",
         title="ReachSocial social data",
@@ -267,7 +285,7 @@ def make_mcp_server(catalog: Catalog, executor: ExecutionService | None = None) 
             "use get_reachsocial_request with the returned request ID; never create a new payment to recover a result."
         ),
         website_url="https://reachsocial.dev",
-        version="0.2.0",
+        version=MCP_SERVER_VERSION,
     )
     active_executor = executor or ExecutionService(catalog, RuntimeState())
     if get_settings().oauth_enabled:
@@ -275,7 +293,7 @@ def make_mcp_server(catalog: Catalog, executor: ExecutionService | None = None) 
         server.add_tool(retrieve_request, name="get_reachsocial_request",
                         description="Retrieve your request by ID without a payment or provider call.", structured_output=True)
     has_async = False
-    for service in catalog.public_services():
+    for service in _mcp_services(catalog, include_private_validation=include_private_validation):
         if service.is_async:
             has_async = True
             server.add_tool(
@@ -304,7 +322,7 @@ def make_mcp_server(catalog: Catalog, executor: ExecutionService | None = None) 
 def make_mcp_app(catalog: Catalog):
     base = str(get_settings().public_base_url).rstrip("/")
     authority = urlsplit(base).netloc
-    app = make_mcp_server(catalog).streamable_http_app(
+    app = make_mcp_server(catalog, include_private_validation=True).streamable_http_app(
         streamable_http_path="/", json_response=True, stateless_http=True,
         transport_security=TransportSecuritySettings(
             enable_dns_rebinding_protection=True,

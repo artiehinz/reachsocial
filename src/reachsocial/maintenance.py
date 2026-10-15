@@ -24,7 +24,8 @@ def prune_operational_records() -> dict[str, int]:
     usage_cutoff = (now.date() - timedelta(days=2)).isoformat()
     with SessionLocal() as session:
         from .oauth_store import prune as prune_oauth
-        prune_oauth(session)
+
+        expired_oauth_state = prune_oauth(session)
         expired_jobs = session.execute(
             update(AsyncJob)
             .where(AsyncJob.expires_at <= now, AsyncJob.status != "expired")
@@ -65,6 +66,7 @@ def prune_operational_records() -> dict[str, int]:
                 delete(PublicTestUsage).where(PublicTestUsage.usage_day < usage_cutoff)
             ).rowcount
             or 0,
+            "oauth_state": expired_oauth_state,
         }
         session.commit()
     return results

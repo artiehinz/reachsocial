@@ -42,8 +42,10 @@ from .payments import (
     MAINNET_ACCEPTANCE_ASYNC_SERVICE_IDS,
     MAINNET_ACCEPTANCE_SYNC_SERVICE_IDS,
     MAINNET_CANARY_SERVICE_ID,
+    PRIVATE_ACCEPTANCE_SCOPE_KEY,
     PUBLIC_X402_CLIENT_NAME,
     payment_id_from_payload,
+    private_acceptance_service_ids,
     x402_is_configured,
 )
 from .security import api_key_id, generate_api_key, hash_api_key, verify_api_key
@@ -570,12 +572,17 @@ async def execute_service(
     executor.validate_input(service, body.input)
     credit_used = False
     payment_id = _current_payment_id(request)
+    private_acceptance = request.scope.get(PRIVATE_ACCEPTANCE_SCOPE_KEY) == service.id
     if anonymous:
-        if not service.public:
+        if not service.public and not private_acceptance:
             raise HTTPException(
                 status_code=401,
                 detail={"code": "unauthenticated", "message": "API key required"},
             )
+        if private_acceptance and service.id not in private_acceptance_service_ids(
+            request.app.state.settings
+        ):
+            raise HTTPException(status_code=404, detail={"code": "not_found", "message": "Not found"})
         if service_credit:
             if not credit_is_valid(service_credit, service.id, service.price_cents):
                 raise CreditUnavailable("The service credit is invalid or unavailable")
@@ -613,9 +620,36 @@ async def execute_service(
         input_data=body.input,
         idempotency_key=idempotency_key,
         charge_client=not credit_used and not anonymous,
+        allow_private_service=private_acceptance,
     )
     _link_receipt(session, payment_id, request_id=response["request_id"])
     return response
+
+
+@router.post("/acceptance/private/{service_id}/execute", include_in_schema=False)
+async def execute_private_acceptance(
+    service_id: str,
+    body: ExecuteRequest,
+    request: Request,
+    idempotency_key: Annotated[str | None, Header(alias="Idempotency-Key")] = None,
+    session: Session = Depends(get_session),
+    catalog: Catalog = Depends(get_catalog),
+    executor: ExecutionService = Depends(get_executor),
+) -> dict[str, Any]:
+    """Run only when the private-acceptance middleware marked this exact route."""
+    if request.scope.get(PRIVATE_ACCEPTANCE_SCOPE_KEY) != service_id:
+        raise HTTPException(status_code=404, detail={"code": "not_found", "message": "Not found"})
+    return await execute_service(
+        service_id=service_id,
+        body=body,
+        request=request,
+        idempotency_key=idempotency_key,
+        service_credit=None,
+        client=None,
+        session=session,
+        catalog=catalog,
+        executor=executor,
+    )
 
 
 @router.post("/canary/mainnet/instagram.profile/execute", include_in_schema=False)

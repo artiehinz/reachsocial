@@ -14,9 +14,14 @@ from .catalog import ServiceDefinition, get_catalog
 from .config import get_settings
 from .db import SessionLocal
 from .errors import ReachSocialError
-from .oauth_provider import origin
+from .oauth_provider import origin, wallet_allowed
 from .oauth_routes import browser_session
 from .oauth_store import OAuthState, consume, digest, get, put, rate_limit, secret
+from .payments import (
+    PRIVATE_ACCEPTANCE_SCOPE_KEY,
+    private_acceptance_path,
+    private_acceptance_service_ids,
+)
 from .services import ExecutionService, stable_hash
 
 current_principal: contextvars.ContextVar[dict | None] = contextvars.ContextVar(
@@ -34,12 +39,36 @@ def require_enabled():
         raise HTTPException(503, "MCP payment approval is not enabled")
 
 
+def private_mcp_validation_service(service: ServiceDefinition) -> bool:
+    """Allow a configured private service only during owner-gated MCP validation."""
+    settings = get_settings()
+    return bool(
+        settings.mainnet_private_acceptance_enabled
+        and settings.oauth_validation_wallets.strip()
+        and service.enabled
+        and not service.public
+        and not service.is_async
+        and service.price_cents == 5
+        and service.id in private_acceptance_service_ids(settings)
+    )
+
+
 def create_request(service: ServiceDefinition, input_data: dict, key: str) -> dict:
     require_enabled()
     principal = current_principal.get()
     if not principal:
         raise HTTPException(401, "OAuth authorization required")
-    if not service.enabled or not service.public or service.is_async or service.price_cents != 5:
+    # Access tokens issued before an owner-only validation gate was enabled
+    # must not retain access to temporary private validation tools.
+    if not wallet_allowed(str(principal["subject"])):
+        raise HTTPException(403, "Self-service access is in limited validation")
+    private_validation = private_mcp_validation_service(service)
+    if (
+        not service.enabled
+        or (not service.public and not private_validation)
+        or service.is_async
+        or service.price_cents != 5
+    ):
         raise HTTPException(403, "Service is not available for public MCP payment")
     if not isinstance(key, str) or not 32 <= len(key) <= 255:
         raise HTTPException(400, "Use a random 32–255 character idempotency key")
@@ -81,6 +110,7 @@ def create_request(service: ServiceDefinition, input_data: dict, key: str) -> di
             "price_cents": service.price_cents,
             "payment_key": "mcp_" + secret(),
             "unpaid_expires_at": time.time() + 1800,
+            "private_acceptance": private_validation,
         }
         try:
             row = put(
@@ -114,6 +144,8 @@ def request_payload(session, row) -> dict:
         "service": payload["service"],
         "price_cents": payload["price_cents"],
     }
+    if payload.get("private_acceptance"):
+        base["payment_endpoint"] = private_acceptance_path(payload["service"])
     if recovered:
         result, receipt = recovered
         if receipt.status != "settled":
@@ -222,6 +254,11 @@ async def approve_request(request_id: str, request: Request):
             "service": row.payload["service"],
             "input": row.payload["input"],
             "owner": row.owner,
+            **(
+                {"payment_endpoint": private_acceptance_path(row.payload["service"])}
+                if row.payload.get("private_acceptance")
+                else {}
+            ),
         }
 
 
@@ -244,6 +281,9 @@ async def guard_payment(
             raise HTTPException(403, "Unknown MCP payment request")
         if service_id != row.payload["service"]:
             raise HTTPException(403, "MCP request service mismatch")
+        private_route = request.scope.get(PRIVATE_ACCEPTANCE_SCOPE_KEY) == service_id
+        if bool(row.payload.get("private_acceptance")) != private_route:
+            raise HTTPException(403, "MCP request payment route mismatch")
         try:
             body = await request.json()
         except ValueError:
@@ -284,6 +324,10 @@ async def guard_payment(
                 session, "payment_approval", request.headers.get("x-reachsocial-approval", "")
             ):
                 raise HTTPException(409, "Payment was already attempted; recover this request")
-            row.payload = {**row.payload, "payment_attempted": True}
+            row.payload = {
+                **row.payload,
+                "payment_attempted": True,
+                "payment_attempted_at": time.time(),
+            }
             session.commit()
         return row.owner

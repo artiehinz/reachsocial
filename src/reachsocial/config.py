@@ -1,10 +1,27 @@
 from __future__ import annotations
 
+import re
 from functools import lru_cache
 from pathlib import Path
 
 from pydantic import Field, HttpUrl
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+MCP_SERVER_VERSION = "0.3.0"
+_SERVICE_ID = re.compile(r"^[a-z0-9]+(?:[._-][a-z0-9]+)*$")
+
+
+def configured_service_ids(value: str) -> frozenset[str]:
+    """Parse an explicit, comma-separated operational service allowlist.
+
+    Invalid values are returned as-is so the relevant fail-closed startup gate
+    can report a useful configuration error instead of silently widening it.
+    """
+    return frozenset(item.strip() for item in value.split(",") if item.strip())
+
+
+def valid_service_ids(value: frozenset[str]) -> bool:
+    return bool(value) and all(_SERVICE_ID.fullmatch(item) for item in value)
 
 
 def x402_network_label(network: str) -> str:
@@ -43,6 +60,13 @@ class Settings(BaseSettings):
     mainnet_x402_canary_buyer: str = ""
     mainnet_x402_acceptance_enabled: bool = False
     mainnet_x402_acceptance_buyer: str = ""
+    # A short-lived, owner-only lane for validating one or more private
+    # synchronous services through the real Base-mainnet payment pipeline.
+    # It is not part of public discovery or ordinary REST execution.
+    mainnet_private_acceptance_enabled: bool = False
+    mainnet_private_acceptance_buyer: str = ""
+    mainnet_private_acceptance_services: str = ""
+    mainnet_private_acceptance_run_id: str = ""
     minimum_public_margin_cents: int = Field(default=1, ge=1)
     maintenance_interval_hours: int = Field(default=24, ge=1, le=168)
     default_rate_limit_per_minute: int = Field(default=30, ge=1, le=10000)
@@ -70,6 +94,8 @@ class Settings(BaseSettings):
     async_job_lease_seconds: int = Field(default=180, ge=30, le=1800)
     async_worker_poll_seconds: float = Field(default=1.0, ge=0.1, le=30)
     service_credit_expiry_days: int = Field(default=30, ge=1, le=365)
+    backup_status_path: Path = Path("/data/backup-status.json")
+    backup_max_age_hours: int = Field(default=30, ge=1, le=168)
 
     @property
     def is_production(self) -> bool:

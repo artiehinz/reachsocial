@@ -20,6 +20,7 @@ from reachsocial.payments import (
     MAINNET_CANARY_PATH,
     MainnetAcceptanceX402Middleware,
     MainnetCanaryX402Middleware,
+    PrivateAcceptanceX402Middleware,
     ReachSocialX402Middleware,
     create_x402_payment_handler,
     is_b2b_request,
@@ -29,9 +30,12 @@ from reachsocial.payments import (
     mark_verified_payment_canceled,
     payment_id_from_payload,
     price_for_public_execution,
+    private_acceptance_path,
+    private_acceptance_safety_errors,
     reserve_mainnet_acceptance,
     reserve_mainnet_canary,
     reserve_payment_receipt,
+    reserve_private_acceptance,
     service_id_from_path,
     usdc_atomic_to_cents,
 )
@@ -489,6 +493,106 @@ def test_mainnet_acceptance_reserves_each_route_once_for_the_named_buyer(
     assert session.scalar(select(MainnetCanaryAttempt)).canary_key.endswith("instagram.post")
 
 
+def _private_acceptance_settings() -> Settings:
+    return Settings(
+        x402_enabled=True,
+        x402_network="eip155:8453",
+        allow_mainnet_x402=True,
+        external_backup_enabled=True,
+        scrapecreators_api_key="test-provider-key",
+        scrapecreators_credit_balance=20,
+        scrapecreators_credit_reserve=1,
+        public_provider_max_attempts=1,
+        mainnet_private_acceptance_enabled=True,
+        mainnet_private_acceptance_buyer="0xcf8fD9bd415C36326597E8079fCb3125FE2dB369",
+        mainnet_private_acceptance_services="instagram.feed",
+        mainnet_private_acceptance_run_id="stage-a-20261015",
+    )
+
+
+def _private_acceptance_catalog() -> Catalog:
+    return Catalog(
+        services=[
+            ServiceDefinition(
+                id="instagram.feed",
+                title="Instagram Feed",
+                platform="Instagram",
+                description="Private acceptance service",
+                input_fields=[InputField(name="url", description="URL", format="url")],
+                provider=ProviderConfig(name="scrapecreators"),
+                enabled=True,
+                public=False,
+                catalog_status="private",
+                retries=0,
+                estimated_upstream_cost_microusd=1880,
+                provider_unit_cost_microusd=1880,
+                cost_verified=True,
+                price_cents=5,
+            )
+        ]
+    )
+
+
+def test_private_acceptance_requires_narrow_mainnet_configuration() -> None:
+    settings = _private_acceptance_settings()
+    catalog = _private_acceptance_catalog()
+
+    assert private_acceptance_safety_errors(settings, catalog) == []
+
+    settings.public_provider_max_attempts = 2
+    assert (
+        "PUBLIC_PROVIDER_MAX_ATTEMPTS=1 is required for private acceptance"
+        in private_acceptance_safety_errors(settings, catalog)
+    )
+
+
+def test_private_acceptance_reserves_one_service_for_the_configured_owner(
+    session, monkeypatch
+) -> None:
+    @contextmanager
+    def session_factory():
+        yield session
+
+    monkeypatch.setattr("reachsocial.payments.SessionLocal", session_factory)
+    monkeypatch.setattr("reachsocial.payments.fetch_provider_balance", lambda _settings: 20)
+    settings = _private_acceptance_settings()
+    catalog = _private_acceptance_catalog()
+    buyer = settings.mainnet_private_acceptance_buyer
+    path = private_acceptance_path("instagram.feed")
+
+    def context(signature: str, *, payer: str = buyer):
+        return SimpleNamespace(
+            payment_payload={"signature": signature},
+            requirements=SimpleNamespace(
+                network="eip155:8453",
+                asset="0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+                amount="50000",
+            ),
+            result=SimpleNamespace(payer=payer),
+            transport_context=SimpleNamespace(request=SimpleNamespace(path=path)),
+        )
+
+    first = context("private-acceptance-one")
+    assert reserve_private_acceptance(first, settings=settings, catalog=catalog) is None
+    replay = reserve_private_acceptance(first, settings=settings, catalog=catalog)
+    route_reused = reserve_private_acceptance(
+        context("private-acceptance-two"), settings=settings, catalog=catalog
+    )
+    wrong_buyer = reserve_private_acceptance(
+        context("private-acceptance-three", payer="0x0000000000000000000000000000000000000000"),
+        settings=settings,
+        catalog=catalog,
+    )
+
+    assert replay is not None and replay.reason == "payment_replayed"
+    assert route_reused is not None and route_reused.reason == "private_acceptance_route_already_used"
+    assert wrong_buyer is not None and wrong_buyer.reason == "private_acceptance_buyer_rejected"
+    attempt = session.scalar(select(MainnetCanaryAttempt))
+    assert attempt is not None and attempt.canary_key.endswith(":instagram.feed")
+    reservation = session.scalar(select(ProviderCreditReservation))
+    assert reservation is not None and reservation.reserved_units == 1
+
+
 def test_usdc_atomic_amount_is_reported_as_cents() -> None:
     assert usdc_atomic_to_cents("50000") == 5
 
@@ -800,6 +904,41 @@ async def test_mainnet_acceptance_rejects_b2b_and_service_credit_bypasses() -> N
             "method": "POST",
             "path": MAINNET_ACCEPTANCE_PATHS["instagram.profile"],
             "headers": [(b"x-service-credit", b"private-credit")],
+            "query_string": b"",
+            "scheme": "https",
+            "server": ("reachsocial.test", 443),
+        }
+    )
+
+    response = await middleware.dispatch(request, route_handler)
+
+    assert response.status_code == 403
+    assert payment_calls == []
+
+
+@pytest.mark.asyncio
+async def test_private_acceptance_rejects_b2b_and_service_credit_bypasses() -> None:
+    middleware = object.__new__(PrivateAcceptanceX402Middleware)
+    path = private_acceptance_path("instagram.feed")
+    middleware._routes = {f"POST {path}": "instagram.feed"}
+    payment_calls = []
+
+    async def payment_handler(request, call_next):
+        del request, call_next
+        payment_calls.append(True)
+        return JSONResponse({"payment": "required"}, status_code=402)
+
+    async def route_handler(request):
+        del request
+        return JSONResponse({"unexpected": True})
+
+    middleware._payment_handler = payment_handler
+    request = Request(
+        {
+            "type": "http",
+            "method": "POST",
+            "path": path,
+            "headers": [(b"authorization", b"Bearer private-key")],
             "query_string": b"",
             "scheme": "https",
             "server": ("reachsocial.test", 443),

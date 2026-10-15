@@ -4,7 +4,7 @@ Remaining work after owner acceptance: [onboarding and release plan](onboarding-
 
 Current self-service implementation and remaining release gates: [self-service release](self-service-release.md).
 
-Updated: 2026-10-14
+Updated: 2026-10-15
 
 ## Current catalog truth
 
@@ -25,6 +25,14 @@ ScrapeCreators services, including the Facebook, Reddit, and saved-highlight
 adapters added in this release. Their one-credit replacement-cost basis is
 recorded as 1,880 micro-USD per attempt. This is documented replacement pricing,
 not a purchased invoice.
+
+A disabled owner-only private acceptance lane is now available for the three
+staged releases. It names a fixed stage service allowlist and owner buyer,
+requires the same Base-mainnet/account-wide-credit checks as public x402, and
+permits exactly one provider attempt and one payment per service/run. Its hidden
+routes are absent from executable discovery and ordinary MCP cards. It is not
+enabled or evidence of public availability until a stage receives a settled
+payment, same-key recovery, and 24-hour observation.
 
 A fresh 2026-10-11 recheck passed all fourteen non-LinkedIn private services,
 including Person News under its reviewed zero-cost classification. The supplied
@@ -145,7 +153,8 @@ is recorded separately. No purchase is required for existing-credit tests.
 3. Recheck authenticated MCP discovery, entitlement denial, execution, and
    protected job polling on the deployed image.
 4. Recheck the provider balance, retain the 1,000-credit reserve, and use the
-   100-credit/$2 acceptance ledger before each staged public-mainnet release.
+   remaining 19-credit/$0.45 acceptance allocation before each staged
+   public-mainnet release.
 5. Promote only services that complete their paid recovery acceptance, then
    observe and reconcile each stage for 24 hours.
 
