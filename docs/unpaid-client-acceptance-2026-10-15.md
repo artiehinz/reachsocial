@@ -63,7 +63,37 @@ limited to one, and owner-only OAuth access remains enabled. Production had
 provider attempts. These are an observation baseline, not attribution of all
 traffic to this acceptance batch. No payment was signed during these checks.
 
-## Prepared owner acceptance
+## Standalone Firefox/MetaMask acceptance passed
+
+On 2026-10-15 at 20:21 UTC, the owner approved the prepared standalone browser
+test in the existing Firefox/MetaMask session on Herald. Production was running
+`348d126dd6b97233a2005fe413c0f7f57832c35d`; its CI, deployment, and final readiness
+run passed. The cross-origin page reported `paid result recovered twice`.
+
+- Service: `instagram.profile`; amount: 50,000 native Base-USDC atomic units.
+- Transaction: `0x18cefe2ada1f1785ba5030ac64bed99de1bba22cfc6f4486151d78074c2c2052`.
+- Request: `req_a4f972f82de94ce0aa3762f332b9fcaa`.
+- Independent Base RPC check: successful receipt in block 52,653,185; exactly
+  one matching native-USDC transfer from the approved owner to the receiver.
+- Production: one settled five-cent receipt and one successful provider attempt,
+  consuming one credit. Live balance decreased from 6,779 to 6,778.
+- Two additional independent recovery-only requests matched the browser's result
+  hash `16ba381b6840f52ef39cb4bee82c23d1b35648e56d75a8729fd3aef35bf6be1f`.
+  Neither recovery signed a payment or dispatched a provider execution.
+
+The original request key remains in the Firefox checkpoint and protected local
+evidence. Do not clear it or repeat the paid browser case. Production totals
+after payment were 13 settled receipts, two canceled-before-settlement receipts,
+and 100 provider attempts. This closes standalone browser acceptance; it does
+not establish AgentCash, Smithery, or staged-service acceptance.
+
+## Remaining owner acceptance
+
+After the Firefox payment, eight allocations remain: AgentCash and seven staged
+services, each capped at $0.05. The batch remainder is **$0.40 and 18 provider
+credits**, further bounded by the original release allowance.
+
+### Historical preparation before the Firefox test
 
 The remaining allocations are one standalone browser request and one AgentCash
 request, each capped at $0.05. Refresh the balance and receipt baseline before
@@ -119,7 +149,7 @@ reconciliation. CLI behavior and flags were checked against the
 
 ## Gates still open
 
-- Real owner browser-wallet and AgentCash payment/recovery acceptance.
+- AgentCash payment/recovery acceptance.
 - Fresh external production-client authorization and metadata interoperability,
   including Smithery. A local SDK test does not prove these integrations.
 - Remaining staged-service payments/observation and directory publication.

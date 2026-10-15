@@ -241,8 +241,8 @@ export async function executeReachSocial(
   }
   const publicEndpoint = `${baseUrl}/v1/services/${encodeURIComponent(serviceId)}/execute`;
   const privateEndpoint = `${baseUrl}/v1/acceptance/private/${encodeURIComponent(serviceId)}/execute`;
-  const endpoint = paymentEndpoint || publicEndpoint;
-  const privateValidation = Boolean(paymentEndpoint);
+  const endpoint = paymentEndpoint ? new URL(paymentEndpoint, baseUrl).href : publicEndpoint;
+  const privateValidation = endpoint === privateEndpoint;
   if (endpoint !== publicEndpoint && endpoint !== privateEndpoint) {
     throw new Error("The payment endpoint did not match the requested ReachSocial service");
   }

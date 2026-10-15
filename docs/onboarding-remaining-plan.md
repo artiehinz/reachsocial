@@ -49,9 +49,10 @@ wrap or scroll inside their panels.
 The [2026-10-15 unpaid audit](unpaid-client-acceptance-2026-10-15.md) passed fresh
 SDK checks over real loopback HTTP, synthetic browser checks, live discovery/CORS
 checks, and a scheduled readiness run. External production-client authorization
-and the two owner-wallet payment cases below remain open.
+and the AgentCash payment case remain open. Standalone Firefox/MetaMask payment
+and recovery passed on 2026-10-15; see the same acceptance record.
 
-- Run the separate standalone injected-browser acceptance and AgentCash path.
+- Run the remaining AgentCash acceptance path.
   Preserve idempotency, require owner wallet approval, and verify recovery.
 - Test a real fresh MCP client, including client metadata/registration, PKCE,
   token renewal, connection revocation, payment link, and result retrieval.
@@ -88,7 +89,7 @@ and recovery per service, verify the deployed catalog, then observe/reconcile fo
 bounds and truthful pagination/data limitations. LinkedIn, public Person News,
 and current Instagram stories remain on hold. AEU is unchanged.
 
-The current batch has $0.45 USDC and 19 provider credits remaining, further
+The current batch has $0.40 USDC and 18 provider credits remaining, further
 limited by the original $2 / 100-credit allowance. Do not double-count the owner
 MCP flow as a second browser purchase. Count charged failures and retries. Keep
 the 1,000-credit reserve, $5/day upstream ceiling, current request limits, and

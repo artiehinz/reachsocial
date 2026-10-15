@@ -132,8 +132,14 @@ describe("browser x402 guard", () => {
     expect(request.mock.calls.some(([call]) => call.method.includes("sign"))).toBe(false);
   });
 
-  it("executes the real x402 wrapper once, then recovers without signing or dispatching again", async () => {
+  it.each([
+    { service: "instagram.profile", paymentEndpoint: undefined },
+    { service: "instagram.feed", paymentEndpoint: "/v1/acceptance/private/instagram.feed/execute" },
+    { service: "instagram.feed", paymentEndpoint: "https://reachsocial.dev/v1/acceptance/private/instagram.feed/execute" },
+  ])("executes $service at $paymentEndpoint once, then recovers without another signature", async ({ service, paymentEndpoint }) => {
     const key = crypto.randomUUID();
+    const paidEndpoint = paymentEndpoint ? new URL(paymentEndpoint, "https://reachsocial.dev").href : endpoint;
+    const paymentDeclaration = { ...declaration, resource: { url: paidEndpoint } };
     const input = { url: "https://www.instagram.com/instagram/" };
     let providerExecutions = 0;
     const wallet = vi.fn(async ({ method, params }) => {
@@ -163,21 +169,38 @@ describe("browser x402 guard", () => {
         expect(req.headers.has("PAYMENT-SIGNATURE")).toBe(false);
         return json({ result });
       }
+      expect(req.url).toBe(paidEndpoint);
+      expect(req.headers.get("X-ReachSocial-Approval")).toBe(paymentEndpoint ? "test-approval" : null);
       if (!req.headers.has("PAYMENT-SIGNATURE")) return new Response("{}", {
-        status: 402, headers: { "PAYMENT-REQUIRED": btoa(JSON.stringify(declaration)) },
+        status: 402, headers: { "PAYMENT-REQUIRED": btoa(JSON.stringify(paymentDeclaration)) },
       });
       providerExecutions++;
       return new Response(JSON.stringify(result), { headers: {
         "PAYMENT-RESPONSE": btoa(JSON.stringify({ success: true, transaction: "0x" + "ab".repeat(32), network: "eip155:8453" })),
       } });
     });
-    const paid = await executeReachSocial({ request: wallet }, expected.metadata.receiver as `0x${string}`, "instagram.profile", input, "https://reachsocial.dev", key);
+    const paid = await executeReachSocial({ request: wallet }, expected.metadata.receiver as `0x${string}`, service, input, "https://reachsocial.dev", key, paymentEndpoint ? "test-approval" : undefined, paymentEndpoint);
     expect(paid.result).toEqual(result);
     expect(paid.idempotencyKey).toBe(key);
-    expect(await recoverReachSocial("instagram.profile", input, key)).toEqual({ result });
+    expect(await recoverReachSocial(service, input, key)).toEqual({ result });
     expect(providerExecutions).toBe(1);
     expect(wallet.mock.calls.filter(([call]) => call.method.includes("sign"))).toHaveLength(1);
-    expect(fetchMock).toHaveBeenCalledTimes(5);
+    expect(fetchMock).toHaveBeenCalledTimes(paymentEndpoint ? 4 : 5);
+  });
+
+  it.each([
+    "https://example.com/v1/acceptance/private/instagram.feed/execute",
+    "//example.com/v1/acceptance/private/instagram.feed/execute",
+    "/v1/acceptance/private/instagram.highlight/execute",
+    "/v1/acceptance/private/instagram.feed/execute?changed=true",
+  ])("rejects an unexpected approval endpoint %s before fetching or signing", async (paymentEndpoint) => {
+    const request = vi.fn().mockResolvedValue("0x2105");
+    const fetchMock = vi.spyOn(globalThis, "fetch");
+    await expect(executeReachSocial({ request }, expected.metadata.receiver as `0x${string}`,
+      "instagram.feed", {}, "https://reachsocial.dev", crypto.randomUUID(), "test-approval", paymentEndpoint,
+    )).rejects.toThrow("payment endpoint did not match");
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(request.mock.calls.some(([call]) => call.method.includes("sign"))).toBe(false);
   });
 
   it("retains the original key on a lost execution response", async () => {

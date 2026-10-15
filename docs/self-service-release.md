@@ -41,11 +41,11 @@ The existing local provider ledger was read without printing targets or keys:
 100-credit original cap, 33 conservative credits consumed, 38 recorded events.
 This is historical provider evidence, not a fresh account-wide balance check.
 
-The direct-MCP case below already consumed one $0.05 payment and one provider
-credit. The remaining batch may consume at most **$0.45 USDC and 19 provider
+The direct-MCP and standalone Firefox cases each consumed one $0.05 payment
+and one provider credit. The remaining batch may consume at most **$0.40 USDC and 18 provider
 credits**, bounded further by the original $2/100-credit allowance. Reconcile
 payment receipts before spending; count retries and failed charged calls. The
-nine remaining allocations are standalone browser, AgentCash, and the seven
+eight remaining allocations are AgentCash and the seven
 additional services. Wallet signing remains local to the owner. No automatic
 top-ups.
 
@@ -61,7 +61,8 @@ and unpaid production evidence: [2026-10-15 client acceptance](unpaid-client-acc
   restored into isolated, no-network containers; application/OAuth/MCP checks
   and cleanup passed. See [operations evidence](operations.md#evidence-and-remaining-acceptance).
 - [ ] Full OAuth/MCP integration and browser security checks, including Smithery compatibility.
-- [ ] One bounded browser payment and same-key recovery.
+- [x] One bounded browser payment and same-key recovery. Firefox/MetaMask passed
+  2026-10-15; see the client acceptance record linked above.
 - [x] One bounded owner direct-MCP approval/payment/recovery and initial OAuth authorization. Independent client compatibility remains open.
 - [ ] One bounded AgentCash payment/recovery, preserving the original key.
 - [ ] Reconcile the six existing X/TikTok transfers and their observation evidence.
