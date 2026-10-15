@@ -1,5 +1,21 @@
 # Companion repository cleanup — 2026-10-11
 
+## Current visibility decision — 2026-10-15
+
+The owner explicitly directed that `artiehinz/ReachSocial.dev` must remain
+public and approved publication even if retained old commits expose backend
+source and operating documentation. Public visibility was applied and confirmed
+through GitHub's API. This supersedes the historical keep-private instruction
+below. Do not make this repository private again based on that old instruction.
+The application repository `artiehinz/reachsocial` remains private.
+
+The current default branch contains documentation and branding. The historical
+commit below still resolves and its tree includes source, deployment files,
+scripts, tests, and operating notes. No claim is made that history was purged,
+or that credentials were found. Keep future changes documentation-only.
+
+## Historical cleanup record
+
 The companion repository is `artiehinz/ReachSocial.dev`. It must contain only
 client-facing documentation and branding. The private application repository
 remains `artiehinz/reachsocial`; do not mirror it to the companion repository.

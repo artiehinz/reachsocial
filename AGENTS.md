@@ -67,8 +67,10 @@ never replace recovery with a new paid execution. See
   `artiehinz/ReachSocial.dev` is a separate client-documentation repository;
   never push this application tree or its history there. Its independent checkout
   is `/mnt/instaget-nvme/herald-work/reachsocial-public-docs.xDAt7C`.
-  It is currently private pending cleanup of GitHub's retained historical
-  objects. See `docs/public-repository-cleanup.md` before changing visibility.
+  It must remain public by explicit owner decision (2026-10-15), including
+  acceptance of the retained-history exposure. Do not make it private based on
+  the superseded cleanup rule. Keep this application repository private.
+  See `docs/public-repository-cleanup.md` for the decision and historical evidence.
 
 - The canonical production branch is `main`. A successful CI run for a `main`
   commit runs `.github/workflows/deploy.yml`, builds an immutable image tagged
