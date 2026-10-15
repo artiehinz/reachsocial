@@ -59,13 +59,19 @@ Post-restart checks at 21:02 UTC confirmed health/readiness, eight public servic
 404 from both disabled acceptance routes, and successful paid recovery for both
 original requests. No public service was promoted.
 
-Observation baseline: **2026-10-15 21:03 UTC**. Do not advance to Stage B or
-complete this gate before **2026-10-16 21:03 UTC** (15:03 America/Denver), and only
-after reviewing monitoring, receipt/provider reconciliation, and credit capacity.
+Observation baseline: **2026-10-15 21:03 UTC**. The original plan held Stage B
+until **2026-10-16 21:03 UTC** (15:03 America/Denver). The owner subsequently
+explicitly authorized combining all five later API checks immediately, without
+waiting between stages. That changes the test order, not the evidence needed
+for public release: observation, monitoring, receipt/provider reconciliation,
+and credit capacity still require review after the combined batch.
 Scheduled unpaid readiness checks remain enabled; elapsed time alone does not
 establish a clean observation window.
 
-Remaining budget: **$0.30 and 16 provider credits** for AgentCash and the five
+Budget immediately after Stage A: **$0.30 and 16 provider credits** for AgentCash and the five
 later services (YouTube channel/video/feed, Facebook profile, Reddit post),
 further bounded by the original release allowance. External-client compatibility
 remains a separate gate.
+
+The subsequent [combined batch](combined-acceptance-2026-10-15.md) consumed
+$0.25 and five credits; current remaining budget is $0.05 and 11 credits.
