@@ -216,6 +216,13 @@ to `/data/backup-status.json` after Restic backup, retention, and repository
 verification succeed. The app reports an informational stale/missing marker
 alert; it does not turn an authentication or backup alert into a payment pause.
 
+`scripts/verify_nightly_restore.sh` is the root-only recovery rehearsal. It
+restores the latest encrypted snapshot to a temporary NVMe directory, checks
+ReachSocial SQLite integrity plus OAuth/request and payment tables, starts an
+isolated ReachSocial container with x402 disabled, restores the AEU dump into an
+isolated no-network PostgreSQL container, then removes all temporary state. It
+does not read or print runtime environment values.
+
 InstaGet consumes the private Instagram, X, TikTok, and YouTube services through
 its separate server-only client; ReachSocial still never downloads media bytes.
 

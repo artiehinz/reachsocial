@@ -52,7 +52,9 @@ top-ups.
 Release gates still requiring recorded evidence:
 
 - [x] Current budget reconciliation and live provider balance baseline (see below).
-- [ ] Root-protected nightly-backup restore with the additive OAuth/request tables.
+- [ ] Root-protected nightly-backup restore with the additive OAuth/request tables. Run
+  `scripts/verify_nightly_restore.sh` from the root operations console; it restores
+  both databases into isolated, no-network containers and removes its temporary data.
 - [ ] Full OAuth/MCP integration and browser security checks, including Smithery compatibility.
 - [ ] One bounded browser payment and same-key recovery.
 - [x] One bounded owner direct-MCP approval/payment/recovery and initial OAuth authorization. Independent client compatibility remains open.
