@@ -11,7 +11,7 @@ readonly volume_root="/mnt/reachsocial_data_tor1_01"
 readonly repository="$volume_root/backups/agent-enhancer"
 readonly password_file="$volume_root/operations/restic-password"
 readonly reachsocial_container="reachsocial-app-1"
-readonly postgres_image="postgres:17"
+readonly postgres_container="agent-enhancer-postgres-1"
 
 if [[ "${EUID}" -ne 0 ]]; then
   echo "Run this verifier as root; it needs the protected Restic password file." >&2
@@ -30,6 +30,10 @@ for path in "$repository" "$password_file"; do
     exit 1
   }
 done
+# Use the exact locally installed image backing the live database, so the
+# restore tools match its PostgreSQL major version without pulling an image.
+postgres_image="$(docker inspect --format '{{.Image}}' "$postgres_container")"
+readonly postgres_image
 docker image inspect "$postgres_image" >/dev/null || {
   echo "Required local image is unavailable: $postgres_image" >&2
   exit 1
@@ -51,7 +55,7 @@ trap cleanup EXIT
 
 export RESTIC_REPOSITORY="$repository"
 export RESTIC_PASSWORD_FILE="$password_file"
-restic restore latest --target "$restore_root"
+restic restore latest --host reachsocial-production --path "$volume_root/backup-staging/current" --target "$restore_root"
 
 reachsocial_db="$(find "$restore_root" -type f -name reachsocial.db -print -quit)"
 aeu_dump="$(find "$restore_root" -type f -name agent-enhancer.pgdump -print -quit)"
@@ -91,7 +95,7 @@ PY
 install -d -m 0700 "$runtime_data"
 install -m 0600 "$reachsocial_db" "$runtime_data/reachsocial.db"
 chown -R 10001:10001 "$runtime_data"
-reachsocial_image="$(docker inspect --format '{{.Config.Image}}' "$reachsocial_container")"
+reachsocial_image="$(docker inspect --format '{{.Image}}' "$reachsocial_container")"
 docker run --detach --rm --name "$restore_app" --network none --read-only \
   --tmpfs /tmp:size=64m,mode=1777 \
   --env APP_ENV=restore-verification \
@@ -104,7 +108,7 @@ docker run --detach --rm --name "$restore_app" --network none --read-only \
   --env OAUTH_VALIDATION_WALLETS=0x1111111111111111111111111111111111111111 \
   --env EXTERNAL_BACKUP_ENABLED=false \
   --volume "$runtime_data:/data" \
-  "$reachsocial_image" >/dev/null
+  --pull never "$reachsocial_image" >/dev/null
 
 ready=false
 for _ in $(seq 1 30); do
@@ -120,8 +124,7 @@ done
   echo "Isolated ReachSocial application did not become healthy." >&2
   exit 1
 }
-docker exec -i "$restore_app" python - <<'PY'
-from urllib.error import HTTPError
+docker exec "$restore_app" python -c 'from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
 base = "http://127.0.0.1:8000"
@@ -134,7 +137,7 @@ for path in [
         assert response.status == 200, (path, response.status)
 request = Request(
     base + "/mcp/",
-    data=b'{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}',
+    data=b'"'"'{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}'"'"',
     headers={"Content-Type": "application/json"},
     method="POST",
 )
@@ -143,8 +146,7 @@ try:
     raise AssertionError("anonymous MCP initialization unexpectedly succeeded")
 except HTTPError as error:
     assert error.code == 401, error.code
-    assert "resource_metadata=" in error.headers.get("WWW-Authenticate", "")
-PY
+    assert "resource_metadata=" in error.headers.get("WWW-Authenticate", "")'
 
 install -d -m 0755 "$aeu_restore_data"
 install -m 0444 "$aeu_dump" "$aeu_restore_data/agent-enhancer.pgdump"
@@ -156,17 +158,12 @@ docker run --detach --rm --name "$restore_postgres" --network none \
   --pull never "$postgres_image" >/dev/null
 postgres_ready=false
 for _ in $(seq 1 30); do
-  if docker exec "$restore_postgres" psql -U restore_verify -d agent_enhancer_restore -Atc \
+  # The initialization server listens only on a Unix socket. TCP proves the
+  # final server is ready, without racing its initialization-server shutdown.
+  if docker exec "$restore_postgres" psql -h 127.0.0.1 -U restore_verify -d agent_enhancer_restore -Atc \
     'SELECT 1' 2>/dev/null | grep -qx '1'; then
-    # The image runs a short initialization server before its final server.
-    # Confirm a second connection after that handoff instead of trusting the
-    # first `pg_isready` response.
-    sleep 1
-    if docker exec "$restore_postgres" psql -U restore_verify -d agent_enhancer_restore -Atc \
-      'SELECT 1' 2>/dev/null | grep -qx '1'; then
-      postgres_ready=true
-      break
-    fi
+    postgres_ready=true
+    break
   fi
   sleep 1
 done
