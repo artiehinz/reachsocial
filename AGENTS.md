@@ -101,7 +101,7 @@ never replace recovery with a new paid execution. See
 - `scripts/backup_droplet.sh` creates consistent ReachSocial SQLite and AEU
   PostgreSQL backups on the DigitalOcean volume. The host runs it nightly.
 - The scoped operations package is in `deploy/operations/`; installation and
-  live acceptance are tracked in `docs/operations.md`. Once installed, use
+  successful live backup/restore acceptance are tracked in `docs/operations.md`. Use
   `sudo -n /usr/local/sbin/reachsocial-ops backup|verify-restore|backup-status`
   (one action per command). Never grant sudo to application-directory scripts.
   Privileged updates require owner-approved commit and checksum verification.

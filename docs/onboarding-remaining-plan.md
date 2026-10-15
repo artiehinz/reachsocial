@@ -62,8 +62,10 @@ wrap or scroll inside their panels.
   Rotating refresh-token hashes remain through their family lifetime. Privacy
   wording now describes wallet addresses, sessions, agents, inputs, retention,
   and public transaction references.
-- Finish the root-protected nightly-backup restore check; preserve the already
-  successful isolated pre-deployment restore and historical receipt evidence.
+- Root-protected nightly-backup restore passed on 2026-10-15 through the scoped
+  operations wrapper, including OAuth/request tables and both databases. See
+  [operations evidence](operations.md#evidence-and-remaining-acceptance); preserve
+  the earlier isolated pre-deployment restore and historical receipt evidence.
 - Remove owner-only restrictions only after the above gates pass. Verify public
   REST and existing B2B access independently; OAuth outages must not disable them.
 

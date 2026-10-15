@@ -52,11 +52,11 @@ top-ups.
 Release gates still requiring recorded evidence:
 
 - [x] Current budget reconciliation and live provider balance baseline (see below).
-- [ ] Root-protected nightly-backup restore with the additive OAuth/request tables. Run
-  `sudo -n /usr/local/sbin/reachsocial-ops verify-restore` as the deployment user;
-  it restores both databases into isolated, no-network containers and removes
-  its temporary data. Initial backup passed; the verifier's loopback OAuth issuer
-  correction still needs installation and a successful rerun (see operations).
+- [x] Root-protected nightly-backup restore with the additive OAuth/request tables.
+  Passed 2026-10-15 at 19:40:30 UTC through the deployment user's fixed
+  `sudo -n /usr/local/sbin/reachsocial-ops verify-restore` action. Both databases
+  restored into isolated, no-network containers; application/OAuth/MCP checks
+  and cleanup passed. See [operations evidence](operations.md#evidence-and-remaining-acceptance).
 - [ ] Full OAuth/MCP integration and browser security checks, including Smithery compatibility.
 - [ ] One bounded browser payment and same-key recovery.
 - [x] One bounded owner direct-MCP approval/payment/recovery and initial OAuth authorization. Independent client compatibility remains open.
@@ -107,10 +107,9 @@ observation window for the newest deployment.
 
 The deployment account now has the three fixed sudo actions from the reviewed
 [operations package](operations.md), installed through the owner console on
-2026-10-15. Fresh encrypted backup passed; the restore rehearsal exposed an
-invalid HTTP OAuth issuer in the verifier. The loopback correction passed isolated
-startup checks but still needs privileged installation and an encrypted-restore
-rerun. Pre-deployment SQLite snapshots are separately accessible
+2026-10-15. Fresh encrypted backup and full restore verification passed with the
+corrected verifier in operations version `a809ebd`. Routine backup and restore
+checks no longer need the root console. Pre-deployment SQLite snapshots are separately accessible
 through the application container and can be restored without expanded sudo.
 
 The public docs repository was unexpectedly public with retained backend

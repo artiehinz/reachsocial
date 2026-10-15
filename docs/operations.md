@@ -135,7 +135,10 @@ requires another reviewed commit/checksum installation by the owner.
 
 The installer keeps previous files under `previous-install` in its root-only
 state directory. Before another update, archive that directory under a dated
-name using the console. If initial acceptance fails, disable the new sudoers
+name using the console. If a repeated archive command reports `Directory not
+empty`, preserve both directories and check `backup-status` over deployment SSH.
+If its version already matches the approved commit, installation succeeded and
+does not need to be repeated. If initial acceptance fails, disable the new sudoers
 entry and restore the saved `reachsocial-backup` cron file (mode 0644). For an
 update rollback, restore saved scripts/manifest/wrapper and sudoers to their
 original paths and modes, then run `visudo -c`. Do not restore a backup into
@@ -180,7 +183,14 @@ operation, not the `verify-restore` action.
 - The corrected issuer passed health, both OAuth discovery endpoints, and the
   MCP 401 challenge in the exact production image with an empty temporary
   database, no network, and payments disabled. The temporary container was
-  removed. This startup probe does not replace a successful encrypted restore.
+  removed. A separate synthetic PostgreSQL dump/restore probe also passed.
+- The corrected package `a809ebdade433b30f1177c8fda6a5fa27d6a3668` is installed,
+  confirmed through deployment SSH. Full encrypted restore verification passed
+  at `2026-10-15T19:40:30.236168+00:00` (started `19:39:53.411590+00:00`, exit 0).
+  This covers SQLite integrity and historical receipts, OAuth/request/payment
+  tables, isolated application/OAuth/MCP behavior, and the AEU PostgreSQL restore.
+  No rehearsal containers remained; production `/healthz` still returned `ok`.
+  The nightly-backup restore release gate is complete.
 - Root SSH rejected the deployment key (`Permission denied (publickey)`). The
   readable `60-reachsocial-security.conf` specifies `PermitRootLogin no`; a full
   privileged `sshd -T` check was not performed. Production health remains `ok`.
@@ -193,8 +203,6 @@ operation, not the `verify-restore` action.
   and the restore issuer's compatibility with the OAuth library.
 - Historical isolated SQLite restore evidence remains in
   [self-service release](self-service-release.md#isolated-restore-and-transport-verification).
-- **Pending:** owner installation of the corrected verifier and a successful
-  encrypted restore run, plus owner confirmation of password-manager storage.
-  The owner supplied successful root-console installation output; exceptional
-  network/volume failure recovery was not simulated. Do not mark the nightly
-  restore complete until the corrected script passes through the wrapper.
+- **Owner follow-up:** confirm the root password is saved in the password
+  manager. Console installation and routine backup/restore access are tested;
+  exceptional network/volume failure recovery was not simulated.
