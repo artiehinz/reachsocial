@@ -1,5 +1,10 @@
 # ReachSocial roadmap
 
+Release update (2026-10-15): the owner waived the 24-hour public-release wait.
+All seven staged social APIs are promoted; Reddit’s fresh attribution check passed.
+See [release evidence](public-expansion-2026-10-15.md). This supersedes the
+private-status and pre-release observation requirements recorded below.
+
 Remaining work after owner acceptance: [onboarding and release plan](onboarding-remaining-plan.md).
 
 Current self-service implementation and remaining release gates: [self-service release](self-service-release.md).

@@ -1,5 +1,10 @@
 # ReachSocial: remaining work after owner MCP acceptance
 
+Release update (2026-10-15): the owner waived the 24-hour public-release wait.
+All seven staged social APIs are promoted; Reddit’s fresh attribution check passed.
+See [release evidence](public-expansion-2026-10-15.md). This supersedes the
+private-status and pre-release observation requirements recorded below.
+
 Updated 2026-10-15. The owner completed the real OAuth → MCP request → browser
 payment → recovery flow. One $0.05 native Base-USDC transfer and one provider
 credit were independently reconciled. See [release evidence](self-service-release.md).
