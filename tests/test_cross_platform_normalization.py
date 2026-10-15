@@ -228,8 +228,32 @@ def test_facebook_reddit_and_highlight_normalization_have_stable_envelopes():
     assert normalized_result_is_complete("facebook.profile", facebook)
     assert normalized_result_is_complete("reddit.post", reddit)
     assert reddit["item"]["metrics"]["likes"] == 4
+    assert reddit["item"]["author"]["handle"] == "creator"
+    assert reddit["item"]["author"]["platform_id"] is None
     assert highlight["profile"] is None
     assert len(highlight["items"]) == 1
+
+
+@pytest.mark.parametrize("author", ["creator", "[deleted]", None, {}, "bad/name"])
+def test_reddit_gallery_does_not_become_the_author(author):
+    item = normalize_provider_payload(
+        "reddit.post",
+        "https://reddit.com/comments/abc123",
+        {
+            "id": "abc123", "name": "t3_abc123", "title": "Gallery post",
+            "url": "https://www.reddit.com/gallery/abc123",
+            "author": author, "author_fullname": "t2_user123",
+        },
+    )["item"]
+    assert item["platform_id"] == "abc123"
+    assert item["author"] == {
+        "platform_id": "t2_user123" if author == "creator" else None,
+        "handle": "creator" if author == "creator" else None,
+        "display_name": None,
+        "avatar_url": None,
+        "verified": None,
+        "canonical_url": "https://www.reddit.com/user/creator/" if author == "creator" else None,
+    }
 
 
 @pytest.mark.parametrize(

@@ -46,11 +46,11 @@
     <a class="platform-card" href="/catalog#{{ platform|lower|replace(' ', '-') }}"><article><h3>{{ platform }}</h3><p>{{ services|length }} available APIs</p><ul>{% for service in services %}<li>{{ service.title }}</li>{% endfor %}</ul><span class="text-link">View APIs →</span></article></a>
   {% endfor %}
   </div>
-  <p class="coverage-note">More integrations are available to approved API-key clients. LinkedIn, Person News, and current Instagram stories are on hold. <a href="/catalog">Check coverage and access</a>.</p>
+  <p class="coverage-note">Instagram feeds and saved highlights, YouTube channels, videos and feeds, Facebook profiles, and Reddit posts are in private access. Public access is pending release review. LinkedIn, Person News, and current Instagram stories remain on hold. <a href="/catalog">Check coverage and access</a>.</p>
 </section>
 
 <section class="split">
-  <div><h2>Start without an account.</h2><p>Public paid requests need no ReachSocial signup or API key. Your client pays in USDC through x402, the HTTP payment protocol.</p><p>Private integrations and MCP access use approved API keys. <a href="/contact">Contact us</a> if you need that access.</p></div>
+  <div><h2>Start without an account.</h2><p>Public paid requests need no ReachSocial signup or API key. Your client pays in USDC through x402, the HTTP payment protocol.</p><p>Private integrations use approved API keys. Check the <a href="/status">MCP access status</a> before connecting your agent. <a href="/contact">Contact us</a> if you need that access.</p></div>
   <div><h2>Keep the result you paid for.</h2><p>If a response is lost, use the original request key and input to recover it for 30 days without another payment or upstream request.</p><p>Responses include metadata and source media links. ReachSocial does not host the media files. <a href="/docs/api#recovery">Read about result recovery</a>.</p></div>
 </section>
 {% endblock %}

@@ -81,7 +81,8 @@ Stage A payment and recovery passed on 2026-10-15; both Instagram services
 remain private pending observation. See [the evidence and next eligible review
 time](stage-a-acceptance-2026-10-15.md). The five later services also passed payment and repeated recovery in the
 [owner-authorized combined batch](combined-acceptance-2026-10-15.md). Reddit
-author mapping remains blocked; all seven remain private.
+author mapping is fixed in the release-preparation change but still needs live
+verification; all seven remain private.
 
 Promote only services that pass their own acceptance:
 
@@ -124,3 +125,22 @@ without owner intervention; the direct REST path remains keyless. All 15 selecte
 services have paid acceptance and observation evidence. Documentation, costs,
 monitoring, restore evidence, and actual directory status agree. Until then,
 report individual completed gates instead of declaring the entire release done.
+
+## Release preparation after the combined batch
+
+| Services | Paid execution / recovery | Remaining public-release gate |
+| --- | --- | --- |
+| Instagram feed, saved highlights | Passed | Observation and final capacity/health review |
+| YouTube channel, video, feed | Passed | Observation and final capacity/health review |
+| Facebook profile | Passed | Observation and final capacity/health review |
+| Reddit post | Passed; attribution defect found | Deploy/verify author fix, then observation and final review |
+
+The website now distinguishes the eight live APIs from the seven private
+release candidates and records completed Firefox/MetaMask acceptance. API
+availability remains driven by `config/services.yaml`; no public flags have
+been changed. When each service clears its gate, update its `public` and
+`catalog_status` fields together, verify website/discovery agreement, deploy
+through GitHub CI, and check the exact production image and recovery behavior.
+AgentCash and Smithery compatibility are separate outstanding checks; the
+remaining $0.05 is reserved for AgentCash. Do not spend it on repeating a
+successful acceptance request.

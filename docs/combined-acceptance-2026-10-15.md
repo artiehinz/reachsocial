@@ -32,6 +32,13 @@ whole Reddit post into profile/author normalization. This is incorrect attributi
 despite schema completeness and successful payment/recovery. Keep Reddit private
 until author mapping is corrected and verified. No additional payment was made.
 
+The release-preparation change now maps the provider’s `author` and
+`author_fullname` fields explicitly, with regression coverage for gallery posts,
+deleted/missing authors, and malformed author values. The provider contract is
+[documented here](https://docs.scrapecreators.com/v1/reddit/post/). This fix has
+not yet been verified against a fresh live result. Existing paid results stay
+unchanged so recovery continues to return the original saved result.
+
 ## Evidence
 
 - `facebook.profile` transaction: `0x768c57ecf8742bb6b26487a5d2484d6b6b2f7b013d6f924bc973f059ece15144`;

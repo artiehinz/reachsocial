@@ -606,6 +606,19 @@ def _content(platform: str, canonical_url: str, source: dict[str, Any]) -> dict[
             ]
         )
         author_source = source
+    if platform == "Reddit":
+        # Reddit's post ID, name and gallery URL do not identify its author.
+        handle = source.get("author")
+        author_source = {}
+        if isinstance(handle, str) and re.fullmatch(r"[A-Za-z0-9_-]+", handle):
+            author_id = source.get("author_fullname")
+            author_source = {
+                "username": handle,
+                "id": author_id
+                if isinstance(author_id, str) and re.fullmatch(r"t2_[A-Za-z0-9]+", author_id)
+                else None,
+                "url": f"https://www.reddit.com/user/{handle}/",
+            }
     content_type = _text(_first(source, "type", "product_type", "contentType"))
     has_video = any(item["type"] == "video" for item in media)
     if platform == "Instagram":
