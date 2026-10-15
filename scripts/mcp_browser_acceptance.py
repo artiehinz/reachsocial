@@ -25,6 +25,24 @@ import httpx
 
 BASE = "https://reachsocial.dev"
 ASSET = "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913"
+STAGED_SERVICES = frozenset({
+    "instagram.feed", "instagram.highlight", "youtube.channel", "youtube.video",
+    "youtube.feed", "facebook.profile", "reddit.post",
+})
+
+
+def acceptance_service(services: list[dict], service_id: str, private: bool) -> bool:
+    return any(
+        service.get("id") == service_id
+        # Public discovery hides private prices; the MCP intent checks five cents below.
+        and (service.get("price_cents") in (None, 5) if private else service.get("price_cents") == 5)
+        and service.get("execution") == "sync"
+        and (
+            service_id in STAGED_SERVICES and service.get("status") == "private"
+            if private else service.get("available") is True
+        )
+        for service in services
+    )
 
 
 def failure_message(exc: Exception) -> str:
@@ -81,10 +99,14 @@ def main():
     parser.add_argument("--state-file", type=Path, default=Path("data/mcp-browser-acceptance.json"))
     parser.add_argument("--max-total-atomic", type=int, default=50000)
     parser.add_argument("--confirm-mainnet-payments", action="store_true")
+    parser.add_argument("--private-acceptance", action="store_true")
+    parser.add_argument("--max-items", type=int, choices=range(1, 6))
     args = parser.parse_args()
     if not args.confirm_mainnet_payments or args.max_total_atomic != 50000:
         parser.error("One request requires --confirm-mainnet-payments and --max-total-atomic 50000")
     request_input = {"url": args.target}
+    if args.max_items is not None:
+        request_input["max_items"] = args.max_items
     checkpoint = (
         json.loads(args.state_file.read_text())
         if args.state_file.exists()
@@ -93,6 +115,7 @@ def main():
             "input": request_input,
             "key": secrets.token_urlsafe(32),
             "expected_pay_to": args.expected_pay_to.lower(),
+            "private_acceptance": args.private_acceptance,
         }
     )
     if any(
@@ -104,6 +127,8 @@ def main():
         }.items()
     ):
         parser.error("Checkpoint belongs to another request; do not overwrite it")
+    if checkpoint.get("private_acceptance", False) != args.private_acceptance:
+        parser.error("Checkpoint belongs to another acceptance lane; do not overwrite it")
     with httpx.Client(timeout=30, follow_redirects=False) as client:
         payment = checked(client.get(BASE + "/status.json")).get("payment", {})
         if not (
@@ -115,12 +140,10 @@ def main():
             and str(payment.get("asset", {}).get("address", "")).lower() == ASSET
         ):
             parser.error("Live payment metadata does not match the expected Base-USDC receiver")
-        services = checked(client.get(BASE + "/v1/services")).get("services", [])
-        if not any(
-            s["id"] == args.service and s.get("price_cents") == 5 and s.get("execution") == "sync"
-            for s in services
-        ):
-            parser.error("Service is not a public five-cent synchronous service")
+        discovery = "/v1/catalog" if args.private_acceptance else "/v1/services"
+        services = checked(client.get(BASE + discovery)).get("services", [])
+        if not acceptance_service(services, args.service, args.private_acceptance):
+            parser.error("Service is not a five-cent synchronous service in the selected lane")
         state, verifier = secrets.token_urlsafe(32), secrets.token_urlsafe(48)
         answer = {}
 
@@ -258,7 +281,7 @@ def main():
         if "request_id" not in checkpoint:
             result = tool(
                 args.service.replace(".", "_"),
-                {"url": args.target, "idempotency_key": checkpoint["key"]},
+                {**request_input, "idempotency_key": checkpoint["key"]},
             )
             checkpoint["request_id"] = result["request_id"]
             save(args.state_file, checkpoint)
@@ -266,6 +289,10 @@ def main():
         if result["status"] == "payment_required":
             if result.get("price_cents") != 5:
                 raise RuntimeError("Unexpected price; no payment approval opened")
+            if args.private_acceptance and result.get("payment_endpoint") != (
+                f"/v1/acceptance/private/{args.service}/execute"
+            ):
+                raise RuntimeError("Unexpected private payment endpoint; no approval opened")
             print("Approve at most one $0.05 request in your browser, then return here:")
             print(result["payment_url"], flush=True)
             webbrowser.open(result["payment_url"])
@@ -289,6 +316,13 @@ def main():
             return
         recovered = tool("get_reachsocial_request", {"request_id": checkpoint["request_id"]})
         assert recovered.get("result") == result.get("result")
+        checkpoint.update(
+            status="passed", transaction=result.get("transaction"),
+            result_hash=hashlib.sha256(
+                json.dumps(result.get("result"), sort_keys=True, separators=(",", ":")).encode()
+            ).hexdigest(),
+        )
+        save(args.state_file, checkpoint)
         print(
             json.dumps(
                 {
