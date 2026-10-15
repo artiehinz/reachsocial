@@ -77,6 +77,10 @@ and recovery passed on 2026-10-15; see the same acceptance record.
 
 ## 3. Release the seven remaining social services
 
+Stage A payment and recovery passed on 2026-10-15; both Instagram services
+remain private pending observation. See [the evidence and next eligible review
+time](stage-a-acceptance-2026-10-15.md). Five services still need paid checks.
+
 Promote only services that pass their own acceptance:
 
 1. Instagram feed and saved highlights.
@@ -89,7 +93,7 @@ and recovery per service, verify the deployed catalog, then observe/reconcile fo
 bounds and truthful pagination/data limitations. LinkedIn, public Person News,
 and current Instagram stories remain on hold. AEU is unchanged.
 
-The current batch has $0.40 USDC and 18 provider credits remaining, further
+The current batch has $0.30 USDC and 16 provider credits remaining, further
 limited by the original $2 / 100-credit allowance. Do not double-count the owner
 MCP flow as a second browser purchase. Count charged failures and retries. Keep
 the 1,000-credit reserve, $5/day upstream ceiling, current request limits, and

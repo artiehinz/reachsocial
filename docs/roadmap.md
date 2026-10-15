@@ -46,8 +46,10 @@ than a releasable service.
 The owner reported successful payment and recovery for all six X/TikTok
 services ($0.30 total). Those services are now in the public executable set;
 their 24-hour observation and receipt/provider reconciliation are still not
-recorded as complete here. The seven private
-services need paid acceptance before promotion. Person News
+recorded as complete here. Five private services still need paid acceptance.
+Instagram feed/highlight passed payment and recovery on 2026-10-15 and remain
+private pending observation; see [Stage A evidence](stage-a-acceptance-2026-10-15.md).
+Person News
 and LinkedIn are explicitly deferred by owner decision; do not retry or promote
 them without resolving their provider dependencies.
 
