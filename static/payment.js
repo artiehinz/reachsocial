@@ -1,4 +1,4 @@
-import { collectWallets } from './wallet.js?v=20261014-4';
+import { collectWallets } from './wallet.js?v=20261015-3';
 import { responseError, walletError, requestStatus } from './self-service-ui.js';
 import { connectBrowserWallet, executeReachSocial } from './reachsocial-client.js?v=20261015-2';
 

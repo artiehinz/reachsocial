@@ -71,6 +71,79 @@ export function collectWallets(onChange) {
   return () => window.removeEventListener("eip6963:announceProvider", announce);
 }
 
+export function initializeWalletNavigation(button) {
+  if (!button) return () => {};
+  const label = button.querySelector("[data-wallet-label]");
+  let active;
+  let stopped = false;
+  const watches = new Map();
+  const render = (address, chain) => {
+    const connected = validAddress(address);
+    const wrongNetwork = connected && chain && chain.toLowerCase() !== BASE_CHAIN_ID;
+    button.dataset.walletState = connected ? (wrongNetwork ? "wrong-network" : "connected") : "disconnected";
+    label.textContent = connected ? (wrongNetwork ? "Switch to Base" : shortAddress(address)) : "Connect wallet";
+    button.title = connected ? address : "Connect wallet";
+    button.setAttribute("aria-label", connected
+      ? `Wallet connected: ${address}. ${wrongNetwork ? "Switch to Base." : "Open wallet details."}`
+      : "Connect wallet");
+  };
+  const read = async (provider) => {
+    const watch = watches.get(provider);
+    const version = ++watch.version;
+    const current = () => !stopped && version === watch.version;
+    try {
+      // Read existing permissions only; never prompt or sign on page load.
+      const accounts = await provider.request({ method: "eth_accounts" });
+      if (!current() || (active && active !== provider)) return;
+      if (!Array.isArray(accounts) || !validAddress(accounts[0])) {
+        if (active === provider) { active = undefined; render(); }
+        return;
+      }
+      active = provider;
+      render(accounts[0]);
+      const select = document.querySelector("[data-wallet-dialog] [data-wallet-select]");
+      if (select) select.value = watch.id;
+      const chain = await provider.request({ method: "eth_chainId" });
+      if (current() && active === provider) render(accounts[0], String(chain));
+    } catch {
+      if (current() && active === provider) { active = undefined; render(); }
+    }
+  };
+  const stopDiscovery = collectWallets((wallets) => {
+    for (const [id, { provider }] of wallets) {
+      if (watches.has(provider)) { watches.get(provider).id = id; continue; }
+      const changed = () => { void read(provider); };
+      const disconnected = () => {
+        watches.get(provider).version++;
+        if (active === provider) { active = undefined; render(); }
+      };
+      watches.set(provider, { id, version: 0, changed, disconnected });
+      provider.on?.("accountsChanged", changed);
+      provider.on?.("chainChanged", changed);
+      provider.on?.("disconnect", disconnected);
+      void read(provider);
+    }
+  });
+  const pageState = (event) => {
+    const { provider, account } = event.detail;
+    for (const watch of watches.values()) watch.version++;
+    active = provider;
+    render(account);
+    if (provider && account && watches.has(provider)) void read(provider);
+  };
+  document.addEventListener("reachsocial:wallet", pageState);
+  return () => {
+    stopped = true;
+    stopDiscovery();
+    document.removeEventListener("reachsocial:wallet", pageState);
+    for (const [provider, watch] of watches) {
+      provider.removeListener?.("accountsChanged", watch.changed);
+      provider.removeListener?.("chainChanged", watch.changed);
+      provider.removeListener?.("disconnect", watch.disconnected);
+    }
+  };
+}
+
 export function initializeWalletReadiness(root) {
   const select = root.querySelector("[data-wallet-select]");
   const connect = root.querySelector("[data-wallet-connect]");
@@ -97,6 +170,9 @@ export function initializeWalletReadiness(root) {
     if (refreshButton) refreshButton.hidden = !account;
     switchButton.disabled = busy;
   };
+  const notify = () => document.dispatchEvent(new CustomEvent("reachsocial:wallet", {
+    detail: { provider, account },
+  }));
   const reset = (message = "Disconnected from this page. Your wallet still remembers its site permissions; change connected accounts in the wallet extension.") => {
     generation++;
     readVersion++;
@@ -112,6 +188,7 @@ export function initializeWalletReadiness(root) {
     switchButton.hidden = true;
     statusNode.textContent = message;
     controls();
+    notify();
   };
 
   const refresh = async () => {
@@ -156,6 +233,7 @@ export function initializeWalletReadiness(root) {
     addressNode.textContent = shortAddress(account);
     addressNode.title = account;
     controls();
+    notify();
     void refresh();
   };
 
@@ -251,7 +329,8 @@ export function initializeWalletDialog(walletDialog, triggers) {
       const select = walletDialog.querySelector("[data-wallet-select]");
       const connect = walletDialog.querySelector("[data-wallet-connect]");
       const disconnect = walletDialog.querySelector("[data-wallet-disconnect]");
-      if (select.options.length === 1 && !connect.disabled && disconnect.hidden) {
+      if ((select.options.length === 1 || trigger.dataset.walletState === "connected" ||
+           trigger.dataset.walletState === "wrong-network") && !connect.disabled && disconnect.hidden) {
         connect.click();
       } else {
         select.focus();
@@ -261,3 +340,4 @@ export function initializeWalletDialog(walletDialog, triggers) {
 }
 
 initializeWalletDialog(document.querySelector("[data-wallet-dialog]"), document.querySelectorAll("[data-wallet-open]"));
+initializeWalletNavigation(document.querySelector(".nav-wallet"));
