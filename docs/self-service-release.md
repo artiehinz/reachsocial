@@ -51,6 +51,9 @@ top-ups.
 
 Release gates still requiring recorded evidence:
 
+Latest deployment, scheduled-monitoring, real-HTTP SDK, synthetic browser,
+and unpaid production evidence: [2026-10-15 client acceptance](unpaid-client-acceptance-2026-10-15.md).
+
 - [x] Current budget reconciliation and live provider balance baseline (see below).
 - [x] Root-protected nightly-backup restore with the additive OAuth/request tables.
   Passed 2026-10-15 at 19:40:30 UTC through the deployment user's fixed
