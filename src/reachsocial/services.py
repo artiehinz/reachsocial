@@ -331,6 +331,7 @@ class ExecutionService:
         input_data: dict[str, Any],
         idempotency_key: str | None = None,
         charge_client: bool = True,
+        allow_private_service: bool = False,
     ) -> dict[str, Any]:
         service = self.catalog.by_id(service_id)
         if service is None:
@@ -339,7 +340,7 @@ class ExecutionService:
             raise DisabledService("This service is not enabled")
         if service.is_async:
             raise AsyncRequired("This service must be submitted through the jobs endpoint")
-        if not client_can_access_service(session, client, service):
+        if not allow_private_service and not client_can_access_service(session, client, service):
             raise UnknownService("Unknown service")
         self.validate_input(service, input_data)
         input_hash = stable_hash(input_data)

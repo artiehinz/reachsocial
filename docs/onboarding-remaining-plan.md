@@ -1,6 +1,6 @@
 # ReachSocial: remaining work after owner MCP acceptance
 
-Updated 2026-10-14. The owner completed the real OAuth → MCP request → browser
+Updated 2026-10-15. The owner completed the real OAuth → MCP request → browser
 payment → recovery flow. One $0.05 native Base-USDC transfer and one provider
 credit were independently reconciled. See [release evidence](self-service-release.md).
 This proves that flow for the owner; it is not general client or catalog acceptance.
@@ -36,17 +36,32 @@ Next usability checks, without paid calls:
 - Add a copy-result action if users need it; avoid adding a general playground,
   animations, dashboards, charts, or new onboarding steps to this release.
 
+The current implementation also invalidates the local sign-in/payment state
+when an injected wallet emits an account or chain change. It signs out the
+server session where possible and requires a new login before another signature
+or payment approval. Consent now separates the requesting application, stable
+client ID, permission, and callback address. The narrow mobile layout converts
+request facts to one readable column; long addresses, URLs, and JSON results
+wrap or scroll inside their panels.
+
 ## 2. Close self-service release checks
 
 - Run the separate standalone injected-browser acceptance and AgentCash path.
   Preserve idempotency, require owner wallet approval, and verify recovery.
 - Test a real fresh MCP client, including client metadata/registration, PKCE,
   token renewal, connection revocation, payment link, and result retrieval.
-- Improve monitoring for login failures, stuck intents, uncertain receipts,
-  provider-credit limits, and backup failures. Routine probes must be unpaid.
-- Review expiry/retention of MCP intent records; retain unresolved settlement
-  evidence while pruning safely expired state. Update privacy wording for public
-  wallet addresses, sessions, connected agents, and stored request inputs.
+- Unpaid monitoring now probes discovery, readiness, OAuth metadata, and the
+  unauthenticated MCP challenge on a schedule. The application also records
+  non-identifying authentication-failure signals, surfaces stalled signed MCP
+  intents and stale backup markers, and separates informational auth/backup
+  alerts from payment safety pauses. Confirm the workflow is enabled after the
+  deployment.
+- Unpaid intents become expired after 30 minutes but retain their hashed
+  idempotency history for 30 days. Maintenance deletes expired state only after
+  the recovery window and keeps signed/uncertain requests for reconciliation.
+  Rotating refresh-token hashes remain through their family lifetime. Privacy
+  wording now describes wallet addresses, sessions, agents, inputs, retention,
+  and public transaction references.
 - Finish the root-protected nightly-backup restore check; preserve the already
   successful isolated pre-deployment restore and historical receipt evidence.
 - Remove owner-only restrictions only after the above gates pass. Verify public

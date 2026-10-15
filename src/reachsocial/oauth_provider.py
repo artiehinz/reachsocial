@@ -26,7 +26,17 @@ from sqlalchemy.dialects.sqlite import insert
 
 from .config import get_settings
 from .db import SessionLocal
-from .oauth_store import OAuthState, consume, digest, get, put, rate_limit, revoke_family, secret
+from .oauth_store import (
+    OAuthState,
+    consume,
+    digest,
+    get,
+    put,
+    rate_limit,
+    record_auth_failure,
+    revoke_family,
+    secret,
+)
 
 SCOPE = "reachsocial:requests"
 
@@ -277,6 +287,7 @@ class ReachSocialOAuthProvider:
                 return None
             if row.consumed:
                 revoke_family(session, row.family)
+                record_auth_failure(session, "refresh_token_reuse")
                 session.commit()
                 return None
             return RefreshToken(
@@ -296,6 +307,7 @@ class ReachSocialOAuthProvider:
                 raise TokenError("invalid_scope", "Scope escalation denied")
             if not consume(session, "refresh", refresh_token.token):
                 revoke_family(session, row.family)
+                record_auth_failure(session, "refresh_token_reuse")
                 session.commit()
                 raise TokenError("invalid_grant", "Refresh token already used")
             # Retire prior access tokens as well as the old refresh token.
@@ -310,6 +322,19 @@ class ReachSocialOAuthProvider:
                     OAuthState.kind == "access",
                 )
                 .values(consumed=True)
+            )
+            # Keep hashes of every consumed refresh token for as long as the
+            # rotating family can remain valid. Otherwise an old token could
+            # age out while a descendant still grants access, defeating reuse
+            # detection for that family.
+            session.execute(
+                update(OAuthState)
+                .where(
+                    OAuthState.family == row.family,
+                    OAuthState.kind == "refresh",
+                    OAuthState.consumed.is_(True),
+                )
+                .values(expires_at=time.time() + 86400 * 30)
             )
             token = self._issue(session, client.client_id, row.owner, scopes, row.family)
             session.commit()

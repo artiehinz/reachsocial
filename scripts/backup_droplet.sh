@@ -46,3 +46,19 @@ restic backup "$staging" --host reachsocial-production
 restic forget --host reachsocial-production \
   --keep-daily 7 --keep-weekly 4 --keep-monthly 6 --prune
 restic check
+
+# The app reads this non-secret marker to surface a stale nightly backup in its
+# existing operational alert stream. Write it only after backup, retention, and
+# repository verification all succeed.
+backup_completed_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+docker exec -e REACHSOCIAL_BACKUP_COMPLETED_AT="$backup_completed_at" reachsocial-app-1 python -c '
+import json
+import os
+from pathlib import Path
+
+target = Path("/data/backup-status.json")
+temporary = target.with_suffix(".tmp")
+temporary.write_text(json.dumps({"completed_at": os.environ["REACHSOCIAL_BACKUP_COMPLETED_AT"]}) + "\n")
+temporary.chmod(0o600)
+temporary.replace(target)
+'

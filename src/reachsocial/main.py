@@ -16,7 +16,7 @@ from fastapi.templating import Jinja2Templates
 from .alerts import alert_loop
 from .api import router as api_router
 from .catalog import get_catalog
-from .config import get_settings, x402_network_label
+from .config import MCP_SERVER_VERSION, get_settings, x402_network_label
 from .cors import PublicApiCorsMiddleware
 from .credit_budget import reconcile_pending as reconcile_credit_reservations
 from .db import init_db
@@ -42,10 +42,12 @@ from .payment_metadata import public_payment_metadata
 from .payments import (
     MainnetAcceptanceX402Middleware,
     MainnetCanaryX402Middleware,
+    PrivateAcceptanceX402Middleware,
     ReachSocialX402Middleware,
     mainnet_acceptance_safety_errors,
     mainnet_canary_safety_errors,
     mainnet_x402_safety_errors,
+    private_acceptance_safety_errors,
     x402_is_configured,
 )
 from .runtime import RuntimeState
@@ -162,7 +164,7 @@ def create_app() -> FastAPI:
     app = FastAPI(
         title="ReachSocial API",
         summary="Provider-neutral social data services for B2B clients and agents.",
-        version="0.1.0",
+        version=MCP_SERVER_VERSION,
         lifespan=lifespan,
         servers=[
             {
@@ -249,6 +251,17 @@ def create_app() -> FastAPI:
             settings=settings,
             catalog=get_catalog(),
         )
+    if settings.mainnet_private_acceptance_enabled:
+        private_acceptance_errors = private_acceptance_safety_errors(settings, get_catalog())
+        if private_acceptance_errors:
+            raise RuntimeError(
+                "Private mainnet acceptance is blocked: " + "; ".join(private_acceptance_errors)
+            )
+        app.add_middleware(
+            PrivateAcceptanceX402Middleware,
+            settings=settings,
+            catalog=get_catalog(),
+        )
     app.add_middleware(
         RequestBodyLimitMiddleware,
         max_body_bytes=settings.max_request_body_bytes,
@@ -267,7 +280,7 @@ def create_app() -> FastAPI:
 
         tools = await make_mcp_server(get_catalog()).list_tools()
         return {
-            "serverInfo": {"name": "ReachSocial", "version": "0.2.0"},
+            "serverInfo": {"name": "ReachSocial", "version": MCP_SERVER_VERSION},
             "authentication": {"required": True, "schemes": ["oauth2"] if settings.oauth_enabled else ["bearer"]},
             "tools": [{"name": tool.name, "description": tool.description, "inputSchema": tool.input_schema} for tool in tools],
             "resources": [], "prompts": [],

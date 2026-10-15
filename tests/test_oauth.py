@@ -17,7 +17,7 @@ from reachsocial.config import get_settings
 from reachsocial.db import Base, make_engine
 from reachsocial.main import create_app
 from reachsocial.oauth_provider import SCOPE, _metadata_document
-from reachsocial.oauth_store import OAuthState, consume, get, put, rate_limit
+from reachsocial.oauth_store import OAuthState, consume, digest, get, prune, put, rate_limit
 
 
 @pytest.fixture
@@ -228,6 +228,35 @@ def test_store_consumption_and_rate_limits(session):
     assert not rate_limit(session, "client", "action", 2)
 
 
+def test_prune_removes_expired_unpaid_intents_but_keeps_ambiguous_attempts(session) -> None:
+    put(session, "session", "expired-session", {}, 1)
+    put(
+        session,
+        "mcp_request",
+        "expired-unpaid",
+        {"payment_key": "mcp_unpaid", "service": "instagram.profile"},
+        1,
+    )
+    put(
+        session,
+        "mcp_request",
+        "ambiguous-attempt",
+        {
+            "payment_key": "mcp_ambiguous",
+            "service": "instagram.profile",
+            "payment_attempted": True,
+        },
+        1,
+    )
+    session.commit()
+
+    assert prune(session, now=10**12) == 2
+    session.commit()
+    assert get(session, "mcp_request", "expired-unpaid", used=True) is None
+    # No request/result record exists, so a signed attempt stays for reconciliation.
+    assert session.get(OAuthState, digest("ambiguous-attempt"))
+
+
 def test_mcp_intent_is_owned_idempotent_and_requires_payment(oauth_app):
     from reachsocial.catalog import load_catalog
     from reachsocial.mcp_requests import create_request, current_principal, retrieve_request
@@ -270,6 +299,44 @@ def test_mcp_intent_is_owned_idempotent_and_requires_payment(oauth_app):
             assert list(session.scalars(select(ProviderAttempt))) == []
     finally:
         current_principal.reset(token)
+
+
+def test_private_mcp_validation_request_requires_the_owner_wallet(oauth_app, monkeypatch):
+    from fastapi import HTTPException
+
+    from reachsocial.catalog import load_catalog
+    from reachsocial.mcp_requests import create_request, current_principal
+
+    client, _ = oauth_app
+    wallet, _, _ = login(client)
+    monkeypatch.setenv("OAUTH_VALIDATION_WALLETS", wallet.address)
+    monkeypatch.setenv("MAINNET_PRIVATE_ACCEPTANCE_ENABLED", "true")
+    monkeypatch.setenv("MAINNET_PRIVATE_ACCEPTANCE_SERVICES", "instagram.feed")
+    get_settings.cache_clear()
+    owner = current_principal.set({"subject": wallet.address.lower(), "client_id": "owner-agent"})
+    try:
+        request = create_request(
+            load_catalog().by_id("instagram.feed"),
+            {"url": "https://www.instagram.com/instagram/", "max_items": 5},
+            "p" * 32,
+        )
+        assert request["status"] == "payment_required"
+        assert request["payment_endpoint"] == "/v1/acceptance/private/instagram.feed/execute"
+    finally:
+        current_principal.reset(owner)
+    other = current_principal.set(
+        {"subject": "0x0000000000000000000000000000000000000000", "client_id": "other-agent"}
+    )
+    try:
+        with pytest.raises(HTTPException, match="limited validation") as denied:
+            create_request(
+                load_catalog().by_id("instagram.feed"),
+                {"url": "https://www.instagram.com/instagram/", "max_items": 5},
+                "q" * 32,
+            )
+        assert denied.value.status_code == 403
+    finally:
+        current_principal.reset(other)
 
 
 def test_mcp_guard_rejects_changed_input_and_replayed_approval(oauth_app):

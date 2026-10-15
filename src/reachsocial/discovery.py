@@ -8,7 +8,7 @@ from fastapi import FastAPI
 from fastapi.openapi.utils import get_openapi
 
 from .catalog import Catalog, InputField, ServiceDefinition
-from .config import Settings, get_settings, x402_network_label
+from .config import MCP_SERVER_VERSION, Settings, get_settings, x402_network_label
 
 
 def _schema_name(service: ServiceDefinition) -> str:
@@ -580,7 +580,7 @@ def mcp_server_card(settings: Settings) -> dict[str, Any]:
             if settings.oauth_enabled and settings.mcp_payment_approval_enabled and not settings.oauth_validation_wallets
             else "Provider-neutral social data tools for approved B2B clients."
         ),
-        "version": "0.2.0",
+        "version": MCP_SERVER_VERSION,
         "websiteUrl": base,
         "remotes": [
             {

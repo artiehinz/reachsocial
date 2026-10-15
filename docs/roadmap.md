@@ -19,6 +19,14 @@ is pruned safely, oversized bodies and payment headers are rejected before x402
 parsing, and ScrapeCreators async work records dispatch before execution. The
 production dependency audit is clean after updating `multidict` to 6.9.1.
 
+The self-service release foundation now also includes owner-gated OAuth MCP
+payment approval, a narrow hidden private-service acceptance lane, safe expiry
+of unpaid intent payloads, refresh-token reuse retention, and unpaid monitoring
+for discovery, OAuth metadata, MCP initialization, stalled requests, and backup
+freshness. The lane is disabled by default and does not change the public
+catalog. Its first use is the Stage A Instagram feed Smithery compatibility
+case; no additional provider call or transfer has been made by this code change.
+
 The bounded 2026-10-11 provider run passed thirteen new or renewed
 ScrapeCreators contracts at one credit each: X profile/post/feed, TikTok
 profile/video/feed, Instagram feed/highlight, YouTube channel/video/feed,

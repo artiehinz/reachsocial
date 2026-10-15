@@ -55,6 +55,15 @@ def test_public_endpoint_and_price_follow_the_service_contract() -> None:
     assert acceptance.amount_atomic(service) == 50_000
 
 
+def test_private_acceptance_endpoint_is_distinct_from_public_execution() -> None:
+    service = load_catalog().by_id("instagram.feed")
+
+    assert service is not None and not service.public
+    assert acceptance.endpoint_for(
+        service, "https://reachsocial.dev", private_acceptance=True
+    ) == "https://reachsocial.dev/v1/acceptance/private/instagram.feed/execute"
+
+
 @pytest.mark.asyncio
 async def test_payment_rate_window_waits_a_full_minute(monkeypatch) -> None:
     waits: list[int] = []

@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 import shutil
+import time
 from collections import defaultdict
 from dataclasses import dataclass
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from sqlalchemy import func, select
@@ -21,6 +23,7 @@ from .credit_budget import (
 )
 from .db import SessionLocal
 from .models import AsyncJob, PaymentReceipt, ProviderAttempt
+from .oauth_store import OAuthState, _mcp_request_needs_reconciliation
 from .runtime import RuntimeState
 from .services import utcnow_naive
 
@@ -34,6 +37,7 @@ class OperationalAlert:
     kind: str
     detail: str
     service_id: str | None = None
+    pauses_payments: bool = True
 
 
 def _memory_available_percent() -> float | None:
@@ -81,6 +85,28 @@ def _provider_failure_alerts(session: Session, now) -> list[OperationalAlert]:  
     ]
 
 
+def _backup_alert(settings, now) -> OperationalAlert | None:  # type: ignore[no-untyped-def]
+    if not settings.external_backup_enabled:
+        return None
+    try:
+        value = json.loads(settings.backup_status_path.read_text(encoding="utf-8"))
+        completed = datetime.fromisoformat(str(value["completed_at"]).replace("Z", "+00:00"))
+        if completed.tzinfo is not None:
+            completed = completed.astimezone(UTC).replace(tzinfo=None)
+    except (OSError, ValueError, KeyError, TypeError, json.JSONDecodeError):
+        return OperationalAlert(
+            "backup_status_unavailable", "latest_success_marker_missing", pauses_payments=False
+        )
+    age = now - completed
+    if age > timedelta(hours=settings.backup_max_age_hours):
+        return OperationalAlert(
+            "backup_stale",
+            f"age_hours={age.total_seconds() / 3600:.1f}",
+            pauses_payments=False,
+        )
+    return None
+
+
 def collect_alerts() -> list[OperationalAlert]:
     settings = get_settings()
     now = utcnow_naive()
@@ -109,6 +135,30 @@ def collect_alerts() -> list[OperationalAlert]:
         )
         if stuck:
             alerts.append(OperationalAlert("stuck_jobs", f"count={stuck}"))
+        auth_failures = session.scalar(
+            select(func.count(OAuthState.key)).where(
+                OAuthState.kind == "auth_failure", OAuthState.expires_at > time.time() - 600
+            )
+        )
+        if auth_failures and auth_failures >= 10:
+            alerts.append(
+                OperationalAlert(
+                    "authentication_failures",
+                    f"count_10m={auth_failures}",
+                    pauses_payments=False,
+                )
+            )
+        pending_mcp = 0
+        for row in session.scalars(select(OAuthState).where(OAuthState.kind == "mcp_request")):
+            if not row.payload.get("payment_attempted"):
+                continue
+            attempted_at = float(row.payload.get("payment_attempted_at", 0) or 0)
+            if attempted_at and attempted_at <= time.time() - 300 and _mcp_request_needs_reconciliation(
+                session, row
+            ):
+                pending_mcp += 1
+        if pending_mcp:
+            alerts.append(OperationalAlert("stuck_mcp_requests", f"count={pending_mcp}"))
         alerts.extend(_provider_failure_alerts(session, now))
         payment_failures = session.scalar(
             select(func.count(PaymentReceipt.id)).where(
@@ -138,6 +188,9 @@ def collect_alerts() -> list[OperationalAlert]:
                             f"public_available={credits['public_available']}",
                         )
                     )
+    backup_alert = _backup_alert(settings, now)
+    if backup_alert:
+        alerts.append(backup_alert)
     return alerts
 
 
@@ -154,7 +207,9 @@ def apply_payment_pause(
         and (public_service_ids is None or alert.service_id in public_service_ids)
     }
     runtime.replace_public_service_payment_pauses(service_pauses)
-    global_alerts = [alert for alert in alerts if alert.service_id is None]
+    global_alerts = [
+        alert for alert in alerts if alert.service_id is None and alert.pauses_payments
+    ]
     if global_alerts:
         runtime.pause_public_payments(global_alerts[0].kind)
     else:

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Verify or accept bounded Base-mainnet x402 payments through normal public routes.
+"""Verify bounded Base-mainnet x402 payments through public or configured private routes.
 
 The default dry run only validates the live x402 challenge. Paid mode reads the
 buyer recovery phrase from hidden terminal input, sends one payment per target,
@@ -52,7 +52,11 @@ def input_for(service: ServiceDefinition, target: AcceptanceTarget) -> dict[str,
     return input_data
 
 
-def endpoint_for(service: ServiceDefinition, base_url: str) -> str:
+def endpoint_for(
+    service: ServiceDefinition, base_url: str, *, private_acceptance: bool = False
+) -> str:
+    if private_acceptance:
+        return f"{base_url.rstrip('/')}/v1/acceptance/private/{service.id}/execute"
     route = "jobs" if service.is_async else "execute"
     return f"{base_url.rstrip('/')}/v1/services/{service.id}/{route}"
 
@@ -214,7 +218,14 @@ async def run(args: argparse.Namespace) -> list[dict[str, Any]]:
     planned: list[tuple[ServiceDefinition, dict[str, Any], str]] = []
     for target in targets:
         service = catalog.by_id(target.service_id)
-        if service is None or not (service.enabled and service.public):
+        if service is None or not service.enabled:
+            raise ValueError(f"{target.service_id} is not an enabled service")
+        if args.private_acceptance:
+            if service.public or service.is_async or service.price_cents != 5:
+                raise ValueError(
+                    f"{target.service_id} is not an eligible private five-cent synchronous service"
+                )
+        elif not service.public:
             raise ValueError(f"{target.service_id} is not an available public service")
         planned.append(
             (service, {"input": input_for(service, target)}, idempotency_key(service.id))
@@ -228,7 +239,7 @@ async def run(args: argparse.Namespace) -> list[dict[str, Any]]:
         quotes = [
             await quote(
                 http,
-                endpoint=endpoint_for(service, args.base_url),
+                endpoint=endpoint_for(service, args.base_url, private_acceptance=args.private_acceptance),
                 service=service,
                 body=body,
                 key=key,
@@ -261,7 +272,7 @@ async def run(args: argparse.Namespace) -> list[dict[str, Any]]:
                 await pay_and_recover(
                     http,
                     signer=signer,
-                    endpoint=endpoint_for(service, args.base_url),
+                    endpoint=endpoint_for(service, args.base_url, private_acceptance=args.private_acceptance),
                     service=service,
                     body=body,
                     key=key,
@@ -280,6 +291,11 @@ def main() -> None:
     parser.add_argument("--target", action="append", type=parse_target, required=True)
     parser.add_argument("--max-total-atomic", type=int, required=True)
     parser.add_argument("--max-payments-per-minute", type=int, default=5)
+    parser.add_argument(
+        "--private-acceptance",
+        action="store_true",
+        help="Use the configured owner-only private-service acceptance routes.",
+    )
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--confirm-mainnet-payments", action="store_true")
     args = parser.parse_args()

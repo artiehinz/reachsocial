@@ -1,0 +1,37 @@
+name: ReachSocial readiness
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17,47 * * * *"
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check unpaid discovery and readiness surfaces
+        run: |
+          set -euo pipefail
+          base='https://reachsocial.dev'
+          curl --fail --silent --show-error --max-time 15 "$base/healthz" > /dev/null
+          curl --fail --silent --show-error --max-time 15 "$base/readyz" > /dev/null
+          curl --fail --silent --show-error --max-time 15 "$base/status.json" > /dev/null
+          curl --fail --silent --show-error --max-time 15 "$base/v1/services" > /dev/null
+          curl --fail --silent --show-error --max-time 15 \
+            "$base/.well-known/oauth-authorization-server" > /dev/null
+          curl --fail --silent --show-error --max-time 15 \
+            "$base/.well-known/oauth-protected-resource/mcp/" > /dev/null
+      - name: Check MCP authorization challenge without invoking a tool
+        run: |
+          set -euo pipefail
+          base='https://reachsocial.dev'
+          status="$(curl --silent --show-error --max-time 15 -o /tmp/mcp-body -D /tmp/mcp-headers \
+            -w '%{http_code}' -X POST "$base/mcp/" \
+            -H 'Content-Type: application/json' \
+            --data '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}')"
+          test "$status" = 401
+          grep -qi 'resource_metadata=' /tmp/mcp-headers

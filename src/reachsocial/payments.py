@@ -22,7 +22,7 @@ from x402.schemas import AbortResult
 from x402.server import x402ResourceServer
 
 from .catalog import Catalog
-from .config import Settings, get_settings
+from .config import Settings, configured_service_ids, get_settings, valid_service_ids
 from .credit_budget import ProviderBalanceUnavailable, fetch_provider_balance
 from .credit_budget import finalize as finalize_credit_reservation
 from .credit_budget import reserve as reserve_credit_reservation
@@ -59,6 +59,9 @@ MAINNET_ACCEPTANCE_ROUTES = {
 MAINNET_ACCEPTANCE_SYNC_SERVICE_IDS = frozenset({"instagram.profile", "instagram.post"})
 MAINNET_ACCEPTANCE_ASYNC_SERVICE_IDS = frozenset({"linkedin.profile"})
 MAINNET_ACCEPTANCE_KEY_PREFIX = "base-mainnet-acceptance-2026-10"
+PRIVATE_ACCEPTANCE_PATH_PREFIX = "/v1/acceptance/private/"
+PRIVATE_ACCEPTANCE_KEY_PREFIX = "base-mainnet-private-acceptance"
+PRIVATE_ACCEPTANCE_SCOPE_KEY = "reachsocial.private_acceptance_service"
 
 
 def service_id_from_path(path: str) -> str | None:
@@ -69,6 +72,26 @@ def service_id_from_path(path: str) -> str | None:
         return None
     service_id = path.removeprefix(prefix).removesuffix(suffix)
     return service_id or None
+
+
+def private_acceptance_service_ids(settings: Settings) -> frozenset[str]:
+    """Return the explicitly configured owner-only validation services."""
+    return configured_service_ids(settings.mainnet_private_acceptance_services)
+
+
+def private_acceptance_path(service_id: str) -> str:
+    return f"{PRIVATE_ACCEPTANCE_PATH_PREFIX}{service_id}/execute"
+
+
+def private_acceptance_routes(settings: Settings) -> dict[str, str]:
+    return {
+        f"POST {private_acceptance_path(service_id)}": service_id
+        for service_id in private_acceptance_service_ids(settings)
+    }
+
+
+def private_acceptance_service_id(path: str, settings: Settings) -> str | None:
+    return private_acceptance_routes(settings).get(f"POST {path}")
 
 
 def x402_is_configured(settings: Settings) -> bool:
@@ -154,6 +177,61 @@ def mainnet_acceptance_safety_errors(settings: Settings, catalog: Catalog) -> li
         else:
             price_micros = service.price_cents * 10_000
             margin_micros = price_micros - service.estimated_upstream_cost_microusd
+            if (
+                margin_micros < settings.minimum_public_margin_cents * 10_000
+                or margin_micros * 2 < price_micros
+            ):
+                errors.append(f"{service_id} does not meet the configured public margin")
+    return errors
+
+
+def private_acceptance_safety_errors(settings: Settings, catalog: Catalog) -> list[str]:
+    """Validate the narrow, owner-only private-service acceptance lane.
+
+    This is intentionally independent from the retired three-route acceptance
+    handler. It can only be enabled for explicitly named private synchronous
+    services, a single known buyer, and one provider attempt per paid request.
+    """
+    if not settings.mainnet_private_acceptance_enabled:
+        return []
+    errors: list[str] = []
+    services = private_acceptance_service_ids(settings)
+    if not settings.x402_enabled:
+        errors.append("X402_ENABLED=true is required")
+    if settings.x402_network != MAINNET_CANARY_NETWORK:
+        errors.append("the normal public x402 network must be Base mainnet")
+    if not settings.allow_mainnet_x402:
+        errors.append("ALLOW_MAINNET_X402=true is required")
+    if not settings.external_backup_enabled:
+        errors.append("EXTERNAL_BACKUP_ENABLED=true is required")
+    if not re.fullmatch(r"0x[a-fA-F0-9]{40}", settings.mainnet_private_acceptance_buyer):
+        errors.append("MAINNET_PRIVATE_ACCEPTANCE_BUYER must be an EVM address")
+    if not valid_service_ids(services):
+        errors.append("MAINNET_PRIVATE_ACCEPTANCE_SERVICES must name one or more valid service IDs")
+    if not re.fullmatch(r"[A-Za-z0-9_-]{12,120}", settings.mainnet_private_acceptance_run_id):
+        errors.append("MAINNET_PRIVATE_ACCEPTANCE_RUN_ID must be a 12–120 character opaque ID")
+    if settings.public_provider_max_attempts != 1:
+        errors.append("PUBLIC_PROVIDER_MAX_ATTEMPTS=1 is required for private acceptance")
+    if settings.scrapecreators_credit_balance <= settings.scrapecreators_credit_reserve:
+        errors.append("a checked ScrapeCreators balance above the internal reserve is required")
+    if not settings.scrapecreators_api_key:
+        errors.append("SCRAPECREATORS_API_KEY is required for live balance checks")
+    for service_id in services:
+        service = catalog.by_id(service_id)
+        if service is None:
+            errors.append(f"{service_id} is not in the catalog")
+            continue
+        if not service.enabled or service.public:
+            errors.append(f"{service_id} must be enabled and private")
+        if service.is_async or service.price_cents != 5:
+            errors.append(f"{service_id} must be a synchronous five-cent service")
+        if service.provider.name != "scrapecreators":
+            errors.append(f"{service_id} must use ScrapeCreators")
+        if not service.cost_verified or service.maximum_request_cost_microusd <= 0:
+            errors.append(f"{service_id} needs a verified upstream cost")
+        else:
+            price_micros = service.price_cents * 10_000
+            margin_micros = price_micros - service.maximum_request_cost_microusd
             if (
                 margin_micros < settings.minimum_public_margin_cents * 10_000
                 or margin_micros * 2 < price_micros
@@ -484,6 +562,120 @@ def reserve_mainnet_acceptance(
     return None
 
 
+def reserve_private_acceptance(
+    context: Any, *, settings: Settings, catalog: Catalog
+) -> AbortResult | None:
+    """Reserve one configured private-service validation payment before settlement.
+
+    The route is intentionally not a public service route. A service can only
+    be exercised once for the configured opaque run ID, by the named buyer,
+    and with a current account-wide provider balance check.
+    """
+    payer = str(getattr(context.result, "payer", ""))
+    request = getattr(getattr(context, "transport_context", None), "request", None)
+    path = getattr(request, "path", "")
+    service_id = private_acceptance_service_id(path, settings)
+    service = catalog.by_id(service_id) if service_id else None
+    amount = str(getattr(context.requirements, "amount", ""))
+    network = str(getattr(context.requirements, "network", ""))
+    asset = str(getattr(context.requirements, "asset", ""))
+    from .mcp_requests import expected_mcp_payer
+
+    approved_wallet = expected_mcp_payer.get()
+    if payer.lower() != settings.mainnet_private_acceptance_buyer.lower():
+        return AbortResult(
+            "private_acceptance_buyer_rejected",
+            "This buyer is not approved for private acceptance",
+        )
+    if approved_wallet and payer.lower() != approved_wallet.lower():
+        return AbortResult(
+            "mcp_payer_mismatch", "Pay using the wallet that owns this request"
+        )
+    if (
+        service is None
+        or network != MAINNET_CANARY_NETWORK
+        or asset.lower() != MAINNET_CANARY_USDC_ASSET.lower()
+        or amount != str(service.price_cents * 10_000)
+    ):
+        return AbortResult(
+            "private_acceptance_requirement_rejected",
+            "The private acceptance requirement is invalid",
+        )
+    try:
+        observed_balance = fetch_provider_balance(settings)
+    except ProviderBalanceUnavailable:
+        logging.getLogger("reachsocial").warning(
+            "operational_alert kind=provider_credit_balance_unavailable service=%s",
+            service_id,
+        )
+        return AbortResult(
+            "provider_credit_balance_unavailable",
+            "Private acceptance provider capacity could not be verified",
+        )
+
+    payment_id = payment_id_from_payload(context.payment_payload)
+    acceptance_key = (
+        f"{PRIVATE_ACCEPTANCE_KEY_PREFIX}:{settings.mainnet_private_acceptance_run_id}:{service_id}"
+    )
+    with SessionLocal() as session:
+        if session.bind and session.bind.dialect.name == "sqlite" and not session.in_transaction():
+            session.connection().exec_driver_sql("BEGIN IMMEDIATE")
+        if session.scalar(select(PaymentReceipt).where(PaymentReceipt.payment_id == payment_id)):
+            return AbortResult("payment_replayed", "This payment has already been used")
+        if session.scalar(
+            select(MainnetCanaryAttempt).where(MainnetCanaryAttempt.canary_key == acceptance_key)
+        ):
+            return AbortResult(
+                "private_acceptance_route_already_used",
+                "This private acceptance route has already been used",
+            )
+        if not reserve_credit_reservation(
+            session,
+            payment_id=payment_id,
+            service=service,
+            settings=settings,
+            observed_balance=observed_balance,
+            lock=False,
+        ):
+            return AbortResult(
+                "provider_credit_capacity_reached",
+                "Private acceptance provider credit capacity is currently reserved",
+            )
+        session.add(
+            PaymentReceipt(
+                payment_id=payment_id,
+                service_id=service_id,
+                amount_cents=service.price_cents,
+                network=network,
+                status="verified",
+                payer=payer,
+                details=_details(
+                    payer=payer,
+                    amount=amount,
+                    private_acceptance=True,
+                    acceptance_run=settings.mainnet_private_acceptance_run_id,
+                ),
+            )
+        )
+        session.add(
+            MainnetCanaryAttempt(
+                canary_key=acceptance_key,
+                payment_id=payment_id,
+                payer=payer,
+                status="verified",
+            )
+        )
+        try:
+            session.commit()
+        except IntegrityError:
+            session.rollback()
+            return AbortResult(
+                "private_acceptance_route_already_used",
+                "This private acceptance route has already been used",
+            )
+    return None
+
+
 def mark_payment_settled(context: Any) -> None:
     payment_id = payment_id_from_payload(context.payment_payload)
     with SessionLocal() as session:
@@ -605,6 +797,27 @@ def mark_mainnet_acceptance_settled(context: Any) -> None:
 def mark_mainnet_acceptance_canceled(context: Any) -> None:
     mark_payment_canceled(context)
     mark_mainnet_acceptance_status(context, "reconciliation_required")
+
+
+def mark_private_acceptance_status(context: Any, status: str) -> None:
+    payment_id = payment_id_from_payload(context.payment_payload)
+    with SessionLocal() as session:
+        attempt = session.scalar(
+            select(MainnetCanaryAttempt).where(MainnetCanaryAttempt.payment_id == payment_id)
+        )
+        if attempt is not None and attempt.canary_key.startswith(PRIVATE_ACCEPTANCE_KEY_PREFIX):
+            attempt.status = status
+            session.commit()
+
+
+def mark_private_acceptance_settled(context: Any) -> None:
+    mark_payment_settled(context)
+    mark_private_acceptance_status(context, "settled")
+
+
+def mark_private_acceptance_canceled(context: Any) -> None:
+    mark_payment_canceled(context)
+    mark_private_acceptance_status(context, "reconciliation_required")
 
 
 def price_for_public_execution(context: HTTPRequestContext, catalog: Catalog) -> str:
@@ -733,6 +946,42 @@ def create_mainnet_acceptance_payment_handler(settings: Settings, catalog: Catal
                 network=MAINNET_CANARY_NETWORK,
             ),
             description="Bounded ReachSocial Base-mainnet acceptance",
+            mime_type="application/json",
+        )
+    return payment_middleware(routes=routes, server=server)
+
+
+def create_private_acceptance_payment_handler(settings: Settings, catalog: Catalog):
+    """Build the hidden one-run-per-service private acceptance handler."""
+    if not x402_is_configured(settings):
+        raise ValueError("Private acceptance requires the configured CDP x402 facilitator")
+    errors = private_acceptance_safety_errors(settings, catalog)
+    if errors:
+        raise ValueError("Private acceptance is blocked: " + "; ".join(errors))
+    facilitator_config = create_facilitator_config(
+        api_key_id=settings.cdp_api_key_id,
+        api_key_secret=settings.cdp_api_key_secret,
+    )
+    server = x402ResourceServer(HTTPFacilitatorClient(facilitator_config))
+    server.register(MAINNET_CANARY_NETWORK, ExactEvmServerScheme())
+    server.on_after_verify(
+        lambda context: reserve_private_acceptance(context, settings=settings, catalog=catalog)
+    )
+    server.on_after_settle(mark_private_acceptance_settled)
+    server.on_settle_failure(mark_private_acceptance_canceled)
+    server.on_verified_payment_canceled(mark_private_acceptance_canceled)
+    routes: dict[str, RouteConfig] = {}
+    for route, service_id in private_acceptance_routes(settings).items():
+        service = catalog.by_id(service_id)
+        assert service is not None
+        routes[route] = RouteConfig(
+            accepts=PaymentOption(
+                scheme="exact",
+                pay_to=settings.x402_pay_to,
+                price=f"${service.price_cents / 100:.2f}",
+                network=MAINNET_CANARY_NETWORK,
+            ),
+            description="Owner-only ReachSocial private-service acceptance",
             mime_type="application/json",
         )
     return payment_middleware(routes=routes, server=server)
@@ -933,3 +1182,105 @@ class MainnetAcceptanceX402Middleware(BaseHTTPMiddleware):
         if is_b2b_request(request) or request.headers.get("x-service-credit"):
             return Response(status_code=403)
         return await self._payment_handler(request, call_next)
+
+
+class PrivateAcceptanceX402Middleware(BaseHTTPMiddleware):
+    """Expose only configured private services to an owner-only paid validation run."""
+
+    def __init__(self, app, *, settings: Settings, catalog: Catalog):  # type: ignore[no-untyped-def]
+        super().__init__(app)
+        self._settings = settings
+        self._routes = private_acceptance_routes(settings)
+        self._payment_handler = create_private_acceptance_payment_handler(settings, catalog)
+
+    async def dispatch(self, request: Request, call_next) -> Response:  # type: ignore[no-untyped-def]
+        service_id = self._routes.get(f"{request.method} {request.url.path}")
+        if service_id is None:
+            return await call_next(request)
+        if is_b2b_request(request) or request.headers.get("x-service-credit"):
+            return Response(status_code=403)
+        idempotency_key = request.headers.get("idempotency-key")
+        if not idempotency_key:
+            return JSONResponse(
+                {
+                    "error": {
+                        "code": "idempotency_key_required",
+                        "message": "Private acceptance requires an Idempotency-Key for result recovery",
+                        "retryable": False,
+                    }
+                },
+                status_code=400,
+            )
+        if len(idempotency_key) < 32 or len(idempotency_key) > 255:
+            return JSONResponse(
+                {
+                    "error": {
+                        "code": "idempotency_key_too_weak",
+                        "message": "Private acceptance requires a random 32–255 character Idempotency-Key",
+                        "retryable": False,
+                    }
+                },
+                status_code=400,
+            )
+        request.scope[PRIVATE_ACCEPTANCE_SCOPE_KEY] = service_id
+        if _has_paid_idempotency_recovery(service_id, idempotency_key):
+            return await call_next(request)
+        global_pause = (
+            "operator_pause"
+            if request.app.state.settings.public_payments_paused
+            else request.app.state.runtime.public_payments_paused_reason
+        )
+        service_pause = request.app.state.runtime.public_service_payment_pause_reason(service_id)
+        if global_pause or service_pause:
+            return JSONResponse(
+                {
+                    "error": {
+                        "code": "payments_paused" if global_pause else "service_temporarily_unavailable",
+                        "message": "New payment approvals are temporarily unavailable",
+                        "retryable": True,
+                    }
+                },
+                status_code=503,
+            )
+        expected_payer = None
+        if self._settings.oauth_enabled and idempotency_key.startswith("mcp_"):
+            from .mcp_requests import guard_payment
+
+            try:
+                expected_payer = await guard_payment(request, service_id, idempotency_key)
+            except HTTPException as error:
+                return JSONResponse(
+                    {"error": {"code": "mcp_payment_rejected", "message": error.detail}},
+                    status_code=error.status_code,
+                )
+        if _has_payment_signature(request):
+            try:
+                await reserve_pre_settlement_public_limit(request)
+            except ReachSocialError as error:
+                return JSONResponse(
+                    {
+                        "error": {
+                            "code": error.code,
+                            "message": error.message,
+                            "retryable": error.retryable,
+                        }
+                    },
+                    status_code=error.status_code,
+                )
+        if expected_payer:
+            from .mcp_requests import guard_payment
+
+            try:
+                await guard_payment(request, service_id, idempotency_key, dispatch=True)
+            except HTTPException as error:
+                return JSONResponse(
+                    {"error": {"code": "mcp_payment_rejected", "message": error.detail}},
+                    status_code=error.status_code,
+                )
+        from .mcp_requests import expected_mcp_payer
+
+        token = expected_mcp_payer.set(expected_payer)
+        try:
+            return await self._payment_handler(request, call_next)
+        finally:
+            expected_mcp_payer.reset(token)

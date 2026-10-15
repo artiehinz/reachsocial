@@ -53,7 +53,7 @@ it('payment page refresh never signs and approval executes only once', async () 
   const approve = document.querySelector('[data-payment-approve]');
   approve.click(); approve.click(); await tick(); await tick();
   expect(mocks.execute).toHaveBeenCalledTimes(1);
-  expect(mocks.execute.mock.calls[0].slice(-2)).toEqual(['mcp_key', 'approval']);
+  expect(mocks.execute.mock.calls[0].slice(5, 7)).toEqual(['mcp_key', 'approval']);
   document.querySelector('[data-payment-refresh]').click(); await tick();
   expect(mocks.execute).toHaveBeenCalledTimes(1);
   expect(approve.disabled).toBe(true);
@@ -72,6 +72,34 @@ it('shows the rejected account and the actual access restriction without request
   expect(document.querySelector('[data-account-status]').textContent).toContain('site permissions');
   expect(document.querySelector('[data-account-status]').textContent).not.toContain('session expired');
   expect(mocks.provider.request.mock.calls.map(([args]) => args.method)).toEqual(['eth_requestAccounts']);
+});
+
+it('clears a signed-in state when the wallet changes accounts', async () => {
+  document.body.innerHTML = `<div data-account>
+    <select data-account-wallet></select><button data-account-login></button><span data-account-address></span>
+    <p data-account-status></p><div data-account-consent hidden><button data-account-approve></button><button data-account-deny></button></div>
+    <div data-account-details hidden><ul data-account-connections></ul><ul data-account-requests></ul><button data-account-logout></button></div></div>`;
+  const handlers = {};
+  mocks.provider.on = vi.fn((event, handler) => { handlers[event] = handler; });
+  mocks.provider.removeListener = vi.fn();
+  let signedIn = false;
+  global.fetch = vi.fn(async (url, options = {}) => {
+    const body = options.body ? JSON.parse(options.body) : {};
+    if (url === '/auth/session') return { ok: signedIn, status: signedIn ? 200 : 401, json: async () => ({ address: ADDRESS, csrf: 'csrf', connections: [] }) };
+    if (url === '/auth/challenge') return { ok: true, json: async () => ({ message: 'Non-payment login challenge' }) };
+    if (url === '/auth/verify') { signedIn = true; return { ok: true, json: async () => ({ address: ADDRESS, csrf: 'csrf' }) }; }
+    if (url === '/account/requests') return { ok: true, json: async () => ({ requests: [] }) };
+    if (url === '/auth/logout') { expect(body).toEqual({}); signedIn = false; return { ok: true, json: async () => ({ status: 'signed_out' }) }; }
+    throw new Error('Unexpected endpoint: ' + url);
+  });
+  mocks.provider.request.mockImplementation(async ({ method }) => method === 'eth_requestAccounts' ? [ADDRESS] : '0xsignature');
+  await import('../../static/account.js'); await tick();
+  document.querySelector('[data-account-login]').click(); await tick(); await tick();
+  expect(handlers.accountsChanged).toEqual(expect.any(Function));
+  handlers.accountsChanged([]); await tick(); await tick();
+  expect(global.fetch).toHaveBeenCalledWith('/auth/logout', expect.objectContaining({ method: 'POST' }));
+  expect(document.querySelector('[data-account-details]').hidden).toBe(true);
+  expect(document.querySelector('[data-account-status]').textContent).toContain('changed');
 });
 
 it('distinguishes origin rejection, expired session, and pending settlement', async () => {

@@ -170,22 +170,35 @@ export function buildPaymentClient(
     });
 }
 
-async function readConfiguration(baseUrl: string, serviceId: string) {
-  const [statusResponse, servicesResponse] = await Promise.all([
-    fetch(`${baseUrl}/status.json`, { credentials: "omit", redirect: "error", cache: "no-store" }),
-    fetch(`${baseUrl}/v1/services`, { credentials: "omit", redirect: "error", cache: "no-store" }),
-  ]);
-  if (!statusResponse.ok || !servicesResponse.ok) {
+async function readConfiguration(
+  baseUrl: string,
+  serviceId: string,
+  privateValidation = false,
+) {
+  const statusResponse = await fetch(`${baseUrl}/status.json`, {
+    credentials: "omit", redirect: "error", cache: "no-store",
+  });
+  if (!statusResponse.ok) {
     throw new Error("ReachSocial discovery is unavailable");
   }
   const status = (await statusResponse.json()) as {
     payment: PaymentMetadata; status: string; degraded_services?: string[];
   };
-  const catalog = (await servicesResponse.json()) as { services: ServiceSummary[] };
-  const service = catalog.services.find((item) => item.id === serviceId);
-  if (!service?.available || service.execution !== "sync" ||
-      !Number.isInteger(service.price_cents) || service.price_cents < 1 || service.price_cents > 5) {
-    throw new Error("The requested service is not available within the $0.05 limit");
+  let service: ServiceSummary;
+  if (privateValidation) {
+    service = { id: serviceId, execution: "sync", available: false, price_cents: 5 };
+  } else {
+    const servicesResponse = await fetch(`${baseUrl}/v1/services`, {
+      credentials: "omit", redirect: "error", cache: "no-store",
+    });
+    if (!servicesResponse.ok) throw new Error("ReachSocial discovery is unavailable");
+    const catalog = (await servicesResponse.json()) as { services: ServiceSummary[] };
+    const discovered = catalog.services.find((item) => item.id === serviceId);
+    if (!discovered?.available || discovered.execution !== "sync" ||
+        !Number.isInteger(discovered.price_cents) || discovered.price_cents < 1 || discovered.price_cents > 5) {
+      throw new Error("The requested service is not available within the $0.05 limit");
+    }
+    service = discovered;
   }
   if (
     !status.payment?.enabled ||
@@ -213,6 +226,7 @@ export async function executeReachSocial(
   baseUrl = BASE_URL,
   idempotencyKey: string = crypto.randomUUID(),
   approvalToken?: string,
+  paymentEndpoint?: string,
 ) {
   baseUrl = checkedBaseUrl(baseUrl);
   if (!/^[a-z0-9]+(?:[._-][a-z0-9]+)*$/.test(serviceId) ||
@@ -225,8 +239,14 @@ export async function executeReachSocial(
   if (String(chainId).toLowerCase() !== "0x2105") {
     throw new Error("Switch the browser wallet to Base mainnet before paying");
   }
-  const endpoint = `${baseUrl}/v1/services/${encodeURIComponent(serviceId)}/execute`;
-  const { metadata, service } = await readConfiguration(baseUrl, serviceId);
+  const publicEndpoint = `${baseUrl}/v1/services/${encodeURIComponent(serviceId)}/execute`;
+  const privateEndpoint = `${baseUrl}/v1/acceptance/private/${encodeURIComponent(serviceId)}/execute`;
+  const endpoint = paymentEndpoint || publicEndpoint;
+  const privateValidation = Boolean(paymentEndpoint);
+  if (endpoint !== publicEndpoint && endpoint !== privateEndpoint) {
+    throw new Error("The payment endpoint did not match the requested ReachSocial service");
+  }
+  const { metadata, service } = await readConfiguration(baseUrl, serviceId, privateValidation);
   const client = buildPaymentClient(provider, account, {
     endpoint,
     metadata,

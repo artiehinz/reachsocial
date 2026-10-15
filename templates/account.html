@@ -15,7 +15,7 @@
 <p class="access-address">Account shared by your wallet: <span data-account-address>Shown when you connect</span></p>
 <p class="access-status" data-account-status role="status" aria-live="polite">Choose your wallet extension. Signing in does not authorize a payment.</p>
 <details class="access-help"><summary>Seeing the wrong account?</summary><p>The account your wallet shares with a website can differ from the account selected in its extension. Open the wallet’s site permissions for reachsocial.dev, disconnect the old account, then reconnect the account you want to use. Select the same wallet extension here and in the navigation panel.</p><p>“Disconnect from this page” clears the readiness panel only. “Sign out” ends your ReachSocial session. Neither removes the wallet’s saved site permissions.</p></details>
-<div class="access-section" data-account-consent hidden><h2>Allow this connection?</h2><p class="wrap-code" data-account-client></p>
+<div class="access-section" data-account-consent hidden><h2>Allow this connection?</h2><dl class="request-facts"><div><dt>Requesting app</dt><dd data-account-client-name></dd></div><div><dt>App ID</dt><dd class="wrap-code" data-account-client-id></dd></div><div><dt>Callback address</dt><dd class="wrap-code" data-account-client-redirect></dd></div></dl>
 <p>The agent can create requests and retrieve their results. It cannot approve a payment for you.</p>
 <div class="wallet-actions"><button class="button primary" data-account-approve>Allow connection</button>
 <button class="button secondary" data-account-deny>Decline</button></div></div>
@@ -25,5 +25,5 @@
 <noscript>Enable JavaScript and use an installed browser wallet to sign in. Smart-account login is not supported yet.</noscript>
 </section>
 </div>
-<script type="module" src="/static/account.js?v=20261014-2"></script>
+<script type="module" src="/static/account.js?v=20261015-1"></script>
 {% endblock %}

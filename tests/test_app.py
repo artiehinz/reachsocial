@@ -47,6 +47,7 @@ def test_health_and_mcp_gate() -> None:
         assert len(paid_operations) == 8
         assert "/v1/services/youtube.video/execute" not in paid_operations
         assert "/v1/services/linkedin.profile/execute" not in paid_operations
+        assert "/v1/acceptance/private/{service_id}/execute" not in openapi["paths"]
         for path, operation in paid_operations.items():
             assert "{" not in path
             assert operation["x-payment-info"] == {
@@ -61,6 +62,11 @@ def test_health_and_mcp_gate() -> None:
             assert "PAYMENT-RESPONSE" in operation["responses"]["200"]["headers"]
         assert client.get("/healthz").json() == {"status": "ok"}
         assert client.get("/readyz").json()["status"] == "ready"
+        assert client.post(
+            "/v1/acceptance/private/instagram.feed/execute",
+            headers={"Idempotency-Key": "x" * 32},
+            json={"input": {"url": "https://www.instagram.com/instagram/", "max_items": 5}},
+        ).status_code == 404
         assert client.post("/mcp").status_code == 503
         assert client.get("/mcp/server-card").status_code == 503
         assert client.get("/.well-known/mcp.json").status_code == 503

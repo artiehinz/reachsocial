@@ -21,7 +21,16 @@ from sqlalchemy import select
 
 from .db import SessionLocal
 from .oauth_provider import SCOPE, ReachSocialOAuthProvider, origin, resource, wallet_allowed
-from .oauth_store import OAuthState, consume, get, put, rate_limit, revoke_family, secret
+from .oauth_store import (
+    OAuthState,
+    consume,
+    get,
+    put,
+    rate_limit,
+    record_auth_failure,
+    revoke_family,
+    secret,
+)
 
 router = APIRouter(include_in_schema=False)
 provider = ReachSocialOAuthProvider()
@@ -105,23 +114,32 @@ async def verify(request: Request):
     body = await object_body(request)
     signature = body.get("signature")
     if not isinstance(signature, str) or len(signature) != 132:
+        with SessionLocal() as session:
+            record_auth_failure(session, "invalid_wallet_signature")
+            session.commit()
         raise HTTPException(400, "An externally owned wallet signature is required")
     flow = request.cookies.get("reachsocial_login", "")
     with SessionLocal() as session:
         row = get(session, "challenge", flow)
         if not row:
+            record_auth_failure(session, "expired_wallet_challenge")
+            session.commit()
             raise HTTPException(400, "Login challenge expired or already used")
         try:
             address = Account.recover_message(
                 encode_defunct(text=row.payload["message"]), signature=signature
             )
         except (ValueError, TypeError, BadSignature):
+            record_auth_failure(session, "invalid_wallet_signature")
+            session.commit()
             raise HTTPException(400, "Invalid wallet signature") from None
         if (
             not wallet_allowed(address)
             or address.lower() != row.payload["address"]
             or not consume(session, "challenge", flow)
         ):
+            record_auth_failure(session, "wallet_challenge_replay")
+            session.commit()
             raise HTTPException(400, "Invalid or already used challenge")
         token, csrf = secret(), secret()
         put(
@@ -159,7 +177,19 @@ async def session_info(request: Request):
                 OAuthState.expires_at > time.time(),
             )
         ).all()
-        grants = [{"id": row.family, "client_id": row.payload["client_id"]} for row in rows]
+        grants = []
+        for row in rows:
+            client_id = row.payload["client_id"]
+            client = get(session, "client", client_id, used=True)
+            metadata = client.payload if client else {}
+            grants.append(
+                {
+                    "id": row.family,
+                    "client_id": client_id,
+                    "client_name": metadata.get("client_name") or client_id,
+                    "redirect_uris": metadata.get("redirect_uris", []),
+                }
+            )
     return {**identity, "connections": grants}
 
 

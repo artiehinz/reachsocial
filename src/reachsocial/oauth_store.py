@@ -7,7 +7,7 @@ import secrets
 import time
 from typing import Any
 
-from sqlalchemy import JSON, Boolean, Float, String, delete, select, update
+from sqlalchemy import JSON, Boolean, Float, String, select, update
 from sqlalchemy.orm import Mapped, Session, mapped_column
 
 from .db import Base
@@ -87,13 +87,61 @@ def revoke_family(session: Session, family: str) -> None:
         session.execute(update(OAuthState).where(OAuthState.family == family).values(consumed=True))
 
 
-def prune(session: Session) -> None:
-    session.execute(
-        delete(OAuthState).where(
-            OAuthState.expires_at < time.time(),
-            OAuthState.kind != "mcp_request",
+def record_auth_failure(session: Session, category: str) -> None:
+    """Record a short-lived, non-identifying signal for operational monitoring."""
+    put(
+        session,
+        "auth_failure",
+        f"{category}:{secret()}",
+        {"category": category},
+        600,
+    )
+
+
+def _mcp_request_needs_reconciliation(session: Session, row: OAuthState) -> bool:
+    """Keep an expired intent when a signed payment may still need a human review."""
+    payload = row.payload
+    if not payload.get("payment_attempted"):
+        return False
+    # Import locally to keep OAuth state independent during schema startup.
+    from sqlalchemy import select
+
+    from .models import Client, IdempotencyRecord, PaymentReceipt
+    from .payments import PUBLIC_X402_CLIENT_NAME
+
+    client = session.scalar(select(Client).where(Client.name == PUBLIC_X402_CLIENT_NAME))
+    if client is None:
+        return True
+    record = session.scalar(
+        select(IdempotencyRecord).where(
+            IdempotencyRecord.client_id == client.id,
+            IdempotencyRecord.service_id == payload.get("service", ""),
+            IdempotencyRecord.key == payload.get("payment_key", ""),
         )
     )
+    if record is None:
+        # A dispatched request can fail before its result record is persisted.
+        return True
+    request_id = str(record.response_json.get("request_id") or "")
+    receipt = session.scalar(
+        select(PaymentReceipt).where(PaymentReceipt.request_id == request_id)
+    )
+    return receipt is None or receipt.status in {"verified", "reconciliation_required"}
+
+
+def prune(session: Session, *, now: float | None = None) -> int:
+    """Prune expired OAuth state without deleting possible payment evidence."""
+    cutoff = time.time() if now is None else now
+    expired = list(
+        session.scalars(select(OAuthState).where(OAuthState.expires_at < cutoff))
+    )
+    deleted = 0
+    for row in expired:
+        if row.kind == "mcp_request" and _mcp_request_needs_reconciliation(session, row):
+            continue
+        session.delete(row)
+        deleted += 1
+    return deleted
 
 
 def rate_limit(session: Session, identity: str, action: str, maximum: int) -> bool:
