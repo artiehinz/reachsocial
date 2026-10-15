@@ -2,6 +2,7 @@ import hashlib
 import importlib.util
 import io
 import json
+import re
 import subprocess
 import tarfile
 from pathlib import Path
@@ -21,6 +22,15 @@ def module(path):
 installer = module(ROOT / "scripts/install_operations.py")
 ops = module(ROOT / "deploy/operations/reachsocial-ops.py")
 VERSION = "a" * 40
+
+
+def test_restore_issuer_is_accepted_by_oauth_library():
+    from mcp.server.auth.routes import validate_issuer_url
+    from pydantic import AnyHttpUrl
+
+    script = (ROOT / "scripts/verify_nightly_restore.sh").read_text()
+    issuer = re.search(r"--env PUBLIC_BASE_URL=(\S+)", script).group(1)
+    validate_issuer_url(AnyHttpUrl(issuer))
 
 
 def bundle(extra=None):

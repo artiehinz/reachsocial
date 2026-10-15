@@ -99,7 +99,7 @@ reachsocial_image="$(docker inspect --format '{{.Image}}' "$reachsocial_containe
 docker run --detach --rm --name "$restore_app" --network none --read-only \
   --tmpfs /tmp:size=64m,mode=1777 \
   --env APP_ENV=restore-verification \
-  --env PUBLIC_BASE_URL=http://restore.local \
+  --env PUBLIC_BASE_URL=http://127.0.0.1:8000 \
   --env DATABASE_URL=sqlite:////data/reachsocial.db \
   --env X402_ENABLED=false \
   --env MCP_ENABLED=true \

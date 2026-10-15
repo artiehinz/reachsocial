@@ -5,7 +5,7 @@
 | Location | Available access | Routine work |
 | --- | --- | --- |
 | Herald | Local checkout, GitHub CLI, existing deployment SSH key | Edit, test, commit, push private application repo; follow CI; check public health |
-| Droplet, `reachsocial` | SSH key, Docker group; three sudo actions after installation | Deploy through GitHub CI, inspect image/health, backup and rehearse restore |
+| Droplet, `reachsocial` | SSH key, Docker group; three installed sudo actions | Deploy through GitHub CI, inspect image/health, backup and rehearse restore |
 | Droplet, root Recovery Console | Owner's password manager and DigitalOcean account | Initial wrapper installation, approved privileged script updates, exceptional recovery |
 
 Herald checkout: `/mnt/instaget-nvme/herald-work/reachsocial` (also available at
@@ -38,7 +38,7 @@ ssh -i ~/.ssh/reachsocial_deploy -o IdentitiesOnly=yes \
   -o StrictHostKeyChecking=yes reachsocial@138.197.154.48
 ```
 
-After installation, run these on the Droplet as `reachsocial`:
+Run these on the Droplet as `reachsocial`:
 
 ```bash
 curl --fail --silent --show-error https://reachsocial.dev/healthz
@@ -167,17 +167,34 @@ operation, not the `verify-restore` action.
 
 - 2026-10-15: existing deployment SSH works; `/healthz` returns `ok`; running
   ReachSocial image is `7bd3b59e1087a5c81afd9ef6345dd8608ad9d970`.
-- Existing nightly cron and root-owned volume/script directories inspected.
-  `reachsocial` has Docker membership; `sudo -n -l` requires a password.
+- Owner console installation of `575ba99dba6e66d44169e52502535f89366bd6f5`
+  succeeded. A separate deployment SSH session confirmed all three exact sudo
+  commands; extra arguments and `/usr/bin/true` are denied. The wrapper is
+  `root:root 0755`, its code directory is `root:root 0700`, and the existing
+  08:17 UTC cron now invokes the wrapper. `reachsocial` retains Docker membership.
+- Fresh encrypted backup passed at `2026-10-15T18:34:46.734635+00:00` (exit 0).
+  The first restore attempt failed at `18:35:57.233604+00:00` during isolated
+  app startup. Reproduction with an empty database identified the verifier's
+  `http://restore.local` issuer: the OAuth library requires HTTPS except on
+  loopback addresses. The correction uses `http://127.0.0.1:8000`.
+- The corrected issuer passed health, both OAuth discovery endpoints, and the
+  MCP 401 challenge in the exact production image with an empty temporary
+  database, no network, and payments disabled. The temporary container was
+  removed. This startup probe does not replace a successful encrypted restore.
+- Root SSH rejected the deployment key (`Permission denied (publickey)`). The
+  readable `60-reachsocial-security.conf` specifies `PermitRootLogin no`; a full
+  privileged `sshd -T` check was not performed. Production health remains `ok`.
 - Corrected backup/restore scripts committed as `72f1512`; shell syntax,
-  ShellCheck, sudoers syntax, and Ruff pass. The full Python suite reports 232
+  ShellCheck, sudoers syntax, and Ruff pass. The full Python suite reports 233
   passed and 17 credential-gated tests skipped; TypeScript typechecking and 36
-  frontend tests pass. Fifteen operations tests cover command restrictions,
+  frontend tests pass. Sixteen operations tests cover command restrictions,
   environment, checksums, archive validation, locking, failure status, mount/root
-  checks, installer validation, and distinct rollback copies of sudoers/wrapper.
+  checks, installer validation, distinct rollback copies of sudoers/wrapper,
+  and the restore issuer's compatibility with the OAuth library.
 - Historical isolated SQLite restore evidence remains in
   [self-service release](self-service-release.md#isolated-restore-and-transport-verification).
-- **Pending:** console installation, live encrypted nightly backup/restore,
-  deployed sudo allow/deny checks, effective root-SSH verification, and owner
-  confirmation of password-manager storage and console login. Do not mark the
-  nightly restore or console recovery procedure tested until these pass.
+- **Pending:** owner installation of the corrected verifier and a successful
+  encrypted restore run, plus owner confirmation of password-manager storage.
+  The owner supplied successful root-console installation output; exceptional
+  network/volume failure recovery was not simulated. Do not mark the nightly
+  restore complete until the corrected script passes through the wrapper.
