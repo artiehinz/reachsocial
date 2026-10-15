@@ -46,6 +46,11 @@ wrap or scroll inside their panels.
 
 ## 2. Close self-service release checks
 
+The [2026-10-15 unpaid audit](unpaid-client-acceptance-2026-10-15.md) passed fresh
+SDK checks over real loopback HTTP, synthetic browser checks, live discovery/CORS
+checks, and a scheduled readiness run. External production-client authorization
+and the two owner-wallet payment cases below remain open.
+
 - Run the separate standalone injected-browser acceptance and AgentCash path.
   Preserve idempotency, require owner wallet approval, and verify recovery.
 - Test a real fresh MCP client, including client metadata/registration, PKCE,
