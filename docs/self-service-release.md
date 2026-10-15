@@ -103,9 +103,10 @@ links to one recorded provider attempt consuming one credit. This closes their
 receipt/provider reconciliation, but does not establish a clean 24-hour
 observation window for the newest deployment.
 
-The deployment account cannot invoke the configured nightly Restic repository
-with sudo without a password. Its root-protected snapshot restore remains an
-access dependency. Pre-deployment SQLite snapshots are separately accessible
+The deployment account cannot yet invoke the configured nightly Restic repository
+with sudo without a password (rechecked 2026-10-15). The reviewed scoped
+[operations package](operations.md) is prepared; console installation and its
+live backup/restore acceptance remain pending. Pre-deployment SQLite snapshots are separately accessible
 through the application container and can be restored without expanded sudo.
 
 The public docs repository was unexpectedly public with retained backend

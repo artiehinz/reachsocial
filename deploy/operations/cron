@@ -1,0 +1,2 @@
+# Preserve the existing nightly 08:17 UTC schedule; the wrapper saves root-only logs.
+17 8 * * * root /usr/local/sbin/reachsocial-ops backup > /dev/null 2>&1

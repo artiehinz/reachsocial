@@ -100,6 +100,11 @@ never replace recovery with a new paid execution. See
   PostgreSQL; never point one application at the other's database.
 - `scripts/backup_droplet.sh` creates consistent ReachSocial SQLite and AEU
   PostgreSQL backups on the DigitalOcean volume. The host runs it nightly.
+- The scoped operations package is in `deploy/operations/`; installation and
+  live acceptance are tracked in `docs/operations.md`. Once installed, use
+  `sudo -n /usr/local/sbin/reachsocial-ops backup|verify-restore|backup-status`
+  (one action per command). Never grant sudo to application-directory scripts.
+  Privileged updates require owner-approved commit and checksum verification.
 - `.github/workflows/volume-backup.yml` creates the off-host DigitalOcean volume
   snapshot and retains the four newest automated snapshots.
 - This installation intentionally does not use AWS or S3. Do not reintroduce
