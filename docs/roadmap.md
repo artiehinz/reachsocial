@@ -146,6 +146,13 @@ before ordinary operational retention removes their rows.
 
 ## Restore and backup evidence
 
+**2026-10-15:** Fresh encrypted backup and full isolated nightly restore passed
+through the deployment user's fixed operations commands. Verification covered
+SQLite integrity, historical receipts and OAuth/request/payment tables,
+ReachSocial startup and OAuth/MCP behavior, and the AEU PostgreSQL restore.
+Temporary resources were removed and production remained healthy. The installed
+operations version is `a809ebd`; see [operations evidence](operations.md#evidence-and-remaining-acceptance).
+
 **2026-10-11:** The latest encrypted Restic snapshot was restored under an
 isolated NVMe verification path. ReachSocial's SQLite integrity check and
 isolated application startup passed. AEU's PostgreSQL custom dump restored to

@@ -12,7 +12,7 @@ umask 077
 install -d -m 0700 "$staging" "$volume_root/backup-logs"
 find "$staging" -mindepth 1 -depth -delete
 
-docker exec -i reachsocial-app-1 python - <<'PY'
+docker exec reachsocial-app-1 python -c '
 import sqlite3
 from pathlib import Path
 
@@ -21,8 +21,11 @@ target = Path("/tmp/reachsocial-backup.db")
 with sqlite3.connect(source) as src, sqlite3.connect(target) as dst:
     src.backup(dst)
 target.chmod(0o600)
-PY
-docker cp reachsocial-app-1:/tmp/reachsocial-backup.db "$staging/reachsocial.db"
+'
+# Read through the running container: Docker archive copy can miss tmpfs files.
+docker exec reachsocial-app-1 python -c \
+  'import sys; from pathlib import Path; sys.stdout.buffer.write(Path("/tmp/reachsocial-backup.db").read_bytes())' \
+  > "$staging/reachsocial.db"
 docker exec reachsocial-app-1 python -c \
   'from pathlib import Path; Path("/tmp/reachsocial-backup.db").unlink()'
 docker exec agent-enhancer-postgres-1 \

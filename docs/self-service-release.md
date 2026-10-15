@@ -52,9 +52,11 @@ top-ups.
 Release gates still requiring recorded evidence:
 
 - [x] Current budget reconciliation and live provider balance baseline (see below).
-- [ ] Root-protected nightly-backup restore with the additive OAuth/request tables. Run
-  `scripts/verify_nightly_restore.sh` from the root operations console; it restores
-  both databases into isolated, no-network containers and removes its temporary data.
+- [x] Root-protected nightly-backup restore with the additive OAuth/request tables.
+  Passed 2026-10-15 at 19:40:30 UTC through the deployment user's fixed
+  `sudo -n /usr/local/sbin/reachsocial-ops verify-restore` action. Both databases
+  restored into isolated, no-network containers; application/OAuth/MCP checks
+  and cleanup passed. See [operations evidence](operations.md#evidence-and-remaining-acceptance).
 - [ ] Full OAuth/MCP integration and browser security checks, including Smithery compatibility.
 - [ ] One bounded browser payment and same-key recovery.
 - [x] One bounded owner direct-MCP approval/payment/recovery and initial OAuth authorization. Independent client compatibility remains open.
@@ -103,9 +105,11 @@ links to one recorded provider attempt consuming one credit. This closes their
 receipt/provider reconciliation, but does not establish a clean 24-hour
 observation window for the newest deployment.
 
-The deployment account cannot invoke the configured nightly Restic repository
-with sudo without a password. Its root-protected snapshot restore remains an
-access dependency. Pre-deployment SQLite snapshots are separately accessible
+The deployment account now has the three fixed sudo actions from the reviewed
+[operations package](operations.md), installed through the owner console on
+2026-10-15. Fresh encrypted backup and full restore verification passed with the
+corrected verifier in operations version `a809ebd`. Routine backup and restore
+checks no longer need the root console. Pre-deployment SQLite snapshots are separately accessible
 through the application container and can be restored without expanded sudo.
 
 The public docs repository was unexpectedly public with retained backend
