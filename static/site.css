@@ -337,3 +337,9 @@ p a, .text-link { text-decoration: underline; text-underline-offset: 3px; }
   .request-facts > div { grid-template-columns: 1fr; gap: 4px; }
   .access-panel .wallet-controls .button { width: 100%; }
 }
+
+.nav-wallet .wallet-connection-dot { display: none; width: 7px; height: 7px; flex: 0 0 7px; border-radius: 50%; }
+.primary-nav .nav-wallet[data-wallet-state="connected"] { background: var(--panel-2); color: var(--ink); border: 1px solid var(--line); font-variant-numeric: tabular-nums; }
+.nav-wallet[data-wallet-state="connected"] .wallet-connection-dot { display: inline-block; background: var(--accent); }
+.primary-nav .nav-wallet[data-wallet-state="wrong-network"] { background: var(--panel-2); color: #f5c76b; border: 1px solid #a77b28; }
+.nav-wallet[data-wallet-state="wrong-network"] .wallet-connection-dot { display: inline-block; background: #f5c76b; }

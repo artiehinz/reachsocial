@@ -52,8 +52,11 @@ The owner reported six successful Base-USDC settlements with recovery for
 X profile/post/feed and TikTok profile/video/feed, totaling $0.30. Together
 with Instagram profile/post, eight current services have paid acceptance.
 The new batch still needs its 24-hour observation and receipt/provider
-reconciliation. Seven private integrations still need paid acceptance before
-public promotion. No further paid tests were performed for this status update.
+reconciliation. All five later private integrations passed payment and repeated recovery on
+2026-10-15; Reddit author mapping is a release blocker. See
+[combined evidence](combined-acceptance-2026-10-15.md). Instagram feed/highlight passed payment and recovery on
+2026-10-15; their observation gate remains open. See
+[Stage A evidence](stage-a-acceptance-2026-10-15.md).
 
 On 2026-10-13, three logical `instagram.profile` requests produced six retry
 attempt failures while terminal `instagram.feed` lookups also returned
@@ -153,7 +156,7 @@ is recorded separately. No purchase is required for existing-credit tests.
 3. Recheck authenticated MCP discovery, entitlement denial, execution, and
    protected job polling on the deployed image.
 4. Recheck the provider balance, retain the 1,000-credit reserve, and use the
-   remaining 18-credit/$0.40 acceptance allocation before each staged
+   remaining 11-credit/$0.05 acceptance allocation before each staged
    public-mainnet release.
 5. Promote only services that complete their paid recovery acceptance, then
    observe and reconcile each stage for 24 hours.

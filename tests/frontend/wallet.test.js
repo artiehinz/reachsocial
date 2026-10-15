@@ -252,3 +252,50 @@ describe("header connection", () => {
     expect(document.activeElement).toBe(root.querySelector("[data-wallet-select]"));
   });
 });
+
+describe("header wallet state", () => {
+  it("restores permission without prompting and follows network/account/disconnect changes", async () => {
+    const { initializeWalletNavigation } = await import("../../static/wallet.js");
+    document.body.innerHTML = '<a class="nav-wallet"><span data-wallet-label>Connect wallet</span></a>';
+    const button = document.querySelector('.nav-wallet');
+    let accounts = [ADDRESS];
+    let chain = '0x2105';
+    const events = new Map();
+    const provider = {
+      request: vi.fn(async ({ method }) => {
+        if (method === 'eth_accounts') return accounts;
+        if (method === 'eth_chainId') return chain;
+        throw new Error('Unexpected wallet prompt');
+      }),
+      on: (name, handler) => events.set(name, handler),
+      removeListener: (name) => events.delete(name),
+    };
+    Object.defineProperty(window, 'ethereum', { value: provider, configurable: true });
+    cleanups.push(initializeWalletNavigation(button));
+    await settle();
+    expect(button.textContent).toBe(shortAddress(ADDRESS));
+    expect(button.dataset.walletState).toBe('connected');
+    expect(button.getAttribute('aria-label')).toContain(ADDRESS);
+    chain = '0x1'; events.get('chainChanged')(); await settle();
+    expect(button.textContent).toBe('Switch to Base');
+    expect(button.dataset.walletState).toBe('wrong-network');
+    accounts = ['0x1111111111111111111111111111111111111111'];
+    chain = '0x2105'; events.get('accountsChanged')(); await settle();
+    expect(button.textContent).toBe('0x1111…1111');
+    accounts = []; events.get('accountsChanged')(); await settle();
+    expect(button.textContent).toBe('Connect wallet');
+    expect(provider.request.mock.calls.every(([call]) => ['eth_accounts', 'eth_chainId'].includes(call.method))).toBe(true);
+  });
+
+  it("does not restore a stale account after a page disconnect", async () => {
+    const { initializeWalletNavigation } = await import("../../static/wallet.js");
+    document.body.innerHTML = '<a class="nav-wallet"><span data-wallet-label>Connect wallet</span></a>';
+    let resolveAccounts;
+    const provider = { request: vi.fn(() => new Promise(resolve => { resolveAccounts = resolve; })) };
+    Object.defineProperty(window, 'ethereum', { value: provider, configurable: true });
+    cleanups.push(initializeWalletNavigation(document.querySelector('.nav-wallet')));
+    document.dispatchEvent(new CustomEvent('reachsocial:wallet', { detail: {} }));
+    resolveAccounts([ADDRESS]); await settle();
+    expect(document.querySelector('.nav-wallet').textContent).toBe('Connect wallet');
+  });
+});

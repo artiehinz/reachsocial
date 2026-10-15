@@ -41,11 +41,12 @@ The existing local provider ledger was read without printing targets or keys:
 100-credit original cap, 33 conservative credits consumed, 38 recorded events.
 This is historical provider evidence, not a fresh account-wide balance check.
 
-The direct-MCP and standalone Firefox cases each consumed one $0.05 payment
-and one provider credit. The remaining batch may consume at most **$0.40 USDC and 18 provider
+The direct-MCP, standalone Firefox, Instagram-feed, and saved-highlight cases
+each consumed one $0.05 payment and one provider credit. The remaining batch
+may consume at most **$0.30 USDC and 16 provider
 credits**, bounded further by the original $2/100-credit allowance. Reconcile
 payment receipts before spending; count retries and failed charged calls. The
-eight remaining allocations are AgentCash and the seven
+six remaining allocations are AgentCash and the five
 additional services. Wallet signing remains local to the owner. No automatic
 top-ups.
 
@@ -66,7 +67,9 @@ and unpaid production evidence: [2026-10-15 client acceptance](unpaid-client-acc
 - [x] One bounded owner direct-MCP approval/payment/recovery and initial OAuth authorization. Independent client compatibility remains open.
 - [ ] One bounded AgentCash payment/recovery, preserving the original key.
 - [ ] Reconcile the six existing X/TikTok transfers and their observation evidence.
-- [ ] Stage A: Instagram feed/highlight paid acceptance, then 24-hour observation.
+- [x] Stage A: Instagram feed/highlight paid acceptance and recovery.
+  See [reconciled evidence](stage-a-acceptance-2026-10-15.md).
+- [ ] Stage A: 24-hour observation, not before 2026-10-16 21:03 UTC.
 - [ ] Stage B: YouTube channel/video/feed paid acceptance, then 24-hour observation.
 - [ ] Stage C: Facebook profile/Reddit post paid acceptance, then 24-hour observation.
 - [ ] Official MCP Registry domain HTTP verification and publication.

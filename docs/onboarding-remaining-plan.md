@@ -77,6 +77,13 @@ and recovery passed on 2026-10-15; see the same acceptance record.
 
 ## 3. Release the seven remaining social services
 
+Stage A payment and recovery passed on 2026-10-15; both Instagram services
+remain private pending observation. See [the evidence and next eligible review
+time](stage-a-acceptance-2026-10-15.md). The five later services also passed payment and repeated recovery in the
+[owner-authorized combined batch](combined-acceptance-2026-10-15.md). Reddit
+author mapping is fixed in the release-preparation change but still needs live
+verification; all seven remain private.
+
 Promote only services that pass their own acceptance:
 
 1. Instagram feed and saved highlights.
@@ -85,11 +92,12 @@ Promote only services that pass their own acceptance:
 
 For each stage, confirm costs and credit capacity, run one bounded paid request
 and recovery per service, verify the deployed catalog, then observe/reconcile for
-24 hours before advancing. Keep failed services private. Maintain one-page feed
+24 hours before public promotion. The owner waived the wait between private
+test stages for the combined batch. Keep failed services private. Maintain one-page feed
 bounds and truthful pagination/data limitations. LinkedIn, public Person News,
 and current Instagram stories remain on hold. AEU is unchanged.
 
-The current batch has $0.40 USDC and 18 provider credits remaining, further
+The current batch has $0.05 USDC and 11 provider credits remaining, further
 limited by the original $2 / 100-credit allowance. Do not double-count the owner
 MCP flow as a second browser purchase. Count charged failures and retries. Keep
 the 1,000-credit reserve, $5/day upstream ceiling, current request limits, and
@@ -117,3 +125,22 @@ without owner intervention; the direct REST path remains keyless. All 15 selecte
 services have paid acceptance and observation evidence. Documentation, costs,
 monitoring, restore evidence, and actual directory status agree. Until then,
 report individual completed gates instead of declaring the entire release done.
+
+## Release preparation after the combined batch
+
+| Services | Paid execution / recovery | Remaining public-release gate |
+| --- | --- | --- |
+| Instagram feed, saved highlights | Passed | Observation and final capacity/health review |
+| YouTube channel, video, feed | Passed | Observation and final capacity/health review |
+| Facebook profile | Passed | Observation and final capacity/health review |
+| Reddit post | Passed; attribution defect found | Deploy/verify author fix, then observation and final review |
+
+The website now distinguishes the eight live APIs from the seven private
+release candidates and records completed Firefox/MetaMask acceptance. API
+availability remains driven by `config/services.yaml`; no public flags have
+been changed. When each service clears its gate, update its `public` and
+`catalog_status` fields together, verify website/discovery agreement, deploy
+through GitHub CI, and check the exact production image and recovery behavior.
+AgentCash and Smithery compatibility are separate outstanding checks; the
+remaining $0.05 is reserved for AgentCash. Do not spend it on repeating a
+successful acceptance request.

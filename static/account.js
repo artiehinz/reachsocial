@@ -1,4 +1,4 @@
-import { collectWallets } from './wallet.js?v=20261014-4';
+import { collectWallets } from './wallet.js?v=20261015-3';
 import { responseError, walletError, requestLabel } from './self-service-ui.js';
 
 const root = document.querySelector('[data-account]');

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { beforeEach, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => ({ provider: { request: vi.fn() }, execute: vi.fn(), connect: vi.fn() }));
-vi.mock('../../static/wallet.js?v=20261014-4', () => ({ collectWallets: callback => callback(new Map([
+vi.mock('../../static/wallet.js?v=20261015-3', () => ({ collectWallets: callback => callback(new Map([
   ['wallet', { info: { name: 'Test wallet' }, provider: mocks.provider }],
 ])) }));
 vi.mock('../../static/reachsocial-client.js?v=20261015-2', () => ({ executeReachSocial: mocks.execute, connectBrowserWallet: mocks.connect }));

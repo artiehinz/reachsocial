@@ -89,6 +89,11 @@ not establish AgentCash, Smithery, or staged-service acceptance.
 
 ## Remaining owner acceptance
 
+Later the same day, Stage A consumed two more payments and credits. See
+[Stage A evidence](stage-a-acceptance-2026-10-15.md) for the current **$0.30 /
+16-credit remainder**, passed Instagram checks, and pending observation gate.
+The allocation below records the earlier post-Firefox checkpoint.
+
 After the Firefox payment, eight allocations remain: AgentCash and seven staged
 services, each capped at $0.05. The batch remainder is **$0.40 and 18 provider
 credits**, further bounded by the original release allowance.
